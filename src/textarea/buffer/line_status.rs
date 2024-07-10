@@ -1,6 +1,7 @@
-#[derive(Default, PartialEq)]
+#[derive(Default, PartialEq, Debug)]
 pub(crate) enum LineStatus {
     #[default]
     Normal,
-    Deleted,
+    Unmodified,
+    Dirty,
 }

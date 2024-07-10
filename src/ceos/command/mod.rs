@@ -1,23 +1,33 @@
+use std::fmt::Display;
+
+use log::{debug, warn};
+
+use crate::ceos::Ceos;
+use crate::ceos::command::filter::Filter;
+use crate::textarea::buffer::Buffer;
+use crate::textarea::renderer::Renderer;
+
 mod filter;
 
-use crate::ceos::command::filter::Filter;
-use crate::ceos::Ceos;
-use crate::textarea::buffer::Buffer;
-use log::warn;
-
 impl Ceos {
-    pub(crate) fn execute_command(&mut self, command: &str) {
-        warn!("Execute command {}", command);
-        if command.starts_with("filter ") {
-            let params = command.strip_prefix("filter ").unwrap();
-            let filter = Filter::from(params);
-            filter.execute(self.textarea.buffer_mut())
-        } else if command == "trim" {
-            self.textarea.buffer_mut().trim_deleted_lines();
+    pub(crate) fn try_command(&mut self) {
+        debug!("Try command {}", self.command_buffer);
+        if let Ok(command) = Filter::try_from(self.command_buffer.as_str()) {
+            debug!("Found command {}", command);
+            self.current_command = Some(Box::new(command));
         }
     }
 }
 
-pub(crate) trait Command {
+impl Ceos {
+    pub(crate) fn execute_command(&mut self) {
+        if let Some(command) = self.current_command.take() {
+            warn!("Execute command {}", command);
+            command.execute(&mut self.textarea.buffer_mut());
+        }
+    }
+}
+
+pub(crate) trait Command: Renderer + Display {
     fn execute(&self, buffer: &mut Buffer);
 }

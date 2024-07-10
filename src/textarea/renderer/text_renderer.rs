@@ -1,7 +1,8 @@
-use crate::textarea::renderer::Renderer;
-use crate::textarea::textarea::TextArea;
 use eframe::emath::Pos2;
 use egui::Ui;
+
+use crate::textarea::renderer::Renderer;
+use crate::textarea::textarea::TextArea;
 
 #[derive(Default)]
 pub(crate) struct TextRenderer;

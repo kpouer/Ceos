@@ -2,19 +2,21 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 
 use anyhow::Error;
 
+use crate::ceos::command::Command;
 use crate::event::Event;
 use crate::event::Event::BufferLoaded;
 use crate::textarea::buffer::Buffer;
 use crate::textarea::textarea::TextArea;
 
-mod command;
+pub(crate) mod command;
 mod gui;
 
 pub(crate) struct Ceos {
     textarea: TextArea,
     sender: Sender<Event>,
     receiver: Receiver<Event>,
-    command: String,
+    command_buffer: String,
+    current_command: Option<Box<dyn Command>>
 }
 
 impl Ceos {
@@ -32,7 +34,8 @@ impl Default for Ceos {
             sender: user_input_sender,
             receiver: user_input_receiver,
             textarea: Default::default(),
-            command: String::new(),
+            command_buffer: String::new(),
+            current_command: None,
         }
     }
 }

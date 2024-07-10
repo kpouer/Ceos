@@ -1,12 +1,14 @@
-use crate::ceos::Ceos;
-use crate::event::Event::BufferLoaded;
-use crate::textarea::buffer::Buffer;
+use std::thread;
+use std::time::Duration;
+
 use eframe::Frame;
 use egui::Context;
 use egui::Event::MouseWheel;
 use log::{info, warn};
-use std::thread;
-use std::time::Duration;
+
+use crate::ceos::Ceos;
+use crate::event::Event::BufferLoaded;
+use crate::textarea::buffer::Buffer;
 
 impl eframe::App for Ceos {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
@@ -17,16 +19,19 @@ impl eframe::App for Ceos {
         self.handle_input(ctx);
         self.build_menu_panel(ctx);
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.textarea.show(ui);
+            self.textarea.show(ui, &self.current_command);
         });
         egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
                     ui.label("Command: ");
-                    ui.add_sized(
+                    let response = ui.add_sized(
                         ui.available_size(),
-                        egui::TextEdit::singleline(&mut self.command),
+                        egui::TextEdit::singleline(&mut self.command_buffer),
                     );
+                    if response.changed() {
+                        self.try_command();
+                    }
                 });
                 ui.label(format!(
                     "Usage : {}, real: {}",
@@ -35,9 +40,8 @@ impl eframe::App for Ceos {
                 ));
             });
             if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                let command = self.command.clone();
-                self.execute_command(&command);
-                self.command.clear();
+                self.execute_command();
+                self.command_buffer.clear();
             }
         });
         ctx.request_repaint_after(Duration::from_millis(1000 / 60));

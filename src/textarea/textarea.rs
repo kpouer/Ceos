@@ -1,9 +1,12 @@
+use std::cmp;
+
+use log::info;
+
+use crate::ceos::command::Command;
 use crate::textarea::buffer::Buffer;
 use crate::textarea::buffer_properties::BufferProperties;
-use crate::textarea::renderer::text_renderer::TextRenderer;
 use crate::textarea::renderer::Renderer;
-use log::info;
-use std::cmp;
+use crate::textarea::renderer::text_renderer::TextRenderer;
 
 pub(crate) struct TextArea {
     buffer: Buffer,
@@ -92,13 +95,16 @@ impl From<Buffer> for TextArea {
 }
 
 impl TextArea {
-    pub(crate) fn show(&self, ui: &mut egui::Ui) {
+    pub(crate) fn show(&self, ui: &mut egui::Ui, filter_renderer: &Option<Box<dyn Command>>) {
         let rect = ui.max_rect();
         let max_screen_lines = (rect.height() / self.line_height).floor() as usize;
         let firstline = self.buffer_properties.first_line();
         let lastline = self.buffer.content().len();
         let mut pos = rect.left_top();
         for screenline in 0..cmp::min(max_screen_lines, lastline) {
+            if let Some(filter_renderer) = filter_renderer {
+                filter_renderer.paint_line(ui, self, screenline + firstline, pos);
+            }
             self.renderers
                 .iter()
                 .for_each(|r| r.paint_line(ui, self, screenline + firstline, pos));

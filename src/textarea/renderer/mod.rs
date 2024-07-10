@@ -1,6 +1,7 @@
-use crate::textarea::textarea::TextArea;
 use eframe::emath::Pos2;
 use egui::Ui;
+
+use crate::textarea::textarea::TextArea;
 
 pub(crate) mod text_renderer;
 

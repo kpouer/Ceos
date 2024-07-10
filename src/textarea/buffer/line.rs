@@ -1,6 +1,6 @@
 use crate::textarea::buffer::line_status::LineStatus;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct Line {
     content: String,
     status: LineStatus,
@@ -24,7 +24,7 @@ impl Line {
         &self.status
     }
 
-    pub(crate) fn set_deleted(&mut self) {
-        self.status = LineStatus::Deleted;
+    pub(crate) fn set_status(&mut self, line_status: LineStatus) {
+        self.status = line_status;
     }
 }

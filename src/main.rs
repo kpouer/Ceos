@@ -1,8 +1,8 @@
+use crate::ceos::Ceos;
+
 mod ceos;
 mod event;
 mod textarea;
-
-use crate::ceos::Ceos;
 
 const INITIAL_WIDTH: usize = 1024;
 const INITIAL_HEIGHT: usize = 768;

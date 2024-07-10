@@ -1,13 +1,15 @@
-pub(crate) mod line;
-mod line_status;
-
-use crate::textarea::buffer::line::Line;
-use crate::textarea::buffer::line_status::LineStatus;
-use anyhow::Error;
-use log::info;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
+
+use anyhow::Error;
+use log::info;
+
+use crate::textarea::buffer::line::Line;
+use crate::textarea::buffer::line_status::LineStatus;
+
+pub(crate) mod line;
+pub(crate) mod line_status;
 
 #[derive(Default)]
 pub(crate) struct Buffer {
@@ -70,8 +72,9 @@ impl Buffer {
             .sum();
     }
 
-    pub(crate) fn compute_total_length(&mut self) {
+    pub(crate) fn compute_total_length(&mut self) -> usize {
         self.total_length = self.content.iter().map(|line| line.content().len()).sum();
+        self.total_length
     }
 
     pub fn content(&self) -> &Vec<Line> {
