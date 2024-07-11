@@ -19,6 +19,10 @@ impl Line {
     pub(crate) fn content(&self) -> &str {
         &self.content
     }
+    
+    pub(crate) fn content_mut(&mut self) -> &mut String {
+        &mut self.content
+    }
 
     pub(crate) fn status(&self) -> &LineStatus {
         &self.status

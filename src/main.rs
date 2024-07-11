@@ -16,7 +16,7 @@ fn main() -> anyhow::Result<()> {
         ..Default::default()
     };
     // thread::spawn(move|| run_loop(image_data_sender, interaction_receiver));
-    eframe::run_native(
+    let _ = eframe::run_native(
         "Ceos",
         native_options,
         Box::new(|_cc| Ok(Box::<Ceos>::default())),

@@ -3,11 +3,13 @@ use std::fmt::Display;
 use log::{debug, warn};
 
 use crate::ceos::Ceos;
+use crate::ceos::command::column::ColumnFilter;
 use crate::ceos::command::filter::Filter;
 use crate::textarea::buffer::Buffer;
 use crate::textarea::renderer::Renderer;
 
 mod filter;
+mod column;
 
 impl Ceos {
     pub(crate) fn try_command(&mut self) {
@@ -15,6 +17,11 @@ impl Ceos {
         if let Ok(command) = Filter::try_from(self.command_buffer.as_str()) {
             debug!("Found command {}", command);
             self.current_command = Some(Box::new(command));
+        } else if let Ok(command) = ColumnFilter::try_from(self.command_buffer.as_str()) {
+            debug!("Found command {}", command);
+            self.current_command = Some(Box::new(command));
+        } else {
+            self.current_command = None;
         }
     }
 }

@@ -1,5 +1,5 @@
 use std::cmp;
-
+use eframe::epaint::FontId;
 use log::info;
 
 use crate::ceos::command::Command;
@@ -8,26 +8,37 @@ use crate::textarea::buffer_properties::BufferProperties;
 use crate::textarea::renderer::Renderer;
 use crate::textarea::renderer::text_renderer::TextRenderer;
 
+const DEFAULT_LINE_HEIGHT: f32 = 16.0;
+
 pub(crate) struct TextArea {
     buffer: Buffer,
     buffer_properties: BufferProperties,
     renderers: Vec<Box<dyn Renderer>>,
     line_height: f32,
+    font_id: FontId,
 }
 
 impl Default for TextArea {
     fn default() -> Self {
-        let renderers: Vec<Box<dyn Renderer>> = vec![Box::new(TextRenderer::default())];
+        let font_id = egui::FontId::new(DEFAULT_LINE_HEIGHT, egui::FontFamily::Monospace);
+        let renderers: Vec<Box<dyn Renderer>> = vec![
+            Box::new(TextRenderer::from(font_id.clone())),
+        ];
         Self {
             buffer: Default::default(),
             buffer_properties: Default::default(),
             renderers,
-            line_height: 16.0,
+            line_height: DEFAULT_LINE_HEIGHT,
+            font_id,
         }
     }
 }
 
 impl TextArea {
+    pub(crate) fn font_id(&self) -> &FontId {
+        &self.font_id
+    }
+    
     pub(crate) fn set_buffer(&mut self, buffer: Buffer) {
         self.buffer = buffer
     }
