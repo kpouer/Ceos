@@ -24,9 +24,7 @@ impl Ceos {
             self.current_command = None;
         }
     }
-}
 
-impl Ceos {
     pub(crate) fn execute_command(&mut self) {
         if let Some(command) = self.current_command.take() {
             warn!("Execute command {}", command);

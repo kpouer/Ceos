@@ -11,12 +11,23 @@ use crate::textarea::buffer::line_status::LineStatus;
 pub(crate) mod line;
 pub(crate) mod line_status;
 
-#[derive(Default)]
 pub(crate) struct Buffer {
     path: String,
     content: Vec<Line>,
     length: usize,
     total_length: usize,
+}
+
+impl Default for Buffer {
+    fn default() -> Self {
+        let text = "Welcome to Ceos";
+        Self {
+            path: String::new(),
+            content: vec![text.into()],
+            length: text.len(),
+            total_length: text.len(),
+        }
+    }
 }
 
 impl TryFrom<String> for Buffer {
@@ -43,6 +54,14 @@ impl TryFrom<String> for Buffer {
 }
 
 impl Buffer {
+    pub(crate) fn line_text(&self, line: usize) -> &str {
+        &self.content[line].content()
+    }
+
+    pub(crate) fn line_count(&self) -> usize {
+        self.content.len()
+    }
+
     pub(crate) fn length(&self) -> usize {
         self.length
     }
@@ -56,6 +75,14 @@ impl Buffer {
         self.content
             .retain(|line| line.status() == &LineStatus::Normal);
         self.compute_total_length();
+    }
+    
+    pub(crate) fn max_line_length(&self) -> usize {
+        self.content
+            .iter()
+            .map(|line| line.content().len())
+            .max()
+            .unwrap_or(0)
     }
 
     pub(crate) fn compute_lengths(&mut self) {
@@ -87,6 +114,12 @@ impl Buffer {
 
     pub(crate) fn deleted_line(&mut self, length: usize) {
         self.length -= length;
+    }
+
+    pub(crate) fn longuest_line(&self) -> Option<&Line> {
+       self.content
+            .iter()
+            .max_by_key(|line| line.content().len())
     }
 }
 

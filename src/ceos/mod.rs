@@ -1,22 +1,23 @@
 use std::sync::mpsc::{channel, Receiver, Sender};
 
-use anyhow::Error;
-
 use crate::ceos::command::Command;
+use crate::ceos::gui::frame_history::FrameHistory;
 use crate::event::Event;
 use crate::event::Event::BufferLoaded;
 use crate::textarea::buffer::Buffer;
-use crate::textarea::textarea::TextArea;
+use crate::textarea::textareaproperties::TextAreaProperties;
+use anyhow::Error;
 
 pub(crate) mod command;
-mod gui;
+pub(crate) mod gui;
 
 pub(crate) struct Ceos {
-    textarea: TextArea,
+    textarea: TextAreaProperties,
     sender: Sender<Event>,
     receiver: Receiver<Event>,
     command_buffer: String,
-    current_command: Option<Box<dyn Command>>
+    current_command: Option<Box<dyn Command>>,
+    frame_history: FrameHistory,
 }
 
 impl Ceos {
@@ -36,6 +37,7 @@ impl Default for Ceos {
             textarea: Default::default(),
             command_buffer: String::new(),
             current_command: None,
+            frame_history: Default::default(),
         }
     }
 }

@@ -10,7 +10,7 @@ use crate::textarea::buffer::Buffer;
 use crate::textarea::buffer::line::Line;
 use crate::textarea::buffer::line_status::LineStatus;
 use crate::textarea::renderer::Renderer;
-use crate::textarea::textarea::TextArea;
+use crate::textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) struct Filter {
     command: String,
@@ -35,13 +35,13 @@ impl TryFrom<&str> for Filter {
 }
 
 impl Renderer for Filter {
-    fn paint_line(&self, ui: &mut Ui, textarea: &TextArea, line: usize, pos: Pos2) {
+    fn paint_line(&self, ui: &mut Ui, textarea: &TextAreaProperties, line: usize, _: Pos2, drawing_pos: Pos2) {
         let line = &textarea
             .buffer()
             .content()[line];
         if self.accept(line) {
-            let bottom_right = Pos2::new(ui.max_rect().max.x, pos.y + textarea.line_height());
-            let line_rect = Rect::from_min_max(pos, bottom_right);
+            let bottom_right = Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea.line_height());
+            let line_rect = Rect::from_min_max(drawing_pos, bottom_right);
             let painter = ui.painter();
             painter.rect(line_rect, 0.0, Color32::RED, Stroke::default());
         }

@@ -15,6 +15,12 @@ impl From<String> for Line {
     }
 }
 
+impl From<&str> for Line {
+    fn from(content: &str) -> Self {
+        Self::from(content.to_string())
+    }
+}
+
 impl Line {
     pub(crate) fn content(&self) -> &str {
         &self.content

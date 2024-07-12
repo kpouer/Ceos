@@ -5,10 +5,11 @@ use eframe::epaint::{Color32, Stroke};
 use egui::Ui;
 use log::info;
 use crate::ceos::command::Command;
+use crate::ceos::gui::tools;
 use crate::textarea::buffer::Buffer;
 use crate::textarea::buffer::line::Line;
 use crate::textarea::renderer::Renderer;
-use crate::textarea::textarea::TextArea;
+use crate::textarea::textareaproperties::TextAreaProperties;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct ColumnFilter {
@@ -48,13 +49,11 @@ impl TryFrom<&str> for ColumnFilter {
 }
 
 impl Renderer for ColumnFilter {
-    fn paint_line(&self, ui: &mut Ui, textarea: &TextArea, _: usize, pos: Pos2) {
-        let painter = ui.painter();
-        let layout = painter.layout("A".to_string(), textarea.font_id().clone(), Color32::RED, 0f32);
-        let char_width = layout.size().x;
+    fn paint_line(&self, ui: &mut Ui, textarea: &TextAreaProperties, _: usize, _: Pos2, drawing_pos: Pos2) {
+        let char_width = tools::char_width(textarea.font_id().clone(), ui);
         let end_x = if self.end.is_some() { self.end.unwrap() as f32 * char_width } else { ui.max_rect().width() };
-        let top_left = Pos2::new(pos.x + self.start as f32 * char_width, pos.y);
-        let bottom_right = Pos2::new(pos.x +end_x, pos.y + textarea.line_height());
+        let top_left = Pos2::new(drawing_pos.x + self.start as f32 * char_width, drawing_pos.y);
+        let bottom_right = Pos2::new(drawing_pos.x +end_x, drawing_pos.y + textarea.line_height());
         let line_rect = Rect::from_min_max(top_left, bottom_right);
         let painter = ui.painter();
         painter.rect(line_rect, 0.0, Color32::RED, Stroke::default());

@@ -2,7 +2,7 @@ use eframe::emath::Pos2;
 use egui::{FontId, Ui};
 
 use crate::textarea::renderer::Renderer;
-use crate::textarea::textarea::TextArea;
+use crate::textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) struct TextRenderer {
     font_id: FontId,
@@ -15,26 +15,29 @@ impl From<FontId> for TextRenderer {
 }
 
 impl Renderer for TextRenderer {
-    fn paint_line(&self, ui: &mut Ui, textarea: &TextArea, line: usize, pos: Pos2) {
-        let text = textarea.buffer().content()[line].content();
-        if text.is_empty() {
-            return;
-        }
-        let horizontal_offset = textarea.horizontal_offset();
-        if horizontal_offset >= text.len() {
+    fn paint_line(
+        &self,
+        ui: &mut Ui,
+        textarea: &TextAreaProperties,
+        line: usize,
+        virtual_pos: Pos2,
+        drawing_pos: Pos2,
+    ) {
+        let text = textarea.buffer().line_text(line);
+        if text.trim().is_empty() {
             return;
         }
         //because some chars are 2 bytes
-        let start = text
+        let start_column = textarea.offset_x_to_column(virtual_pos.x);
+        let column = text
             .char_indices()
             .map(|(i, _)| i)
-            .nth(horizontal_offset)
-            .unwrap();
-
-        let text = &text[start..];
+            .nth(start_column)
+            .unwrap_or(0);
+        let text = &text[column..];
         let painter = ui.painter();
         painter.text(
-            pos,
+            drawing_pos,
             egui::Align2::LEFT_TOP,
             text,
             self.font_id.clone(),
