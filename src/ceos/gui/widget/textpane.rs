@@ -4,7 +4,7 @@ use egui::{Response, Ui, Widget};
 use crate::ceos::command::Command;
 use crate::ceos::gui::widget::gutter::Gutter;
 use crate::ceos::gui::widget::textarea::TextArea;
-use crate::textarea::textareaproperties::{TextAreaProperties, DEFAULT_LINE_HEIGHT};
+use crate::textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) struct TextPane<'a> {
     textarea_properties: &'a mut TextAreaProperties,
@@ -24,7 +24,7 @@ impl<'a> TextPane<'a> {
 }
 
 impl Widget for TextPane<'_> {
-    fn ui(mut self, ui: &mut Ui) -> Response {
+    fn ui(self, ui: &mut Ui) -> Response {
         let rect = ui.max_rect().size();
         let scroll_offset = ui.horizontal_top(|ui| {
             let gutter_width = self.textarea_properties.gutter_width();
@@ -35,15 +35,15 @@ impl Widget for TextPane<'_> {
                 .scroll_bar_visibility(AlwaysHidden)
                 .vertical_scroll_offset(self.textarea_properties.scroll_offset().y)
                 .show_viewport(ui, |ui, rect| {
-                    Gutter::new(&self.textarea_properties, rect).ui(ui);
+                    Gutter::new(self.textarea_properties, rect).ui(ui);
                 });
             let scroll_result_textarea = egui::ScrollArea::both()
                 .id_source("textarea")
                 .auto_shrink(false)
-                .scroll_offset(self.textarea_properties.scroll_offset().clone())
+                .scroll_offset(*self.textarea_properties.scroll_offset())
                 // .max_width(self.textarea_properties.text_width())
                 .show_viewport(ui, |ui, rect| {
-                    TextArea::new(&self.textarea_properties, &self.current_command, rect).ui(ui)
+                    TextArea::new(self.textarea_properties, self.current_command, rect).ui(ui)
                 });
 
             let mut offset = scroll_result_textarea.state.offset;
@@ -65,17 +65,4 @@ impl Widget for TextPane<'_> {
         let (_, response) = ui.allocate_exact_size(rect, egui::Sense::click_and_drag());
         response
     }
-}
-
-impl TextPane<'_> {
-    pub(crate) fn offset_y_to_line(&self, y: f32) -> usize {
-        if y >= 0.0 {
-            return 0;
-        }
-        -(y / DEFAULT_LINE_HEIGHT) as usize
-    }
-}
-
-struct TextAreaResponse {
-    vertical_offset: f32,
 }

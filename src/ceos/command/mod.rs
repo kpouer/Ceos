@@ -2,14 +2,14 @@ use std::fmt::Display;
 
 use log::{debug, warn};
 
-use crate::ceos::Ceos;
 use crate::ceos::command::column::ColumnFilter;
 use crate::ceos::command::filter::Filter;
+use crate::ceos::Ceos;
 use crate::textarea::buffer::Buffer;
 use crate::textarea::renderer::Renderer;
 
-mod filter;
 mod column;
+mod filter;
 
 impl Ceos {
     pub(crate) fn try_command(&mut self) {
@@ -28,7 +28,7 @@ impl Ceos {
     pub(crate) fn execute_command(&mut self) {
         if let Some(command) = self.current_command.take() {
             warn!("Execute command {}", command);
-            command.execute(&mut self.textarea.buffer_mut());
+            command.execute(self.textarea.buffer_mut());
         }
     }
 }

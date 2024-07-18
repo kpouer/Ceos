@@ -3,10 +3,8 @@ use std::io::{self, BufRead};
 use std::path::Path;
 
 use anyhow::Error;
-use log::info;
 
 use crate::textarea::buffer::line::Line;
-use crate::textarea::buffer::line_status::LineStatus;
 
 pub(crate) mod line;
 pub(crate) mod line_status;
@@ -55,7 +53,7 @@ impl TryFrom<String> for Buffer {
 
 impl Buffer {
     pub(crate) fn line_text(&self, line: usize) -> &str {
-        &self.content[line].content()
+        self.content[line].content()
     }
 
     pub(crate) fn line_count(&self) -> usize {
@@ -70,33 +68,12 @@ impl Buffer {
         self.total_length
     }
 
-    pub(crate) fn trim_deleted_lines(&mut self) {
-        info!("Trim deleted lines");
-        self.content
-            .retain(|line| line.status() == &LineStatus::Normal);
-        self.compute_total_length();
-    }
-    
     pub(crate) fn max_line_length(&self) -> usize {
         self.content
             .iter()
             .map(|line| line.content().len())
             .max()
             .unwrap_or(0)
-    }
-
-    pub(crate) fn compute_lengths(&mut self) {
-        self.compute_length();
-        self.compute_total_length();
-    }
-
-    pub(crate) fn compute_length(&mut self) {
-        self.length = self
-            .content
-            .iter()
-            .filter(|line| line.status() == &LineStatus::Normal)
-            .map(|line| line.content().len())
-            .sum();
     }
 
     pub(crate) fn compute_total_length(&mut self) -> usize {
@@ -110,16 +87,6 @@ impl Buffer {
 
     pub fn content_mut(&mut self) -> &mut Vec<Line> {
         &mut self.content
-    }
-
-    pub(crate) fn deleted_line(&mut self, length: usize) {
-        self.length -= length;
-    }
-
-    pub(crate) fn longuest_line(&self) -> Option<&Line> {
-       self.content
-            .iter()
-            .max_by_key(|line| line.content().len())
     }
 }
 

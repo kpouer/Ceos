@@ -1,3 +1,3 @@
-pub(crate) mod textpane;
 pub(crate) mod gutter;
 mod textarea;
+pub(crate) mod textpane;

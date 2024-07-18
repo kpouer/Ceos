@@ -26,17 +26,14 @@ impl<'a> TextArea<'a> {
 impl Widget for TextArea<'_> {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         ui.set_height(self.textarea_properties.text_height());
-        let max_rect = ui.max_rect();
-        let clip_rect = ui.clip_rect();
-
-        let mut drawing_pos = Pos2::new(max_rect.left(), clip_rect.top());
+        let mut drawing_pos = Pos2::new(ui.max_rect().left(), ui.clip_rect().top());
         let mut virtual_pos = self.rect.left_top();
         let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
         for line in row_range {
             if let Some(filter_renderer) = &self.current_command {
                 filter_renderer.paint_line(
                     ui,
-                    &self.textarea_properties,
+                    self.textarea_properties,
                     line,
                     virtual_pos,
                     drawing_pos,
@@ -44,13 +41,7 @@ impl Widget for TextArea<'_> {
             }
 
             self.textarea_properties.renderers().iter().for_each(|r| {
-                r.paint_line(
-                    ui,
-                    &self.textarea_properties,
-                    line,
-                    virtual_pos,
-                    drawing_pos,
-                )
+                r.paint_line(ui, self.textarea_properties, line, virtual_pos, drawing_pos)
             });
 
             // self.gutter.paint_line(ui, self, line, Pos2::new(max_rect.left_top().x, pos.y));

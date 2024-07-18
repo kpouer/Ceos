@@ -24,18 +24,3 @@ fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
-
-// fn run_loop(image_data_sender: Sender<ImageData>, interaction_receiver: Receiver<Interaction>) {
-//     static DEFAULT_SLEEP: Duration = Duration::from_millis(100);
-//     let params = Params::from(DEFAULT_FRACTAL);
-//     let mut fractal_renderer = FractalRenderer::new(INITIAL_WIDTH, INITIAL_HEIGHT, params);
-//     loop {
-//         let start = std::time::Instant::now();
-//         let image = fractal_renderer.compute_and_build_image();
-//         image_data_sender.send(image).unwrap();
-//         let elapsed = start.elapsed();
-//         if elapsed > DEFAULT_SLEEP {
-//             sleep(DEFAULT_SLEEP - elapsed);
-//         }
-//     }
-// }

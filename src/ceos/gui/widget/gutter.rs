@@ -21,30 +21,19 @@ impl<'a> Gutter<'a> {
 
 impl Widget for Gutter<'_> {
     fn ui(self, ui: &mut Ui) -> Response {
-        let mut max_rect = ui.max_rect();
-        let painter = ui.painter();
         let gutter_width = self.textarea_properties.gutter_width();
-        max_rect.set_width(gutter_width);
         let mut gutter_rect = ui.clip_rect();
         gutter_rect.set_width(gutter_width);
+        let painter = ui.painter();
         painter.rect(gutter_rect, 0.0, Color32::LIGHT_GRAY, Stroke::NONE);
         let mut pos = gutter_rect.right_top();
-        let initial_x = pos.x;
         pos.x -= self.textarea_properties.char_width();
-        let painter = ui.painter();
         let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
         for line in row_range {
-            let line_number = line + 1;
-            let text_width =
-                (1 + line_number.ilog10()) as f32 * self.textarea_properties.char_width();
-            // pos.x = initial_x + gutter_width - self.textarea_properties.char_width() - text_width;
-            if line % 10 == 0 {
-                println!("{line_number} text_width {text_width} posx {}", pos.x);
-            }
             painter.text(
                 pos,
                 egui::Align2::RIGHT_TOP,
-                format!("{}", line_number),
+                format!("{}", line + 1),
                 self.textarea_properties.font_id().clone(),
                 ui.visuals().text_color(),
             );
