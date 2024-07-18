@@ -29,7 +29,7 @@ impl Widget for Gutter<'_> {
         let mut pos = gutter_rect.right_top();
         pos.x -= self.textarea_properties.char_width();
         let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
-        for line in row_range {
+        row_range.into_iter().for_each(|line| {
             painter.text(
                 pos,
                 egui::Align2::RIGHT_TOP,
@@ -38,7 +38,7 @@ impl Widget for Gutter<'_> {
                 ui.visuals().text_color(),
             );
             pos.y += self.textarea_properties.line_height();
-        }
+        });
 
         let size = Vec2::new(gutter_width, self.textarea_properties.text_height());
         let (_, response) = ui.allocate_exact_size(size, egui::Sense::click_and_drag());

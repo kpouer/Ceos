@@ -17,18 +17,18 @@ pub(crate) struct ColumnFilter {
     end: Option<usize>,
 }
 
-const SEPARATOR: &str = ":";
+const SEPARATOR: &str = "..";
 
 impl TryFrom<&str> for ColumnFilter {
     type Error = String;
 
     fn try_from(command: &str) -> Result<Self, Self::Error> {
-        if let Some(stripped) = command.strip_prefix(":") {
+        if let Some(stripped) = command.strip_prefix(SEPARATOR) {
             let end = stripped.parse::<usize>().ok();
             if end.is_some() {
                 return Ok(ColumnFilter { start: 0, end });
             }
-        } else if let Some(stripped) = command.strip_suffix(":") {
+        } else if let Some(stripped) = command.strip_suffix(SEPARATOR) {
             if let Ok(start) = stripped.parse::<usize>() {
                 return Ok(ColumnFilter { start, end: None });
             }

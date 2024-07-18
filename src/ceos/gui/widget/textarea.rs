@@ -29,7 +29,7 @@ impl Widget for TextArea<'_> {
         let mut drawing_pos = Pos2::new(ui.max_rect().left(), ui.clip_rect().top());
         let mut virtual_pos = self.rect.left_top();
         let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
-        for line in row_range {
+        row_range.into_iter().for_each(|line| {
             if let Some(filter_renderer) = &self.current_command {
                 filter_renderer.paint_line(
                     ui,
@@ -44,10 +44,9 @@ impl Widget for TextArea<'_> {
                 r.paint_line(ui, self.textarea_properties, line, virtual_pos, drawing_pos)
             });
 
-            // self.gutter.paint_line(ui, self, line, Pos2::new(max_rect.left_top().x, pos.y));
             drawing_pos.y += self.textarea_properties.line_height();
             virtual_pos.y += self.textarea_properties.line_height();
-        }
+        });
 
         let text_bounds = self.textarea_properties.text_bounds();
         let (_, response) = ui.allocate_exact_size(text_bounds, egui::Sense::click_and_drag());

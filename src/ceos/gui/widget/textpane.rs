@@ -26,42 +26,38 @@ impl<'a> TextPane<'a> {
 impl Widget for TextPane<'_> {
     fn ui(self, ui: &mut Ui) -> Response {
         let rect = ui.max_rect().size();
-        let scroll_offset = ui.horizontal_top(|ui| {
+        let new_scroll_offset = ui.horizontal_top(|ui| {
             let gutter_width = self.textarea_properties.gutter_width();
+            let current_scroll_offset = self.textarea_properties.scroll_offset();
             let scroll_result_gutter = egui::ScrollArea::vertical()
                 .id_source("gutter")
                 .auto_shrink(false)
                 .max_width(gutter_width)
                 .scroll_bar_visibility(AlwaysHidden)
-                .vertical_scroll_offset(self.textarea_properties.scroll_offset().y)
+                .vertical_scroll_offset(current_scroll_offset.y)
                 .show_viewport(ui, |ui, rect| {
                     Gutter::new(self.textarea_properties, rect).ui(ui);
                 });
             let scroll_result_textarea = egui::ScrollArea::both()
                 .id_source("textarea")
                 .auto_shrink(false)
-                .scroll_offset(*self.textarea_properties.scroll_offset())
-                // .max_width(self.textarea_properties.text_width())
+                .scroll_offset(*current_scroll_offset)
                 .show_viewport(ui, |ui, rect| {
                     TextArea::new(self.textarea_properties, self.current_command, rect).ui(ui)
                 });
 
             let mut offset = scroll_result_textarea.state.offset;
-            offset.y = if scroll_result_gutter.state.offset.y
-                != self.textarea_properties.scroll_offset().y
-            {
+            offset.y = if scroll_result_gutter.state.offset.y != current_scroll_offset.y {
                 scroll_result_gutter.state.offset.y
-            } else if scroll_result_textarea.state.offset.y
-                != self.textarea_properties.scroll_offset().y
-            {
+            } else if scroll_result_textarea.state.offset.y != current_scroll_offset.y {
                 scroll_result_textarea.state.offset.y
             } else {
-                self.textarea_properties.scroll_offset().y
+                current_scroll_offset.y
             };
             offset
         });
         self.textarea_properties
-            .set_scroll_offset(scroll_offset.inner);
+            .set_scroll_offset(new_scroll_offset.inner);
         let (_, response) = ui.allocate_exact_size(rect, egui::Sense::click_and_drag());
         response
     }
