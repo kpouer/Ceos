@@ -1,8 +1,9 @@
-use std::thread;
-
 use eframe::Frame;
 use egui::{Context, Widget};
 use log::{info, warn};
+use std::fs::File;
+use std::io::{LineWriter, Write};
+use std::{io, thread};
 
 use crate::ceos::gui::widget::textpane::TextPane;
 use crate::ceos::Ceos;
@@ -45,6 +46,9 @@ impl Ceos {
                 ui.menu_button("File", |ui| {
                     if ui.button("Open...").clicked() {
                         self.open_file();
+                    }
+                    if ui.button("Save").clicked() {
+                        self.save_file();
                     }
                     if ui.button("Close").clicked() {
                         self.sender
@@ -89,7 +93,7 @@ impl Ceos {
     }
 
     fn open_file(&self) {
-        warn!("Open file");
+        info!("Open file");
         let sender = self.sender.clone();
         thread::spawn(move || {
             if let Some(path) = rfd::FileDialog::new().set_directory("./").pick_file() {
@@ -101,6 +105,24 @@ impl Ceos {
                 }
             }
         });
+    }
+
+    fn save_file(&self) {
+        info!("save_file");
+        let path = self.textarea.buffer().path();
+        if !path.is_empty() {
+            let file = File::create(path).unwrap();
+            let mut file = LineWriter::new(file);
+            self.textarea
+                .buffer()
+                .content()
+                .iter()
+                .map(|line| line.content())
+                .for_each(|line| {
+                    file.write_all(line.as_bytes());
+                    file.write_all(b"\n");
+                })
+        }
     }
 
     fn handle_input(&mut self, _: &Context) {
