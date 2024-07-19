@@ -13,14 +13,7 @@ mod buffer;
 mod direct;
 
 impl Ceos {
-    pub(crate) fn try_command(&mut self) {
-        debug!("Try command {}", self.command_buffer);
-        if !self.try_filter_command() {
-            self.try_direct_command();
-        }
-    }
-
-    fn try_filter_command(&mut self) -> bool {
+    pub(crate) fn try_filter_command(&mut self) {
         let command_str = self.command_buffer.as_str();
         if let Ok(command) = LineFilter::try_from(command_str) {
             self.current_command = Some(Box::new(command));
@@ -33,7 +26,6 @@ impl Ceos {
         if let Some(command) = &self.current_command {
             debug!("Found command {}", command);
         }
-        self.current_command.is_some()
     }
 
     fn try_direct_command(&mut self) {
@@ -46,6 +38,8 @@ impl Ceos {
         if let Some(command) = self.current_command.take() {
             warn!("Execute command {}", command);
             command.execute(self.textarea.buffer_mut());
+        } else {
+            self.try_direct_command();
         }
     }
 }

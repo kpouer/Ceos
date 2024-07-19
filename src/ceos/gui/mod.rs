@@ -79,7 +79,7 @@ impl Ceos {
                         memory.request_focus(response.id);
                     });
                     if response.changed() {
-                        self.try_command();
+                        self.try_filter_command();
                     }
                 });
                 ui.label(format!("Length: {}", self.textarea.buffer().len(),));
