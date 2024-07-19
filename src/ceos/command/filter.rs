@@ -65,7 +65,7 @@ impl Command for Filter {
             .content_mut()
             .iter_mut()
             .for_each(|line| line.set_status(LineStatus::Normal));
-        let new_length = buffer.compute_total_length();
+        let new_length = buffer.compute_length();
         info!(
             "Applied filter '{}' removed {} lines, new length {new_length}",
             self.command,
@@ -77,5 +77,25 @@ impl Command for Filter {
 impl Display for Filter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Filter '{}'", self.command)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_filter() -> anyhow::Result<(), String> {
+        let filter = Filter::try_from("filter delete")?;
+        let content = "1 delete me\n\
+        2 keep me\n\
+        3 delete me\n\
+        4 keep me\n";
+        let mut buffer = Buffer::new_from_text(content);
+        assert_eq!(content.len(), buffer.len());
+        assert_eq!(4, buffer.line_count());
+        filter.execute(&mut buffer);
+        assert_eq!(2, buffer.line_count());
+        Ok(())
     }
 }

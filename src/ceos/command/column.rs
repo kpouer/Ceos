@@ -1,3 +1,4 @@
+use std::cmp;
 use std::fmt::Display;
 
 use crate::ceos::command::Command;
@@ -88,11 +89,7 @@ impl Command for ColumnFilter {
             .iter_mut()
             .for_each(|line| self.apply_to_line(line));
 
-        buffer
-            .content_mut()
-            .iter_mut()
-            .for_each(|line| self.apply_to_line(line));
-        let new_length = buffer.compute_total_length();
+        let new_length = buffer.compute_length();
         info!(
             "Applied filter removed {} lines, new length {new_length}",
             line_count - buffer.content().len()
@@ -103,8 +100,13 @@ impl Command for ColumnFilter {
 impl ColumnFilter {
     pub(crate) fn apply_to_line(&self, line: &mut Line) {
         let content = line.content_mut();
-        if self.end.is_some() {
-            content.drain(self.start..self.end.unwrap());
+        if self.start >= content.len() {
+            return;
+        }
+
+        if let Some(end) = self.end {
+            println!("content {content}, start {}, end {end}", self.start);
+            content.drain(self.start..cmp::min(content.len(), end));
         } else {
             content.drain(self.start..);
         }
@@ -123,7 +125,7 @@ mod tests {
 
     #[test]
     fn test_try_from() -> anyhow::Result<(), String> {
-        let result = ColumnFilter::try_from("3:22")?;
+        let result = ColumnFilter::try_from("3..22")?;
         assert_eq!(
             ColumnFilter {
                 start: 3,
@@ -136,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_try_from_leading() -> anyhow::Result<(), String> {
-        let result = ColumnFilter::try_from(":22")?;
+        let result = ColumnFilter::try_from("..22")?;
         assert_eq!(
             ColumnFilter {
                 start: 0,
@@ -149,7 +151,7 @@ mod tests {
 
     #[test]
     fn test_try_from_trailing() -> anyhow::Result<(), String> {
-        let result = ColumnFilter::try_from("3:")?;
+        let result = ColumnFilter::try_from("3..")?;
         assert_eq!(
             ColumnFilter {
                 start: 3,
@@ -162,8 +164,50 @@ mod tests {
 
     #[test]
     fn test_try_from_invalid() -> anyhow::Result<(), String> {
-        let result = ColumnFilter::try_from("33:22").is_err();
-        assert!(result);
+        assert!(ColumnFilter::try_from("33..22").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_filter_line_prefix() -> anyhow::Result<(), String> {
+        let filter = ColumnFilter::try_from("..2")?;
+        let mut line = Line::from("1 delete me");
+        filter.apply_to_line(&mut line);
+        assert_eq!("delete me", line.content());
+        Ok(())
+    }
+
+    #[test]
+    fn test_filter_line_prefix_short() -> anyhow::Result<(), String> {
+        let filter = ColumnFilter::try_from("..2")?;
+        let mut line = Line::from("1");
+        filter.apply_to_line(&mut line);
+        assert!(line.content().is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn test_filter_line_prefix_empty() -> anyhow::Result<(), String> {
+        let filter = ColumnFilter::try_from("..2")?;
+        let mut line = Line::from("");
+        filter.apply_to_line(&mut line);
+        assert!(line.content().is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn test_filter() -> anyhow::Result<(), String> {
+        let filter = ColumnFilter::try_from("..2")?;
+        let content = "1 delete me\n\
+        2 keep me\n\
+        \n\
+        3 delete me\n\
+        4 keep me\n";
+        let mut buffer = Buffer::new_from_text(content);
+        assert_eq!(content.len(), buffer.len());
+        assert_eq!(5, buffer.line_count());
+        filter.execute(&mut buffer);
+        assert_eq!(content.len() - 8, buffer.len());
         Ok(())
     }
 }

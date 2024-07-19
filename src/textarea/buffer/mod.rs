@@ -13,18 +13,12 @@ pub(crate) struct Buffer {
     path: String,
     content: Vec<Line>,
     length: usize,
-    total_length: usize,
 }
 
 impl Default for Buffer {
     fn default() -> Self {
         let text = "Welcome to Ceos";
-        Self {
-            path: String::new(),
-            content: vec![text.into()],
-            length: text.len(),
-            total_length: text.len(),
-        }
+        Self::new_from_text(text)
     }
 }
 
@@ -46,12 +40,31 @@ impl TryFrom<String> for Buffer {
             path,
             content,
             length,
-            total_length: length,
         })
     }
 }
 
 impl Buffer {
+    pub(crate) fn new_from_text(text: &str) -> Self {
+        let lines_iterator = text.lines();
+        let mut content = Vec::with_capacity(lines_iterator.size_hint().0);
+        lines_iterator.into_iter().for_each(|line| {
+            content.push(Line::from(line));
+        });
+
+        let mut buffer = Self {
+            path: String::new(),
+            content,
+            length: 0,
+        };
+        buffer.compute_length();
+        buffer
+    }
+
+    pub(crate) fn path(&self) -> &str {
+        &self.path
+    }
+
     pub(crate) fn line_text(&self, line: usize) -> &str {
         self.content[line].content()
     }
@@ -60,12 +73,8 @@ impl Buffer {
         self.content.len()
     }
 
-    pub(crate) fn length(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.length
-    }
-
-    pub(crate) fn total_length(&self) -> usize {
-        self.total_length
     }
 
     pub(crate) fn max_line_length(&self) -> usize {
@@ -76,9 +85,10 @@ impl Buffer {
             .unwrap_or(0)
     }
 
-    pub(crate) fn compute_total_length(&mut self) -> usize {
-        self.total_length = self.content.iter().map(|line| line.content().len()).sum();
-        self.total_length
+    pub(crate) fn compute_length(&mut self) -> usize {
+        self.length = self.content.iter().map(|line| line.content().len()).sum();
+        self.length += self.line_count();
+        self.length
     }
 
     pub fn content(&self) -> &Vec<Line> {

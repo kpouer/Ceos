@@ -1,9 +1,10 @@
+use std::fs::File;
+use std::io::{LineWriter, Write};
+use std::thread;
+
 use eframe::Frame;
 use egui::{Context, Widget};
 use log::{info, warn};
-use std::fs::File;
-use std::io::{LineWriter, Write};
-use std::{io, thread};
 
 use crate::ceos::gui::widget::textpane::TextPane;
 use crate::ceos::Ceos;
@@ -78,11 +79,7 @@ impl Ceos {
                         self.try_command();
                     }
                 });
-                ui.label(format!(
-                    "Usage : {}, real: {}",
-                    self.textarea.buffer().total_length(),
-                    self.textarea.buffer().length()
-                ));
+                ui.label(format!("Length: {}", self.textarea.buffer().len(),));
             });
             if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                 self.execute_command();
