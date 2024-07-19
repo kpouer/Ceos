@@ -10,7 +10,7 @@ use crate::textarea::textareaproperties::TextAreaProperties;
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::{Color32, Stroke};
 use egui::Ui;
-use log::info;
+use log::{debug, info};
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct ColumnFilter {
@@ -90,7 +90,7 @@ impl Command for ColumnFilter {
             .for_each(|line| self.apply_to_line(line));
 
         let new_length = buffer.compute_length();
-        info!(
+        debug!(
             "Applied filter removed {} lines, new length {new_length}",
             line_count - buffer.content().len()
         );
@@ -105,7 +105,6 @@ impl ColumnFilter {
         }
 
         if let Some(end) = self.end {
-            println!("content {content}, start {}, end {end}", self.start);
             content.drain(self.start..cmp::min(content.len(), end));
         } else {
             content.drain(self.start..);
