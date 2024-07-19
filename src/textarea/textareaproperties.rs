@@ -4,6 +4,7 @@ use crate::textarea::renderer::text_renderer::TextRenderer;
 use crate::textarea::renderer::Renderer;
 use eframe::emath::{Rect, Vec2};
 use eframe::epaint::FontId;
+use log::info;
 use std::cmp;
 use std::ops::Range;
 
@@ -51,6 +52,11 @@ impl TextAreaProperties {
     }
 
     pub(crate) fn set_buffer(&mut self, buffer: Buffer) {
+        info!(
+            "set buffer: {}, line count: {}",
+            buffer.path(),
+            buffer.line_count()
+        );
         self.buffer = buffer
     }
 
