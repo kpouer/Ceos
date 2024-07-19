@@ -1,16 +1,17 @@
 use std::cmp;
 use std::fmt::Display;
 
+use eframe::emath::{Pos2, Rect};
+use eframe::epaint::{Color32, Stroke};
+use egui::Ui;
+use log::debug;
+
 use crate::ceos::command::Command;
 use crate::ceos::gui::tools;
 use crate::textarea::buffer::line::Line;
 use crate::textarea::buffer::Buffer;
 use crate::textarea::renderer::Renderer;
 use crate::textarea::textareaproperties::TextAreaProperties;
-use eframe::emath::{Pos2, Rect};
-use eframe::epaint::{Color32, Stroke};
-use egui::Ui;
-use log::{debug, info};
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct ColumnFilter {

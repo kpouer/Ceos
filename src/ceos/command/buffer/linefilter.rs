@@ -11,17 +11,17 @@ use crate::textarea::buffer::Buffer;
 use crate::textarea::renderer::Renderer;
 use crate::textarea::textareaproperties::TextAreaProperties;
 
-pub(crate) struct Filter {
+pub(crate) struct LineFilter {
     command: String,
 }
 
-impl Filter {
+impl LineFilter {
     pub(crate) fn accept(&self, line: &Line) -> bool {
         line.content().contains(&self.command)
     }
 }
 
-impl TryFrom<&str> for Filter {
+impl TryFrom<&str> for LineFilter {
     type Error = String;
 
     fn try_from(command: &str) -> Result<Self, Self::Error> {
@@ -35,7 +35,7 @@ impl TryFrom<&str> for Filter {
     }
 }
 
-impl Renderer for Filter {
+impl Renderer for LineFilter {
     fn paint_line(
         &self,
         ui: &mut Ui,
@@ -55,7 +55,7 @@ impl Renderer for Filter {
     }
 }
 
-impl Command for Filter {
+impl Command for LineFilter {
     fn execute(&self, buffer: &mut Buffer) {
         let line_count = buffer.content().len();
         buffer.content_mut().retain(|line| self.accept(line));
@@ -69,7 +69,7 @@ impl Command for Filter {
     }
 }
 
-impl Display for Filter {
+impl Display for LineFilter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Filter '{}'", self.command)
     }
@@ -81,7 +81,7 @@ mod tests {
 
     #[test]
     fn test_filter() -> anyhow::Result<(), String> {
-        let filter = Filter::try_from("filter delete")?;
+        let filter = LineFilter::try_from("filter delete")?;
         let content = "1 delete me\n\
         2 keep me\n\
         3 delete me\n\
