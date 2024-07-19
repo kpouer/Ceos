@@ -7,7 +7,6 @@ use log::info;
 
 use crate::ceos::command::Command;
 use crate::textarea::buffer::line::Line;
-use crate::textarea::buffer::line_status::LineStatus;
 use crate::textarea::buffer::Buffer;
 use crate::textarea::renderer::Renderer;
 use crate::textarea::textareaproperties::TextAreaProperties;
@@ -61,10 +60,6 @@ impl Command for Filter {
         let line_count = buffer.content().len();
         buffer.content_mut().retain(|line| self.accept(line));
 
-        buffer
-            .content_mut()
-            .iter_mut()
-            .for_each(|line| line.set_status(LineStatus::Normal));
         let new_length = buffer.compute_length();
         info!(
             "Applied filter '{}' removed {} lines, new length {new_length}",

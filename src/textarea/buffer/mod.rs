@@ -7,7 +7,6 @@ use anyhow::Error;
 use crate::textarea::buffer::line::Line;
 
 pub(crate) mod line;
-pub(crate) mod line_status;
 
 pub(crate) struct Buffer {
     path: String,
