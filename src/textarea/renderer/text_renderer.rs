@@ -29,11 +29,14 @@ impl Renderer for TextRenderer {
         }
         //because some chars are 2 bytes
         let start_column = textarea.offset_x_to_column(virtual_pos.x);
-        let column = text
-            .char_indices()
-            .map(|(i, _)| i)
-            .nth(start_column)
-            .unwrap_or(0);
+        let column = if start_column == 0 {
+            0
+        } else {
+            text.char_indices()
+                .map(|(i, _)| i)
+                .nth(start_column)
+                .unwrap_or(0)
+        };
         let text = &text[column..];
         let painter = ui.painter();
         painter.text(
