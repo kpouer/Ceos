@@ -12,12 +12,23 @@ use crate::textarea::renderer::Renderer;
 use crate::textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) struct LineFilter {
-    command: String,
+    command: Vec<String>,
 }
 
 impl LineFilter {
     pub(crate) fn accept(&self, line: &Line) -> bool {
-        line.content().contains(&self.command)
+        for command in &self.command {
+            if let Some(suffix) = command.strip_prefix('!') {
+                if line.content().contains(suffix) && !line.content().contains(command) {
+                    return false;
+                }
+            } else {
+                if !line.content().contains(command) {
+                    return false;
+                }
+            }
+        }
+        true
     }
 }
 
@@ -26,9 +37,8 @@ impl TryFrom<&str> for LineFilter {
 
     fn try_from(command: &str) -> Result<Self, Self::Error> {
         if command.starts_with("filter ") && command.len() > 7 {
-            Ok(Self {
-                command: command[7..].to_string(),
-            })
+            let command = command[7..].split("&").map(|tok| tok.to_string()).collect();
+            Ok(Self { command })
         } else {
             Err("Command not valid".to_string())
         }
@@ -62,7 +72,7 @@ impl Command for LineFilter {
 
         let new_length = buffer.compute_length();
         info!(
-            "Applied filter '{}' removed {} lines, new length {new_length}",
+            "Applied filter '{:?}' removed {} lines, new length {new_length}",
             self.command,
             line_count - buffer.content().len()
         );
@@ -71,7 +81,7 @@ impl Command for LineFilter {
 
 impl Display for LineFilter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Filter '{}'", self.command)
+        write!(f, "Filter '{:?}'", self.command)
     }
 }
 

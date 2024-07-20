@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use log::{debug, warn};
+use log::{debug, info, warn};
 
 use crate::ceos::command::direct::DirectTextAreaCommand;
 use crate::ceos::Ceos;
@@ -36,7 +36,7 @@ impl Ceos {
 
     pub(crate) fn execute_command(&mut self) {
         if let Some(command) = self.current_command.take() {
-            warn!("Execute command {}", command);
+            info!("Execute command {}", command);
             command.execute(self.textarea.buffer_mut());
         } else {
             self.try_direct_command();
