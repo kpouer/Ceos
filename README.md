@@ -1,5 +1,8 @@
 # Ceos
 
+[![dependency status](https://deps.rs/repo/github/kpouer/Ceos/status.svg)](https://deps.rs/repo/github/kpouer/Ceos)
+![Apache](https://img.shields.io/badge/license-Apache-blue.svg)
+
 ## Introduction
 
 Ceos is a log viewer written in Rust.
