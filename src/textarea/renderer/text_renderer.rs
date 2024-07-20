@@ -27,17 +27,7 @@ impl Renderer for TextRenderer {
         if text.trim().is_empty() {
             return;
         }
-        //because some chars are 2 bytes
-        let start_column = textarea.offset_x_to_column(virtual_pos.x);
-        let column = if start_column == 0 {
-            0
-        } else {
-            text.char_indices()
-                .map(|(i, _)| i)
-                .nth(start_column)
-                .unwrap_or(0)
-        };
-        let text = &text[column..];
+        let text = Self::get_text_to_render(textarea, virtual_pos.x, text);
         let painter = ui.painter();
         painter.text(
             drawing_pos,
@@ -46,5 +36,30 @@ impl Renderer for TextRenderer {
             self.font_id.clone(),
             ui.visuals().text_color(),
         );
+    }
+}
+
+impl TextRenderer {
+    fn get_text_to_render<'a>(
+        textarea: &TextAreaProperties,
+        x_offset: f32,
+        text: &'a str,
+    ) -> &'a str {
+        let column = Self::get_start_column(textarea, x_offset, text);
+        &text[column..]
+    }
+
+    ///because some chars are 2 bytes
+    fn get_start_column(textarea: &TextAreaProperties, x_offset: f32, text: &str) -> usize {
+        let start_column = textarea.offset_x_to_column(x_offset);
+        let column = if start_column == 0 {
+            0
+        } else {
+            text.char_indices()
+                .map(|(i, _)| i)
+                .nth(start_column)
+                .unwrap_or(0)
+        };
+        column
     }
 }
