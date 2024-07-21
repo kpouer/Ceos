@@ -6,10 +6,12 @@ use egui::Ui;
 use log::info;
 
 use crate::ceos::command::Command;
-use crate::textarea::buffer::line::Line;
-use crate::textarea::buffer::Buffer;
-use crate::textarea::renderer::Renderer;
-use crate::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::gui::theme;
+use crate::ceos::gui::theme::Theme;
+use crate::ceos::textarea::buffer::line::Line;
+use crate::ceos::textarea::buffer::Buffer;
+use crate::ceos::textarea::renderer::Renderer;
+use crate::ceos::textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) struct LineFilter {
     command: Vec<String>,
@@ -37,7 +39,7 @@ impl TryFrom<&str> for LineFilter {
 
     fn try_from(command: &str) -> Result<Self, Self::Error> {
         if command.starts_with("filter ") && command.len() > 7 {
-            let command = command[7..].split("&").map(|tok| tok.to_string()).collect();
+            let command = command[7..].split('&').map(|tok| tok.to_string()).collect();
             Ok(Self { command })
         } else {
             Err("Command not valid".to_string())
@@ -49,6 +51,7 @@ impl Renderer for LineFilter {
     fn paint_line(
         &self,
         ui: &mut Ui,
+        theme: &Theme,
         textarea: &TextAreaProperties,
         line: usize,
         _: Pos2,
@@ -60,7 +63,7 @@ impl Renderer for LineFilter {
                 Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea.line_height());
             let line_rect = Rect::from_min_max(drawing_pos, bottom_right);
             let painter = ui.painter();
-            painter.rect(line_rect, 0.0, Color32::RED, Stroke::default());
+            painter.rect(line_rect, 0.0, theme.deleting, Stroke::default());
         }
     }
 }

@@ -1,5 +1,6 @@
 use crate::ceos::command::Command;
-use crate::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::gui::theme::Theme;
+use crate::ceos::textarea::textareaproperties::TextAreaProperties;
 use eframe::emath::{Pos2, Rect};
 use egui::Widget;
 
@@ -7,6 +8,7 @@ pub(crate) struct TextArea<'a> {
     textarea_properties: &'a TextAreaProperties,
     current_command: &'a Option<Box<dyn Command>>,
     rect: Rect,
+    theme: &'a Theme,
 }
 
 impl<'a> TextArea<'a> {
@@ -14,11 +16,13 @@ impl<'a> TextArea<'a> {
         textarea_properties: &'a TextAreaProperties,
         current_command: &'a Option<Box<dyn Command>>,
         rect: Rect,
+        theme: &'a Theme,
     ) -> Self {
         Self {
             textarea_properties,
             current_command,
             rect,
+            theme,
         }
     }
 }
@@ -33,6 +37,7 @@ impl Widget for TextArea<'_> {
             if let Some(filter_renderer) = &self.current_command {
                 filter_renderer.paint_line(
                     ui,
+                    self.theme,
                     self.textarea_properties,
                     line,
                     virtual_pos,
@@ -41,7 +46,14 @@ impl Widget for TextArea<'_> {
             }
 
             self.textarea_properties.renderers().iter().for_each(|r| {
-                r.paint_line(ui, self.textarea_properties, line, virtual_pos, drawing_pos)
+                r.paint_line(
+                    ui,
+                    self.theme,
+                    self.textarea_properties,
+                    line,
+                    virtual_pos,
+                    drawing_pos,
+                )
             });
 
             drawing_pos.y += self.textarea_properties.line_height();

@@ -1,6 +1,6 @@
-use crate::syntax::chunk::Chunk;
-use crate::syntax::token_type::Token;
-use log::{debug, info};
+use crate::ceos::syntax::chunk::Chunk;
+use crate::ceos::syntax::token_type::Token;
+use log::debug;
 use logos::Logos;
 
 pub(crate) struct Tokenizer<'a> {

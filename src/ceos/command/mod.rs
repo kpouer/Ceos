@@ -6,9 +6,9 @@ use buffer::columnfilter::ColumnFilter;
 use buffer::linefilter::LineFilter;
 
 use crate::ceos::command::direct::DirectTextAreaCommand;
+use crate::ceos::textarea::buffer::Buffer;
+use crate::ceos::textarea::renderer::Renderer;
 use crate::ceos::Ceos;
-use crate::textarea::buffer::Buffer;
-use crate::textarea::renderer::Renderer;
 
 mod buffer;
 mod direct;

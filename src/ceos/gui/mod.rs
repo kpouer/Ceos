@@ -3,20 +3,27 @@ use std::io::{LineWriter, Write};
 use std::thread;
 
 use eframe::Frame;
-use egui::{Context, Widget};
+use egui::{Context, Visuals, Widget};
 use log::{info, warn};
 
 use crate::ceos::gui::widget::textpane::TextPane;
+use crate::ceos::textarea::buffer::Buffer;
 use crate::ceos::Ceos;
 use crate::event::Event::BufferLoaded;
-use crate::textarea::buffer::Buffer;
+use theme::Theme;
 
 pub(crate) mod frame_history;
+pub mod theme;
 pub(crate) mod tools;
 pub(crate) mod widget;
 
 impl eframe::App for Ceos {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
+        if !self.initialized {
+            let theme = Theme::default();
+            self.set_theme(theme, ctx);
+            self.initialized = true;
+        }
         self.frame_history
             .on_new_frame(ctx.input(|i| i.time), frame.info().cpu_usage);
         while let Ok(event) = self.receiver.try_recv() {
@@ -31,14 +38,14 @@ impl eframe::App for Ceos {
                 let char_width = tools::char_width(self.textarea.font_id().clone(), ui);
                 self.textarea.set_char_width(char_width);
             }
-            TextPane::new(&mut self.textarea, &self.current_command).ui(ui)
+            TextPane::new(&mut self.textarea, &self.current_command, &self.theme).ui(ui)
         });
         self.build_bottom_panel(ctx);
     }
 }
 
 impl Ceos {
-    fn build_menu_panel(&self, ctx: &Context) {
+    fn build_menu_panel(&mut self, ctx: &Context) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
 
@@ -60,10 +67,24 @@ impl Ceos {
                         info!("Quit");
                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     }
-                    egui::widgets::global_dark_light_mode_buttons(ui);
+                    if ui.button("☀ Solarized Light").clicked() {
+                        self.set_theme(Theme::solarized_light(), ctx);
+                    }
+                    if ui.button("🌙 Solarized Dark").clicked() {
+                        self.set_theme(Theme::solarized_dark(), ctx);
+                    }
+                    if ui.button("☀ jEdit").clicked() {
+                        self.set_theme(Theme::jEdit(), ctx);
+                    }
                 });
             });
         });
+    }
+
+    fn set_theme(&mut self, theme: Theme, ctx: &Context) {
+        let visuals = Visuals::from(&theme);
+        self.theme = theme;
+        ctx.set_visuals(visuals);
     }
 
     fn build_bottom_panel(&mut self, ctx: &Context) {

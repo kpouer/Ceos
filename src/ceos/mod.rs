@@ -4,12 +4,15 @@ use crate::ceos::command::Command;
 use crate::ceos::gui::frame_history::FrameHistory;
 use crate::event::Event;
 use crate::event::Event::BufferLoaded;
-use crate::textarea::buffer::Buffer;
-use crate::textarea::textareaproperties::TextAreaProperties;
 use anyhow::Error;
+use gui::theme::Theme;
+use textarea::buffer::Buffer;
+use textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) mod command;
 pub(crate) mod gui;
+mod syntax;
+pub mod textarea;
 
 pub(crate) struct Ceos {
     textarea: TextAreaProperties,
@@ -18,6 +21,8 @@ pub(crate) struct Ceos {
     command_buffer: String,
     current_command: Option<Box<dyn Command>>,
     frame_history: FrameHistory,
+    theme: Theme,
+    initialized: bool,
 }
 
 impl Ceos {
@@ -38,6 +43,8 @@ impl Default for Ceos {
             command_buffer: String::new(),
             current_command: None,
             frame_history: Default::default(),
+            theme: Theme::default(),
+            initialized: false,
         }
     }
 }

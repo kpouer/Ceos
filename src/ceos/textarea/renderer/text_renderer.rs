@@ -1,6 +1,7 @@
-use crate::syntax::tokenizer::Tokenizer;
-use crate::textarea::renderer::Renderer;
-use crate::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::gui::theme::Theme;
+use crate::ceos::syntax::tokenizer::Tokenizer;
+use crate::ceos::textarea::renderer::Renderer;
+use crate::ceos::textarea::textareaproperties::TextAreaProperties;
 use eframe::emath::Pos2;
 use egui::{FontId, Ui};
 
@@ -18,6 +19,7 @@ impl Renderer for TextRenderer {
     fn paint_line(
         &self,
         ui: &mut Ui,
+        theme: &Theme,
         textarea: &TextAreaProperties,
         line: usize,
         virtual_pos: Pos2,
@@ -34,12 +36,16 @@ impl Renderer for TextRenderer {
         let initial_offset = drawing_pos.x;
         chunks.into_iter().for_each(|chunk| {
             drawing_pos.x = initial_offset + chunk.start() as f32 * textarea.char_width();
+            let color = chunk
+                .token()
+                .map(|token| theme.color(token))
+                .unwrap_or(theme.text);
             painter.text(
                 drawing_pos,
                 egui::Align2::LEFT_TOP,
                 chunk.as_str(),
                 self.font_id.clone(),
-                chunk.color().unwrap_or(ui.visuals().text_color()),
+                color,
             );
         });
         // painter.text(

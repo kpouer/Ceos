@@ -7,11 +7,12 @@ use egui::Ui;
 use log::debug;
 
 use crate::ceos::command::Command;
+use crate::ceos::gui::theme::Theme;
 use crate::ceos::gui::tools;
-use crate::textarea::buffer::line::Line;
-use crate::textarea::buffer::Buffer;
-use crate::textarea::renderer::Renderer;
-use crate::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::textarea::buffer::line::Line;
+use crate::ceos::textarea::buffer::Buffer;
+use crate::ceos::textarea::renderer::Renderer;
+use crate::ceos::textarea::textareaproperties::TextAreaProperties;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct ColumnFilter {
@@ -38,12 +39,8 @@ impl TryFrom<&str> for ColumnFilter {
             let tokens: Vec<&str> = command.split(SEPARATOR).collect();
             if tokens.len() == 2 {
                 if let Ok(start) = tokens.first().unwrap().parse::<usize>() {
-                    let end = tokens.get(1).unwrap().parse::<usize>().ok();
-                    if end.is_some() {
-                        if start > end.unwrap() {
-                            return Err("Invalid command".to_string());
-                        }
-                        return Ok(ColumnFilter { start, end });
+                    if let Ok(end) = tokens.get(1).unwrap().parse::<usize>() {
+                        return ColumnFilter::new(start, end);
                     }
                 }
             }
@@ -56,6 +53,7 @@ impl Renderer for ColumnFilter {
     fn paint_line(
         &self,
         ui: &mut Ui,
+        theme: &Theme,
         textarea: &TextAreaProperties,
         _: usize,
         _: Pos2,
@@ -77,7 +75,7 @@ impl Renderer for ColumnFilter {
         );
         let line_rect = Rect::from_min_max(top_left, bottom_right);
         let painter = ui.painter();
-        painter.rect(line_rect, 0.0, Color32::RED, Stroke::default());
+        painter.rect(line_rect, 0.0, theme.deleting, Stroke::default());
     }
 }
 
@@ -99,6 +97,16 @@ impl Command for ColumnFilter {
 }
 
 impl ColumnFilter {
+    fn new(start: usize, end: usize) -> Result<ColumnFilter, String> {
+        if start > end {
+            return Err("Invalid command".to_string());
+        }
+        Ok(ColumnFilter {
+            start,
+            end: Some(end),
+        })
+    }
+
     pub(crate) fn apply_to_line(&self, line: &mut Line) {
         let content = line.content_mut();
         if self.start >= content.len() {

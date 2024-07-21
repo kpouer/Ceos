@@ -1,4 +1,4 @@
-use crate::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) mod goto;
 
@@ -11,7 +11,7 @@ impl TryFrom<&str> for DirectTextAreaCommand {
     type Error = String;
 
     fn try_from(command: &str) -> Result<Self, Self::Error> {
-        if command.starts_with(":") {
+        if command.starts_with(':') {
             Ok(Self::Goto)
         } else if command == "close" {
             Ok(Self::Close)

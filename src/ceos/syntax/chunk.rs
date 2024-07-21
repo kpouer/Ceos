@@ -1,5 +1,4 @@
-use crate::syntax::token_type::Token;
-use eframe::epaint::Color32;
+use crate::ceos::syntax::token_type::Token;
 use logos::Span;
 
 pub(crate) struct Chunk<'a> {
@@ -21,7 +20,7 @@ impl<'a> Chunk<'a> {
         self.span.start
     }
 
-    pub(crate) fn color(&self) -> Option<Color32> {
-        self.token.as_ref().map(|token| token.get_color())
+    pub(crate) fn token(&self) -> Option<&Token<'a>> {
+        self.token.as_ref()
     }
 }

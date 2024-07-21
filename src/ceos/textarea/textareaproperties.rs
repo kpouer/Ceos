@@ -1,7 +1,7 @@
 use crate::ceos::gui::widget::gutter;
-use crate::textarea::buffer::Buffer;
-use crate::textarea::renderer::text_renderer::TextRenderer;
-use crate::textarea::renderer::Renderer;
+use crate::ceos::textarea::buffer::Buffer;
+use crate::ceos::textarea::renderer::text_renderer::TextRenderer;
+use crate::ceos::textarea::renderer::Renderer;
 use eframe::emath::{Rect, Vec2};
 use eframe::epaint::FontId;
 use log::info;

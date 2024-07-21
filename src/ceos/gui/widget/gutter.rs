@@ -1,9 +1,9 @@
 use eframe::emath::{Rect, Vec2};
-use eframe::epaint::{Color32, Stroke};
+use eframe::epaint::Stroke;
 use egui::{Response, Ui, Widget};
 
-use crate::textarea::buffer::Buffer;
-use crate::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::textarea::buffer::Buffer;
+use crate::ceos::textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) struct Gutter<'a> {
     textarea_properties: &'a TextAreaProperties,
@@ -25,7 +25,7 @@ impl Widget for Gutter<'_> {
         let mut gutter_rect = ui.clip_rect();
         gutter_rect.set_width(gutter_width);
         let painter = ui.painter();
-        painter.rect(gutter_rect, 0.0, Color32::LIGHT_GRAY, Stroke::NONE);
+        painter.rect(gutter_rect, 0.0, ui.visuals().faint_bg_color, Stroke::NONE);
         let mut pos = gutter_rect.right_top();
         pos.x -= self.textarea_properties.char_width();
         let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);

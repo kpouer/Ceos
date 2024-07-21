@@ -4,7 +4,7 @@ use std::path::Path;
 
 use anyhow::Error;
 
-use crate::textarea::buffer::line::Line;
+use crate::ceos::textarea::buffer::line::Line;
 
 pub(crate) mod line;
 
@@ -79,13 +79,13 @@ impl Buffer {
     pub(crate) fn max_line_length(&self) -> usize {
         self.content
             .iter()
-            .map(|line| line.content().len())
+            .map(|line| line.len())
             .max()
             .unwrap_or(0)
     }
 
     pub(crate) fn compute_length(&mut self) -> usize {
-        self.length = self.content.iter().map(|line| line.content().len()).sum();
+        self.length = self.content.iter().map(|line| line.len()).sum();
         self.length += self.line_count();
         self.length
     }

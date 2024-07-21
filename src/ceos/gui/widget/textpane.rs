@@ -2,23 +2,27 @@ use egui::scroll_area::ScrollBarVisibility::AlwaysHidden;
 use egui::{Response, Ui, Widget};
 
 use crate::ceos::command::Command;
+use crate::ceos::gui::theme::Theme;
 use crate::ceos::gui::widget::gutter::Gutter;
 use crate::ceos::gui::widget::textarea::TextArea;
-use crate::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) struct TextPane<'a> {
     textarea_properties: &'a mut TextAreaProperties,
     current_command: &'a Option<Box<dyn Command>>,
+    theme: &'a Theme,
 }
 
 impl<'a> TextPane<'a> {
     pub(crate) fn new(
         textarea_properties: &'a mut TextAreaProperties,
         current_command: &'a Option<Box<dyn Command>>,
+        theme: &'a Theme,
     ) -> Self {
         Self {
             textarea_properties,
             current_command,
+            theme,
         }
     }
 }
@@ -43,7 +47,13 @@ impl Widget for TextPane<'_> {
                 .auto_shrink(false)
                 .scroll_offset(*current_scroll_offset)
                 .show_viewport(ui, |ui, rect| {
-                    TextArea::new(self.textarea_properties, self.current_command, rect).ui(ui)
+                    TextArea::new(
+                        self.textarea_properties,
+                        self.current_command,
+                        rect,
+                        self.theme,
+                    )
+                    .ui(ui)
                 });
 
             let mut offset = scroll_result_textarea.state.offset;

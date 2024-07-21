@@ -16,6 +16,10 @@ impl From<&str> for Line {
 }
 
 impl Line {
+    pub(crate) fn len(&self) -> usize {
+        self.content.len()
+    }
+
     pub(crate) fn content(&self) -> &str {
         &self.content
     }
