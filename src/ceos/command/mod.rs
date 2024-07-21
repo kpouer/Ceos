@@ -1,13 +1,14 @@
 use std::fmt::Display;
 
-use log::{debug, info, warn};
+use log::{debug, info};
+
+use buffer::columnfilter::ColumnFilter;
+use buffer::linefilter::LineFilter;
 
 use crate::ceos::command::direct::DirectTextAreaCommand;
 use crate::ceos::Ceos;
 use crate::textarea::buffer::Buffer;
 use crate::textarea::renderer::Renderer;
-use buffer::columnfilter::ColumnFilter;
-use buffer::linefilter::LineFilter;
 
 mod buffer;
 mod direct;

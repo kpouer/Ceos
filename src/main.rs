@@ -2,6 +2,7 @@ use crate::ceos::Ceos;
 
 mod ceos;
 mod event;
+mod syntax;
 mod textarea;
 
 const INITIAL_WIDTH: usize = 1024;
