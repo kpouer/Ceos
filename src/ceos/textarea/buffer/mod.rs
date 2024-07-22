@@ -28,6 +28,7 @@ impl TryFrom<String> for Buffer {
         let lines = read_lines(&path).unwrap();
         let mut content = Vec::new();
         let mut length = 0;
+        #[allow(clippy::manual_flatten)]
         for line in lines {
             if let Ok(text) = line {
                 length += text.len();

@@ -29,6 +29,8 @@ impl Ceos {
     pub(crate) fn process_event(&mut self, event: Event) {
         match event {
             BufferLoaded(buffer) => self.textarea.set_buffer(buffer),
+            Event::BufferClosed => self.textarea.set_buffer(Default::default()),
+            Event::GotoLine(goto) => goto.execute(&mut self.textarea),
         }
     }
 }

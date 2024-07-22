@@ -5,13 +5,13 @@ use log::{debug, info};
 use buffer::columnfilter::ColumnFilter;
 use buffer::linefilter::LineFilter;
 
-use crate::ceos::command::direct::DirectTextAreaCommand;
 use crate::ceos::textarea::buffer::Buffer;
 use crate::ceos::textarea::renderer::Renderer;
 use crate::ceos::Ceos;
+use crate::event::Event;
 
 mod buffer;
-mod direct;
+pub(crate) mod direct;
 
 impl Ceos {
     pub(crate) fn try_filter_command(&mut self) {
@@ -29,18 +29,12 @@ impl Ceos {
         }
     }
 
-    fn try_direct_command(&mut self) {
-        if let Ok(command) = DirectTextAreaCommand::try_from(self.command_buffer.as_str()) {
-            command.execute(self.command_buffer.as_str(), &mut self.textarea);
-        }
-    }
-
     pub(crate) fn execute_command(&mut self) {
         if let Some(command) = self.current_command.take() {
             info!("Execute command {}", command);
             command.execute(self.textarea.buffer_mut());
-        } else {
-            self.try_direct_command();
+        } else if let Ok(command) = Event::try_from(self.command_buffer.as_str()) {
+            self.sender.send(command).unwrap();
         }
     }
 }
