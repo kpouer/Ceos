@@ -32,6 +32,7 @@ impl eframe::App for Ceos {
 
         self.handle_input(ctx);
         self.build_menu_panel(ctx);
+        self.build_bottom_panel(ctx);
 
         egui::CentralPanel::default().show(ctx, |ui| {
             if self.textarea.char_width() == 0.0 {
@@ -40,7 +41,6 @@ impl eframe::App for Ceos {
             }
             TextPane::new(&mut self.textarea, &self.current_command, &self.theme).ui(ui)
         });
-        self.build_bottom_panel(ctx);
     }
 }
 
