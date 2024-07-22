@@ -46,16 +46,16 @@ impl From<&Theme> for Visuals {
 impl Theme {
     pub(crate) fn color(&self, token: &Token) -> Color32 {
         match token {
-            Token::Bool(_) => self.literal,
+            Token::Bool => self.literal,
+            Token::Null => self.literal,
             Token::BraceOpen => self.operator,
             Token::BraceClose => self.operator,
             Token::BracketOpen => self.operator,
             Token::BracketClose => self.operator,
             Token::Colon => self.operator,
             Token::Comma => self.operator,
-            Token::Null => self.literal,
-            Token::Number(_) => self.number,
-            Token::String(_) => self.string,
+            Token::Number => self.number,
+            Token::String => self.string,
             Token::Info => self.info,
             Token::Warning => self.warning,
             Token::Error => self.error,

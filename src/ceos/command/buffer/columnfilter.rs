@@ -2,7 +2,7 @@ use std::cmp;
 use std::fmt::Display;
 
 use eframe::emath::{Pos2, Rect};
-use eframe::epaint::{Color32, Stroke};
+use eframe::epaint::Stroke;
 use egui::Ui;
 use log::debug;
 

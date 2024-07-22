@@ -2,13 +2,13 @@ use crate::ceos::syntax::token_type::Token;
 use logos::Span;
 
 pub(crate) struct Chunk<'a> {
-    token: Option<Token<'a>>,
+    token: Option<Token>,
     span: Span,
     text: &'a str,
 }
 
 impl<'a> Chunk<'a> {
-    pub(crate) fn new(token: Option<Token<'a>>, span: Span, text: &'a str) -> Self {
+    pub(crate) fn new(token: Option<Token>, span: Span, text: &'a str) -> Self {
         Self { token, span, text }
     }
 
@@ -20,7 +20,7 @@ impl<'a> Chunk<'a> {
         self.span.start
     }
 
-    pub(crate) fn token(&self) -> Option<&Token<'a>> {
+    pub(crate) fn token(&self) -> Option<&Token> {
         self.token.as_ref()
     }
 }

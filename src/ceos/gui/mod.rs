@@ -4,7 +4,7 @@ use std::thread;
 
 use eframe::Frame;
 use egui::{Context, Visuals, Widget};
-use log::{info, warn};
+use log::{error, info, warn};
 
 use crate::ceos::gui::widget::textpane::TextPane;
 use crate::ceos::textarea::buffer::Buffer;
@@ -140,9 +140,16 @@ impl Ceos {
                 .iter()
                 .map(|line| line.content())
                 .for_each(|line| {
-                    file.write_all(line.as_bytes());
-                    file.write_all(b"\n");
+                    Self::write(&mut file, line.as_bytes());
+                    Self::write(&mut file, b"\n");
                 })
+        }
+    }
+
+    fn write(file: &mut LineWriter<File>, text: &[u8]) {
+        match file.write_all(text) {
+            Ok(_) => {}
+            Err(err) => error!("{err}"),
         }
     }
 

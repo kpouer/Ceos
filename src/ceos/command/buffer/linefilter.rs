@@ -1,12 +1,11 @@
 use std::fmt::Display;
 
 use eframe::emath::{Pos2, Rect};
-use eframe::epaint::{Color32, Stroke};
+use eframe::epaint::Stroke;
 use egui::Ui;
 use log::info;
 
 use crate::ceos::command::Command;
-use crate::ceos::gui::theme;
 use crate::ceos::gui::theme::Theme;
 use crate::ceos::textarea::buffer::line::Line;
 use crate::ceos::textarea::buffer::Buffer;
@@ -25,10 +24,8 @@ impl LineFilter {
                 if line_content.contains(prefix) && !line_content.contains(filter) {
                     return false;
                 }
-            } else {
-                if !line_content.contains(filter) {
-                    return false;
-                }
+            } else if !line_content.contains(filter) {
+                return false;
             }
         }
         true
