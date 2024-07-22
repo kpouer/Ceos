@@ -14,18 +14,19 @@ use crate::ceos::textarea::renderer::Renderer;
 use crate::ceos::textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) struct LineFilter {
-    command: Vec<String>,
+    filters: Vec<String>,
 }
 
 impl LineFilter {
     pub(crate) fn accept(&self, line: &Line) -> bool {
-        for command in &self.command {
-            if let Some(suffix) = command.strip_prefix('!') {
-                if line.content().contains(suffix) && !line.content().contains(command) {
+        let line_content = line.content();
+        for filter in &self.filters {
+            if let Some(prefix) = filter.strip_prefix('!') {
+                if line_content.contains(prefix) && !line_content.contains(filter) {
                     return false;
                 }
             } else {
-                if !line.content().contains(command) {
+                if !line_content.contains(filter) {
                     return false;
                 }
             }
@@ -40,7 +41,7 @@ impl TryFrom<&str> for LineFilter {
     fn try_from(command: &str) -> Result<Self, Self::Error> {
         if command.starts_with("filter ") && command.len() > 7 {
             let command = command[7..].split('&').map(|tok| tok.to_string()).collect();
-            Ok(Self { command })
+            Ok(Self { filters: command })
         } else {
             Err("Command not valid".to_string())
         }
@@ -58,7 +59,7 @@ impl Renderer for LineFilter {
         drawing_pos: Pos2,
     ) {
         let line = &textarea.buffer().content()[line];
-        if self.accept(line) {
+        if !self.accept(line) {
             let bottom_right =
                 Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea.line_height());
             let line_rect = Rect::from_min_max(drawing_pos, bottom_right);
@@ -76,7 +77,7 @@ impl Command for LineFilter {
         let new_length = buffer.compute_length();
         info!(
             "Applied filter '{:?}' removed {} lines, new length {new_length}",
-            self.command,
+            self.filters,
             line_count - buffer.content().len()
         );
     }
@@ -84,7 +85,7 @@ impl Command for LineFilter {
 
 impl Display for LineFilter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Filter '{:?}'", self.command)
+        write!(f, "Filter '{:?}'", self.filters)
     }
 }
 
