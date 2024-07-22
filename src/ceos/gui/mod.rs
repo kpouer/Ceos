@@ -118,6 +118,7 @@ impl Ceos {
             if let Some(path) = rfd::FileDialog::new().set_directory("./").pick_file() {
                 let path = path.into_os_string();
                 let path = path.to_str().unwrap();
+                sender.send(BufferClosed).unwrap();
                 match Buffer::try_from(path.to_string()) {
                     Ok(buffer) => sender.send(BufferLoaded(buffer)).unwrap(),
                     Err(e) => warn!("{:?}", e),
