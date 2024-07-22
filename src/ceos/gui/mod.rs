@@ -9,7 +9,7 @@ use log::{error, info, warn};
 use crate::ceos::gui::widget::textpane::TextPane;
 use crate::ceos::textarea::buffer::Buffer;
 use crate::ceos::Ceos;
-use crate::event::Event::BufferLoaded;
+use crate::event::Event::{BufferClosed, BufferLoaded};
 use theme::Theme;
 
 pub(crate) mod frame_history;
@@ -59,9 +59,7 @@ impl Ceos {
                         self.save_file();
                     }
                     if ui.button("Close").clicked() {
-                        self.sender
-                            .send(BufferLoaded(Default::default()))
-                            .unwrap_or_default();
+                        self.sender.send(BufferClosed).unwrap();
                     }
                     if ui.button("Quit").clicked() {
                         info!("Quit");
