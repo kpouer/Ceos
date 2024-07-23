@@ -1,6 +1,6 @@
 use eframe::epaint::FontId;
 use eframe::Frame;
-use egui::Event::MouseWheel;
+use egui::Event::{MouseWheel, Zoom};
 use egui::{Context, Visuals, Widget};
 use log::{error, info, warn};
 use std::fs::File;
@@ -168,6 +168,13 @@ impl Ceos {
                     #[cfg(not(target_os = "macos"))]
                     if i.modifiers.ctrl {
                         self.zoom(delta.y);
+                    }
+                }
+                Zoom(delta) => {
+                    if *delta < 1.0 {
+                        self.zoom(-(*delta));
+                    } else if *delta > 1.0 {
+                        self.zoom(*delta);
                     }
                 }
                 _ => {}
