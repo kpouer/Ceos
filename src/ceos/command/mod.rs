@@ -5,6 +5,7 @@ use log::{debug, info};
 use buffer::columnfilter::ColumnFilter;
 use buffer::linefilter::LineFilter;
 
+use crate::ceos::command::buffer::linedrop::LineDrop;
 use crate::ceos::textarea::buffer::Buffer;
 use crate::ceos::textarea::renderer::Renderer;
 use crate::ceos::Ceos;
@@ -19,6 +20,8 @@ impl Ceos {
         if let Ok(command) = LineFilter::try_from(command_str) {
             self.current_command = Some(Box::new(command));
         } else if let Ok(command) = ColumnFilter::try_from(command_str) {
+            self.current_command = Some(Box::new(command));
+        } else if let Ok(command) = LineDrop::try_from(command_str) {
             self.current_command = Some(Box::new(command));
         } else {
             self.current_command = None;

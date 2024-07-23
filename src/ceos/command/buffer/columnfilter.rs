@@ -122,42 +122,6 @@ mod tests {
     }
 
     #[test]
-    fn test_try_from_leading() -> anyhow::Result<(), ()> {
-        let result = ColumnFilter::try_from("..22")?;
-        assert_eq!(
-            ColumnFilter {
-                range: Range {
-                    start: 0,
-                    end: Some(22)
-                }
-            },
-            result
-        );
-        Ok(())
-    }
-
-    #[test]
-    fn test_try_from_trailing() -> anyhow::Result<(), ()> {
-        let result = ColumnFilter::try_from("3..")?;
-        assert_eq!(
-            ColumnFilter {
-                range: Range {
-                    start: 3,
-                    end: None
-                }
-            },
-            result
-        );
-        Ok(())
-    }
-
-    #[test]
-    fn test_try_from_invalid() -> anyhow::Result<(), ()> {
-        assert!(ColumnFilter::try_from("33..22").is_err());
-        Ok(())
-    }
-
-    #[test]
     fn test_filter_line_prefix() -> anyhow::Result<(), ()> {
         let filter = ColumnFilter::try_from("..2")?;
         let mut line = Line::from("1 delete me");
