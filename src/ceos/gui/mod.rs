@@ -1,11 +1,11 @@
+use eframe::epaint::FontId;
+use eframe::Frame;
+use egui::Event::MouseWheel;
+use egui::{Context, Visuals, Widget};
+use log::{error, info, warn};
 use std::fs::File;
 use std::io::{LineWriter, Write};
 use std::thread;
-use eframe::epaint::FontId;
-use eframe::Frame;
-use egui::{Context, Visuals, Widget};
-use egui::Event::MouseWheel;
-use log::{error, info, warn};
 
 use crate::ceos::gui::widget::textpane::TextPane;
 use crate::ceos::textarea::buffer::Buffer;
@@ -161,6 +161,11 @@ impl Ceos {
                     delta,
                     modifiers: _,
                 } => {
+                    #[cfg(target_os = "macos")]
+                    if i.modifiers.command {
+                        self.zoom(delta.y);
+                    }
+                    #[cfg(not(target_os = "macos"))]
                     if i.modifiers.ctrl {
                         self.zoom(delta.y);
                     }
@@ -177,6 +182,11 @@ impl Ceos {
             return;
         }
 
-        self.sender.send(NewFont(FontId::new(new_font_size, egui::FontFamily::Monospace))).unwrap()
+        self.sender
+            .send(NewFont(FontId::new(
+                new_font_size,
+                egui::FontFamily::Monospace,
+            )))
+            .unwrap()
     }
 }
