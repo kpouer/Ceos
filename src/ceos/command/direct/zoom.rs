@@ -26,7 +26,7 @@ impl TryFrom<&str> for Zoom {
                 return Ok(Zoom { size });
             }
         }
-        return Err(());
+        Err(())
     }
 }
 
