@@ -53,6 +53,7 @@ impl TextAreaProperties {
             .iter_mut()
             .for_each(|r| r.set_font_id(font_id.clone()));
         self.char_width = 0.0;
+        self.line_height = font_id.size;
     }
 
     pub(crate) fn font_id(&self) -> &FontId {
