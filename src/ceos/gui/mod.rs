@@ -1,15 +1,16 @@
 use std::fs::File;
 use std::io::{LineWriter, Write};
 use std::thread;
-
+use eframe::epaint::FontId;
 use eframe::Frame;
 use egui::{Context, Visuals, Widget};
+use egui::Event::MouseWheel;
 use log::{error, info, warn};
 
 use crate::ceos::gui::widget::textpane::TextPane;
 use crate::ceos::textarea::buffer::Buffer;
 use crate::ceos::Ceos;
-use crate::event::Event::{BufferClosed, BufferLoaded};
+use crate::event::Event::{BufferClosed, BufferLoaded, NewFont};
 use theme::Theme;
 
 pub(crate) mod frame_history;
@@ -152,27 +153,30 @@ impl Ceos {
         }
     }
 
-    fn handle_input(&mut self, _: &Context) {
-        // ctx.input(|i| {
-        //     i.events.iter().for_each(|event| match event {
-        //         MouseWheel {
-        //             unit: _,
-        //             delta,
-        //             modifiers: _,
-        //         } => {
-        //             if delta.y > 0.0 {
-        //                 self.textarea.scroll_up();
-        //             } else if delta.y < 0.0 {
-        //                 self.textarea.scroll_down();
-        //             }
-        //             if delta.x > 0.0 {
-        //                 self.textarea.scroll_left();
-        //             } else if delta.x < 0.0 {
-        //                 self.textarea.scroll_right();
-        //             }
-        //         }
-        //         _ => {}
-        //     })
-        // });
+    fn handle_input(&mut self, ctx: &Context) {
+        ctx.input(|i| {
+            i.events.iter().for_each(|event| match event {
+                MouseWheel {
+                    unit: _,
+                    delta,
+                    modifiers: _,
+                } => {
+                    if i.modifiers.ctrl {
+                        self.zoom(delta.y);
+                    }
+                }
+                _ => {}
+            })
+        });
+    }
+
+    fn zoom(&self, delta: f32) {
+        let current_font_size = self.textarea.font_id().size;
+        let new_font_size = current_font_size + delta;
+        if new_font_size < 1.0 {
+            return;
+        }
+
+        self.sender.send(NewFont(FontId::new(new_font_size, egui::FontFamily::Monospace))).unwrap()
     }
 }
