@@ -1,4 +1,5 @@
 use eframe::emath::Pos2;
+use eframe::epaint::FontId;
 use egui::Ui;
 
 use crate::ceos::gui::theme::Theme;
@@ -16,4 +17,6 @@ pub(crate) trait Renderer {
         virtual_pos: Pos2,
         drawing_pos: Pos2,
     );
+
+    fn set_font_id(&mut self, _font_id: FontId) {}
 }

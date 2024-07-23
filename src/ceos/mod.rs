@@ -31,6 +31,7 @@ impl Ceos {
             BufferLoaded(buffer) => self.textarea.set_buffer(buffer),
             Event::BufferClosed => self.textarea.set_buffer(Default::default()),
             Event::GotoLine(goto) => goto.execute(&mut self.textarea),
+            Event::NewFont(font_id) => self.textarea.set_font_id(font_id),
         }
     }
 }

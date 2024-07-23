@@ -56,6 +56,10 @@ impl Renderer for TextRenderer {
         //     ui.visuals().text_color(),
         // );
     }
+
+    fn set_font_id(&mut self, font_id: FontId) {
+        self.font_id = font_id;
+    }
 }
 
 impl TextRenderer {

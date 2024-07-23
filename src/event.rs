@@ -1,11 +1,14 @@
 use crate::ceos::command::direct::goto::Goto;
+use crate::ceos::command::direct::zoom::Zoom;
 use crate::ceos::textarea::buffer::Buffer;
-use crate::event::Event::{BufferClosed, GotoLine};
+use crate::event::Event::{BufferClosed, GotoLine, NewFont};
+use egui::FontId;
 
 pub(crate) enum Event {
     BufferLoaded(Buffer),
     BufferClosed,
     GotoLine(Goto),
+    NewFont(FontId),
 }
 
 impl TryFrom<&str> for Event {
@@ -18,6 +21,10 @@ impl TryFrom<&str> for Event {
             }
         } else if command == "close" {
             return Ok(BufferClosed);
+        } else if command.starts_with("zoom ") {
+            if let Ok(zoom) = Zoom::try_from(command) {
+                return Ok(NewFont(zoom.get_font_id()));
+            }
         }
         Err(())
     }

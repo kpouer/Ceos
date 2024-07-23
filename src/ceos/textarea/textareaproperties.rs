@@ -47,6 +47,14 @@ impl TextAreaProperties {
         self.char_width = char_width;
     }
 
+    pub(crate) fn set_font_id(&mut self, font_id: FontId) {
+        self.font_id = font_id.clone();
+        self.renderers
+            .iter_mut()
+            .for_each(|r| r.set_font_id(font_id.clone()));
+        self.char_width = 0.0;
+    }
+
     pub(crate) fn font_id(&self) -> &FontId {
         &self.font_id
     }
