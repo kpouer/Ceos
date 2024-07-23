@@ -18,6 +18,8 @@ pub(crate) enum Token {
     Colon,
     #[token(",")]
     Comma,
+    #[token("|")]
+    Pipe,
     #[token("null")]
     Null,
     #[regex(r"-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?")]

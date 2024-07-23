@@ -54,6 +54,7 @@ impl Theme {
             Token::BracketClose => self.operator,
             Token::Colon => self.operator,
             Token::Comma => self.operator,
+            Token::Pipe => self.operator,
             Token::Number => self.number,
             Token::String => self.string,
             Token::Info => self.info,
