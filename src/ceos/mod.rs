@@ -13,6 +13,7 @@ pub(crate) mod command;
 pub(crate) mod gui;
 mod syntax;
 pub mod textarea;
+mod tools;
 
 pub(crate) struct Ceos {
     textarea: TextAreaProperties,
