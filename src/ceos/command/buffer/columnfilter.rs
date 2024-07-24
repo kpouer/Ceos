@@ -13,39 +13,20 @@ use crate::ceos::textarea::buffer::line::Line;
 use crate::ceos::textarea::buffer::Buffer;
 use crate::ceos::textarea::renderer::Renderer;
 use crate::ceos::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::tools::range::Range;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct ColumnFilter {
-    start: usize,
-    end: Option<usize>,
+    range: Range,
 }
 
-const SEPARATOR: &str = "..";
-
 impl TryFrom<&str> for ColumnFilter {
-    type Error = String;
+    type Error = ();
 
-    fn try_from(command: &str) -> Result<Self, Self::Error> {
-        if let Some(stripped) = command.strip_prefix(SEPARATOR) {
-            let end = stripped.parse::<usize>().ok();
-            if end.is_some() {
-                return Ok(ColumnFilter { start: 0, end });
-            }
-        } else if let Some(stripped) = command.strip_suffix(SEPARATOR) {
-            if let Ok(start) = stripped.parse::<usize>() {
-                return Ok(ColumnFilter { start, end: None });
-            }
-        } else {
-            let tokens: Vec<&str> = command.split(SEPARATOR).collect();
-            if tokens.len() == 2 {
-                if let Ok(start) = tokens.first().unwrap().parse::<usize>() {
-                    if let Ok(end) = tokens.get(1).unwrap().parse::<usize>() {
-                        return ColumnFilter::new(start, end);
-                    }
-                }
-            }
-        }
-        Err("Invalid command".to_string())
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(ColumnFilter {
+            range: Range::try_from(value)?,
+        })
     }
 }
 
@@ -60,13 +41,13 @@ impl Renderer for ColumnFilter {
         drawing_pos: Pos2,
     ) {
         let char_width = tools::char_width(textarea.font_id().clone(), ui);
-        let end_x = if self.end.is_some() {
-            self.end.unwrap() as f32 * char_width
+        let end_x = if self.range.end.is_some() {
+            self.range.end.unwrap() as f32 * char_width
         } else {
             ui.max_rect().width()
         };
         let top_left = Pos2::new(
-            drawing_pos.x + self.start as f32 * char_width,
+            drawing_pos.x + self.range.start as f32 * char_width,
             drawing_pos.y,
         );
         let bottom_right = Pos2::new(
@@ -97,33 +78,27 @@ impl Command for ColumnFilter {
 }
 
 impl ColumnFilter {
-    fn new(start: usize, end: usize) -> Result<ColumnFilter, String> {
-        if start > end {
-            return Err("Invalid command".to_string());
-        }
-        Ok(ColumnFilter {
-            start,
-            end: Some(end),
-        })
-    }
-
     pub(crate) fn apply_to_line(&self, line: &mut Line) {
         let content = line.content_mut();
-        if self.start >= content.len() {
+        if self.range.start >= content.len() {
             return;
         }
 
-        if let Some(end) = self.end {
-            content.drain(self.start..cmp::min(content.len(), end));
+        if let Some(end) = self.range.end {
+            content.drain(self.range.start..cmp::min(content.len(), end));
         } else {
-            content.drain(self.start..);
+            content.drain(self.range.start..);
         }
     }
 }
 
 impl Display for ColumnFilter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ColumnFilter '{}:{:?}'", self.start, self.end)
+        write!(
+            f,
+            "ColumnFilter '{}:{:?}'",
+            self.range.start, self.range.end
+        )
     }
 }
 
@@ -132,12 +107,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_try_from() -> anyhow::Result<(), String> {
+    fn test_try_from() -> anyhow::Result<(), ()> {
         let result = ColumnFilter::try_from("3..22")?;
         assert_eq!(
             ColumnFilter {
-                start: 3,
-                end: Some(22)
+                range: Range {
+                    start: 3,
+                    end: Some(22),
+                }
             },
             result
         );
@@ -145,39 +122,7 @@ mod tests {
     }
 
     #[test]
-    fn test_try_from_leading() -> anyhow::Result<(), String> {
-        let result = ColumnFilter::try_from("..22")?;
-        assert_eq!(
-            ColumnFilter {
-                start: 0,
-                end: Some(22)
-            },
-            result
-        );
-        Ok(())
-    }
-
-    #[test]
-    fn test_try_from_trailing() -> anyhow::Result<(), String> {
-        let result = ColumnFilter::try_from("3..")?;
-        assert_eq!(
-            ColumnFilter {
-                start: 3,
-                end: None
-            },
-            result
-        );
-        Ok(())
-    }
-
-    #[test]
-    fn test_try_from_invalid() -> anyhow::Result<(), String> {
-        assert!(ColumnFilter::try_from("33..22").is_err());
-        Ok(())
-    }
-
-    #[test]
-    fn test_filter_line_prefix() -> anyhow::Result<(), String> {
+    fn test_filter_line_prefix() -> anyhow::Result<(), ()> {
         let filter = ColumnFilter::try_from("..2")?;
         let mut line = Line::from("1 delete me");
         filter.apply_to_line(&mut line);
@@ -186,7 +131,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filter_line_prefix_short() -> anyhow::Result<(), String> {
+    fn test_filter_line_prefix_short() -> anyhow::Result<(), ()> {
         let filter = ColumnFilter::try_from("..2")?;
         let mut line = Line::from("1");
         filter.apply_to_line(&mut line);
@@ -195,7 +140,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filter_line_prefix_empty() -> anyhow::Result<(), String> {
+    fn test_filter_line_prefix_empty() -> anyhow::Result<(), ()> {
         let filter = ColumnFilter::try_from("..2")?;
         let mut line = Line::from("");
         filter.apply_to_line(&mut line);
@@ -204,7 +149,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filter() -> anyhow::Result<(), String> {
+    fn test_filter() -> anyhow::Result<(), ()> {
         let filter = ColumnFilter::try_from("..2")?;
         let content = "1 delete me\n\
         2 keep me\n\

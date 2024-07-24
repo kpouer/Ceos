@@ -11,6 +11,7 @@ fn main() -> anyhow::Result<()> {
     env_logger::init();
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
+            .with_drag_and_drop(true)
             .with_inner_size([INITIAL_WIDTH as f32, INITIAL_HEIGHT as f32])
             .with_min_inner_size([INITIAL_WIDTH as f32, INITIAL_HEIGHT as f32]),
         ..Default::default()

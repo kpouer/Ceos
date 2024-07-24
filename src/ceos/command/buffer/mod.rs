@@ -1,2 +1,3 @@
-pub mod columnfilter;
-pub mod linefilter;
+pub(crate) mod columnfilter;
+pub(crate) mod linedrop;
+pub(crate) mod linefilter;

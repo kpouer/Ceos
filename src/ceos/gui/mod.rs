@@ -155,6 +155,20 @@ impl Ceos {
 
     fn handle_input(&mut self, ctx: &Context) {
         ctx.input(|i| {
+            if let Some(file) = i.raw.dropped_files.first() {
+                if let Some(path) = &file.path {
+                    let path = path.to_string_lossy();
+                    let path = path.to_string();
+                    let sender = self.sender.clone();
+                    thread::spawn(move || {
+                        sender.send(BufferClosed).unwrap();
+                        match Buffer::try_from(path) {
+                            Ok(buffer) => sender.send(BufferLoaded(buffer)).unwrap(),
+                            Err(e) => warn!("{:?}", e),
+                        }
+                    });
+                }
+            }
             i.events.iter().for_each(|event| match event {
                 MouseWheel {
                     unit: _,
