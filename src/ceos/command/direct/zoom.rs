@@ -39,41 +39,23 @@ impl Zoom {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
 
-    #[test]
-    fn test_try_from() -> anyhow::Result<(), ()> {
-        let result = Zoom::try_from("zoom 20")?;
-        assert_eq!(Zoom { size: 20.0 }, result);
+    #[rstest]
+    #[case(3.0, "zoom 3")]
+    #[case(DEFAULT_LINE_HEIGHT, "zoom reset")]
+    fn test_try_from(#[case] expected: f32, #[case] command: &str) -> anyhow::Result<(), ()> {
+        let result = Zoom::try_from(command)?;
+        assert_eq!(Zoom { size: expected }, result);
         Ok(())
     }
 
-    #[test]
-    fn test_try_from_reset() -> anyhow::Result<(), ()> {
-        let result = Zoom::try_from("zoom reset")?;
-        assert_eq!(
-            Zoom {
-                size: DEFAULT_LINE_HEIGHT
-            },
-            result
-        );
-        Ok(())
-    }
-
-    #[test]
-    fn test_try_from_invalid() -> anyhow::Result<(), ()> {
-        assert!(Zoom::try_from("zoo m 20").is_err());
-        Ok(())
-    }
-
-    #[test]
-    fn test_try_from_invalid2() -> anyhow::Result<(), ()> {
-        assert!(Zoom::try_from("zoom").is_err());
-        Ok(())
-    }
-
-    #[test]
-    fn test_try_from_invalid3() -> anyhow::Result<(), ()> {
-        assert!(Zoom::try_from("zoom a").is_err());
+    #[rstest]
+    #[case("zoo m 20")]
+    #[case("zoom")]
+    #[case("zoom a")]
+    fn test_try_from_invalid(#[case] command: &str) -> anyhow::Result<(), ()> {
+        assert!(Zoom::try_from(command).is_err());
         Ok(())
     }
 }

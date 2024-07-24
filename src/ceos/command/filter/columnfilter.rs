@@ -105,16 +105,19 @@ impl Display for ColumnFilter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
 
-    #[test]
-    fn test_try_from() -> anyhow::Result<(), ()> {
-        let result = ColumnFilter::try_from("3..22")?;
+    #[rstest]
+    #[case(3, Some(22), "3..22")]
+    fn test_try_from(
+        #[case] start: usize,
+        #[case] end: Option<usize>,
+        #[case] command: &str,
+    ) -> anyhow::Result<(), ()> {
+        let result = ColumnFilter::try_from(command)?;
         assert_eq!(
             ColumnFilter {
-                range: Range {
-                    start: 3,
-                    end: Some(22),
-                }
+                range: Range { start, end }
             },
             result
         );

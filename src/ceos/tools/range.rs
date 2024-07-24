@@ -58,49 +58,44 @@ impl Range {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
 
-    #[test]
-    fn test_try_from() -> anyhow::Result<(), ()> {
-        let result = Range::try_from("3..22")?;
-        assert_eq!(
-            Range {
-                start: 3,
-                end: Some(22),
-            },
-            result
-        );
+    #[rstest]
+    #[case(3, Some(22), "3..22")]
+    #[case(0, Some(22), "..22")]
+    #[case(3, None, "3..")]
+    fn test_try_from(
+        #[case] start: usize,
+        #[case] end: Option<usize>,
+        #[case] command: &str,
+    ) -> anyhow::Result<(), ()> {
+        let result = Range::try_from(command)?;
+        assert_eq!(Range { start, end }, result);
         Ok(())
     }
 
-    #[test]
-    fn test_try_from_leading() -> anyhow::Result<(), ()> {
-        let result = Range::try_from("..22")?;
-        assert_eq!(
-            Range {
-                start: 0,
-                end: Some(22)
-            },
-            result
-        );
+    #[rstest]
+    #[case("33")]
+    #[case("33..22")]
+    #[case("33.2")]
+    #[case("..")]
+    #[case("..-22")]
+    #[case("-3..")]
+    #[case("-3..-4")]
+    fn test_try_from_invalid(#[case] command: &str) -> anyhow::Result<(), ()> {
+        assert!(Range::try_from(command).is_err());
         Ok(())
     }
 
-    #[test]
-    fn test_try_from_trailing() -> anyhow::Result<(), ()> {
-        let result = Range::try_from("3..")?;
-        assert_eq!(
-            Range {
-                start: 3,
-                end: None
-            },
-            result
-        );
-        Ok(())
-    }
-
-    #[test]
-    fn test_try_from_invalid() -> anyhow::Result<(), ()> {
-        assert!(Range::try_from("33..22").is_err());
+    #[rstest]
+    #[case(0, false)]
+    #[case(3, true)]
+    #[case(5, true)]
+    #[case(10, false)]
+    #[case(12, false)]
+    fn test_contains(#[case] value: usize, #[case] expected: bool) -> Result<(), ()> {
+        let result = Range::try_from("3..10")?;
+        assert_eq!(expected, result.contains(value));
         Ok(())
     }
 }
