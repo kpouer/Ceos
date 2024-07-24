@@ -11,7 +11,7 @@ use std::ops::Range;
 pub(crate) const DEFAULT_LINE_HEIGHT: f32 = 16.0;
 
 pub(crate) struct TextAreaProperties {
-    buffer: Buffer,
+    pub(crate) buffer: Buffer,
     renderers: Vec<Box<dyn Renderer>>,
     line_height: f32,
     font_id: FontId,
