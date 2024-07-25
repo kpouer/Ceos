@@ -45,13 +45,13 @@ impl Range {
     }
 
     pub(crate) fn contains(&self, value: usize) -> bool {
-        if self.start <= value {
-            if let Some(end) = self.end {
-                return value < end;
-            }
-            return true;
+        if value < self.start {
+            return false;
         }
-        false
+        match self.end {
+            Some(end) => value < end,
+            None => true,
+        }
     }
 }
 
@@ -88,13 +88,18 @@ mod tests {
     }
 
     #[rstest]
-    #[case(0, false)]
-    #[case(3, true)]
-    #[case(5, true)]
-    #[case(10, false)]
-    #[case(12, false)]
-    fn test_contains(#[case] value: usize, #[case] expected: bool) -> Result<(), ()> {
-        let result = Range::try_from("3..10")?;
+    #[case(0, "3..10", false)]
+    #[case(3, "3..10", true)]
+    #[case(5, "3..10", true)]
+    #[case(10, "3..10", false)]
+    #[case(12, "3..10", false)]
+    #[case(12, "3..", true)]
+    fn test_contains(
+        #[case] value: usize,
+        #[case] command: &str,
+        #[case] expected: bool,
+    ) -> Result<(), ()> {
+        let result = Range::try_from(command)?;
         assert_eq!(expected, result.contains(value));
         Ok(())
     }
