@@ -2,8 +2,6 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-use anyhow::Error;
-
 use crate::ceos::textarea::buffer::line::Line;
 
 pub(crate) mod line;
@@ -16,15 +14,30 @@ pub(crate) struct Buffer {
 
 impl Default for Buffer {
     fn default() -> Self {
-        let text = "Welcome to Ceos";
-        Self::new_from_text(text)
+        Self::from("")
     }
 }
 
-impl TryFrom<String> for Buffer {
-    type Error = Error;
+impl From<&str> for Buffer {
+    fn from(text: &str) -> Self {
+        let lines_iterator = text.lines();
+        let mut content = Vec::with_capacity(lines_iterator.size_hint().0);
+        lines_iterator.into_iter().for_each(|line| {
+            content.push(Line::from(line));
+        });
 
-    fn try_from(path: String) -> Result<Self, Self::Error> {
+        let mut buffer = Self {
+            path: String::new(),
+            content,
+            length: 0,
+        };
+        buffer.compute_length();
+        buffer
+    }
+}
+
+impl Buffer {
+    pub(crate) fn new_from_file(path: String) -> anyhow::Result<Self> {
         let lines = read_lines(&path).unwrap();
         let mut content = Vec::new();
         let mut length = 0;
@@ -41,24 +54,6 @@ impl TryFrom<String> for Buffer {
             content,
             length,
         })
-    }
-}
-
-impl Buffer {
-    pub(crate) fn new_from_text(text: &str) -> Self {
-        let lines_iterator = text.lines();
-        let mut content = Vec::with_capacity(lines_iterator.size_hint().0);
-        lines_iterator.into_iter().for_each(|line| {
-            content.push(Line::from(line));
-        });
-
-        let mut buffer = Self {
-            path: String::new(),
-            content,
-            length: 0,
-        };
-        buffer.compute_length();
-        buffer
     }
 
     pub(crate) fn path(&self) -> &str {
@@ -116,7 +111,7 @@ mod tests {
 
     #[test]
     fn test_buffer_new_from_text() {
-        let buffer = Buffer::new_from_text("Hello\nWorld 22\nHow are you");
+        let buffer = Buffer::from("Hello\nWorld 22\nHow are you");
         assert_eq!(buffer.line_count(), 3);
         assert_eq!(buffer.max_line_length(), 11);
     }

@@ -120,7 +120,7 @@ impl Ceos {
                 let path = path.into_os_string();
                 let path = path.to_str().unwrap();
                 sender.send(BufferClosed).unwrap();
-                match Buffer::try_from(path.to_string()) {
+                match Buffer::new_from_file(path.to_string()) {
                     Ok(buffer) => sender.send(BufferLoaded(buffer)).unwrap(),
                     Err(e) => warn!("{:?}", e),
                 }
@@ -162,7 +162,7 @@ impl Ceos {
                     let sender = self.sender.clone();
                     thread::spawn(move || {
                         sender.send(BufferClosed).unwrap();
-                        match Buffer::try_from(path) {
+                        match Buffer::new_from_file(path) {
                             Ok(buffer) => sender.send(BufferLoaded(buffer)).unwrap(),
                             Err(e) => warn!("{:?}", e),
                         }

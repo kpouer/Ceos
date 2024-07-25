@@ -57,7 +57,7 @@ impl TryFrom<&str> for Ceos {
     type Error = Error;
 
     fn try_from(path: &str) -> Result<Self, Self::Error> {
-        let buffer = Buffer::try_from(path.to_string())?;
+        let buffer = Buffer::new_from_file(path.to_string())?;
         let textarea = buffer.into();
         Ok(Self {
             textarea,

@@ -159,7 +159,7 @@ mod tests {
         \n\
         3 delete me\n\
         4 keep me\n";
-        let mut buffer = Buffer::new_from_text(content);
+        let mut buffer = Buffer::from(content);
         assert_eq!(content.len(), buffer.len());
         assert_eq!(5, buffer.line_count());
         filter.execute(&mut buffer);
