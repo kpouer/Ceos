@@ -109,3 +109,15 @@ where
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_buffer_new_from_text() {
+        let buffer = Buffer::new_from_text("Hello\nWorld 22\nHow are you");
+        assert_eq!(buffer.line_count(), 3);
+        assert_eq!(buffer.max_line_length(), 11);
+    }
+}
