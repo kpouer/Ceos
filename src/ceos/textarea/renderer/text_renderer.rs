@@ -1,5 +1,5 @@
 use crate::ceos::gui::theme::Theme;
-use crate::ceos::syntax::tokenizer::Tokenizer;
+use crate::ceos::syntax::tokenizer;
 use crate::ceos::textarea::renderer::Renderer;
 use crate::ceos::textarea::textareaproperties::TextAreaProperties;
 use eframe::emath::Pos2;
@@ -31,8 +31,7 @@ impl Renderer for TextRenderer {
         }
         let text = Self::get_text_to_render(textarea, virtual_pos.x, text);
         let painter = ui.painter();
-        let tokenizer = Tokenizer::new(text);
-        let chunks = tokenizer.tokenize();
+        let chunks = tokenizer::tokenize(text);
         let initial_offset = drawing_pos.x;
         chunks.into_iter().for_each(|chunk| {
             drawing_pos.x = initial_offset + chunk.start() as f32 * textarea.char_width();
