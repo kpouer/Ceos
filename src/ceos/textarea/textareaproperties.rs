@@ -94,7 +94,7 @@ impl TextAreaProperties {
     }
 
     pub(crate) fn gutter_width(&self) -> f32 {
-        gutter::gutter_width(self.char_width, &self.buffer)
+        gutter::gutter_width(self.char_width, self.buffer.line_count())
     }
 
     pub(crate) fn text_bounds(&self) -> Vec2 {
