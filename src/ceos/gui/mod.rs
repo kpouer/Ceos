@@ -7,10 +7,10 @@ use std::fs::File;
 use std::io::{LineWriter, Write};
 use std::thread;
 
+use crate::ceos::buffer::Buffer;
 use crate::ceos::gui::widget::textpane::TextPane;
 use crate::ceos::Ceos;
 use crate::event::Event::{BufferClosed, BufferLoaded, NewFont};
-use crate::ceos::buffer::Buffer;
 use theme::Theme;
 
 pub(crate) mod frame_history;

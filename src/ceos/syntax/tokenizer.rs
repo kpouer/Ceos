@@ -3,33 +3,56 @@ use crate::ceos::syntax::token_type::Token;
 use log::{debug, info};
 use logos::Logos;
 
-pub(crate) fn tokenize(text: &str) -> Vec<Chunk> {
-    debug!("start tokenizing");
-    let lex = Token::lexer(text);
-    let mut chunks = Vec::new();
-    for (token, span) in lex.spanned() {
-        let chunk = Chunk::new(token.ok(), span, text);
-        chunks.push(chunk);
-    }
-
-    merge_tokens(chunks)
+pub(crate) struct Tokenizer<'a> {
+    pub(crate) tokens: Vec<Chunk<'a>>,
 }
 
-fn merge_tokens(mut chunks: Vec<Chunk>) -> Vec<Chunk> {
-    let len = chunks.len();
-    if len < 2 {
-        return chunks;
+impl<'a> Tokenizer<'a> {
+    pub(crate) fn new(text: &'a str) -> Self {
+        Self {
+            tokens: Self::tokenize(text),
+        }
     }
 
-    let mut out = Vec::with_capacity(len);
-    out.push(chunks.remove(0));
-    while !chunks.is_empty() {
-        push_item(&mut out, chunks.remove(0));
+    fn tokenize(text: &str) -> Vec<Chunk> {
+        debug!("start tokenizing");
+        let lex = Token::lexer(text);
+        let mut chunks = Vec::new();
+        for (token, span) in lex.spanned() {
+            let chunk = Chunk::new(token.ok(), span, text);
+            chunks.push(chunk);
+        }
+
+        chunks
     }
-    if len != out.len() {
-        debug!("Before merging we have {len} chunks, after we have {} tokens", out.len());
+
+    pub(crate) fn merge_tokens(&mut self) {
+        let len = self.tokens.len();
+        if len < 2 {
+            return;
+        }
+
+        let mut out = Vec::with_capacity(len);
+        out.push(self.tokens.remove(0));
+        while !self.tokens.is_empty() {
+            push_item(&mut out, self.tokens.remove(0));
+        }
+        if len != out.len() {
+            debug!(
+                "Before merging we have {len} chunks, after we have {} tokens",
+                out.len()
+            );
+        }
+        self.tokens = out
     }
-    out
+
+    fn dump_tokens(&self) {
+        info!("start");
+        for chunk in &self.tokens {
+            info!("token: {:?}", chunk.token);
+        }
+        info!("end");
+    }
 }
 
 fn push_item<'a>(chunks: &mut Vec<Chunk<'a>>, item: Chunk<'a>) {
@@ -44,13 +67,5 @@ fn eventually_merge(chunks: &mut Vec<Chunk>, chunk: &Chunk) -> bool {
         last.merge(chunk);
         return true;
     }
-        false
-}
-
-fn dump_tokens(chunks: &Vec<Chunk>) {
-    info!("start");
-    for chunk in chunks {
-        info!("token: {:?}", chunk.token);
-    }
-    info!("end");
+    false
 }

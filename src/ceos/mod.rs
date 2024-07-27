@@ -9,11 +9,11 @@ use buffer::Buffer;
 use gui::textarea::textareaproperties::TextAreaProperties;
 use gui::theme::Theme;
 
+pub(crate) mod buffer;
 pub(crate) mod command;
 pub(crate) mod gui;
 mod syntax;
 mod tools;
-pub(crate) mod buffer;
 
 pub(crate) struct Ceos {
     textarea: TextAreaProperties,
