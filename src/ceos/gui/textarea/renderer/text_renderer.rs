@@ -25,7 +25,7 @@ impl Renderer for TextRenderer {
         virtual_pos: Pos2,
         mut drawing_pos: Pos2,
     ) {
-        let text = textarea.buffer().line_text(line);
+        let text = textarea.buffer.line_text(line);
         if text.trim().is_empty() {
             return;
         }
@@ -35,7 +35,7 @@ impl Renderer for TextRenderer {
         tokenizer.merge_tokens();
         let initial_offset = drawing_pos.x;
         tokenizer.tokens.into_iter().for_each(|chunk| {
-            drawing_pos.x = initial_offset + chunk.start() as f32 * textarea.char_width();
+            drawing_pos.x = initial_offset + chunk.start() as f32 * textarea.char_width;
             let color = chunk
                 .token
                 .as_ref()

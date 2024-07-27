@@ -32,7 +32,7 @@ impl Widget for TextPane<'_> {
         let rect = ui.max_rect().size();
         let new_scroll_offset = ui.horizontal_top(|ui| {
             let gutter_width = self.textarea_properties.gutter_width();
-            let current_scroll_offset = self.textarea_properties.scroll_offset();
+            let current_scroll_offset = &self.textarea_properties.scroll_offset;
             let scroll_result_gutter = egui::ScrollArea::vertical()
                 .id_source("gutter")
                 .auto_shrink(false)
@@ -66,8 +66,7 @@ impl Widget for TextPane<'_> {
             };
             offset
         });
-        self.textarea_properties
-            .set_scroll_offset(new_scroll_offset.inner);
+        self.textarea_properties.scroll_offset = new_scroll_offset.inner;
         let (_, response) = ui.allocate_exact_size(rect, egui::Sense::click_and_drag());
         response
     }

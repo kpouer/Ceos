@@ -37,9 +37,9 @@ impl eframe::App for Ceos {
         self.build_bottom_panel(ctx);
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if self.textarea.char_width() == 0.0 {
-                let char_width = tools::char_width(self.textarea.font_id().clone(), ui);
-                self.textarea.set_char_width(char_width);
+            if self.textarea.char_width == 0.0 {
+                let char_width = tools::char_width(self.textarea.font_id.clone(), ui);
+                self.textarea.char_width = char_width;
             }
             TextPane::new(&mut self.textarea, &self.current_command, &self.theme).ui(ui)
         });
@@ -103,7 +103,7 @@ impl Ceos {
                         self.try_filter_command();
                     }
                 });
-                ui.label(format!("Length: {}", self.textarea.buffer().len(),));
+                ui.label(format!("Length: {}", self.textarea.buffer.len(),));
             });
             if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                 self.execute_command();
@@ -131,15 +131,14 @@ impl Ceos {
 
     fn save_file(&self) {
         info!("save_file");
-        let path = self.textarea.buffer().path();
-        if !path.is_empty() {
-            let file = File::create(path).unwrap();
+        if !self.textarea.buffer.path.is_empty() {
+            let file = File::create(&self.textarea.buffer.path).unwrap();
             let mut file = LineWriter::new(file);
             self.textarea
-                .buffer()
-                .content()
+                .buffer
+                .content
                 .iter()
-                .map(|line| line.content())
+                .map(|line| &line.content)
                 .for_each(|line| {
                     Self::write(&mut file, line.as_bytes());
                     Self::write(&mut file, b"\n");
@@ -198,7 +197,7 @@ impl Ceos {
     }
 
     fn zoom(&self, delta: f32) {
-        let current_font_size = self.textarea.font_id().size;
+        let current_font_size = self.textarea.font_id.size;
         let new_font_size = current_font_size + delta;
         if new_font_size < 1.0 {
             return;

@@ -1,6 +1,6 @@
 #[derive(Default, Debug)]
 pub(crate) struct Line {
-    content: String,
+    pub(crate) content: String,
 }
 
 impl From<String> for Line {
@@ -11,20 +11,14 @@ impl From<String> for Line {
 
 impl From<&str> for Line {
     fn from(content: &str) -> Self {
-        Self::from(content.to_string())
+        Self {
+            content: content.to_string(),
+        }
     }
 }
 
 impl Line {
     pub(crate) fn len(&self) -> usize {
         self.content.len()
-    }
-
-    pub(crate) fn content(&self) -> &str {
-        &self.content
-    }
-
-    pub(crate) fn content_mut(&mut self) -> &mut String {
-        &mut self.content
     }
 }

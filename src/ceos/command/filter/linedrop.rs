@@ -42,8 +42,7 @@ impl Renderer for LineDrop {
         drawing_pos: Pos2,
     ) {
         if self.range.contains(line + 1) {
-            let bottom_right =
-                Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea.line_height());
+            let bottom_right = Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea.line_height);
             let line_rect = Rect::from_min_max(drawing_pos, bottom_right);
             let painter = ui.painter();
             painter.rect(line_rect, 0.0, theme.deleting, Stroke::default());
@@ -53,20 +52,20 @@ impl Renderer for LineDrop {
 
 impl Command for LineDrop {
     fn execute(&self, buffer: &mut Buffer) {
-        let line_count = buffer.content().len();
+        let line_count = buffer.line_count();
         if let Some(end) = self.range.end {
             buffer
-                .content_mut()
+                .content
                 .drain(self.range.start..cmp::min(line_count, end));
         } else {
-            buffer.content_mut().drain(self.range.start..);
+            buffer.content.drain(self.range.start..);
         }
 
         let new_length = buffer.compute_length();
         info!(
             "Removed range '{:?}' removed {} lines, new length {new_length}",
             self.range,
-            line_count - buffer.content().len()
+            line_count - buffer.line_count()
         );
     }
 }

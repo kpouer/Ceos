@@ -18,13 +18,12 @@ pub(crate) struct LineFilter {
 
 impl LineFilter {
     pub(crate) fn accept(&self, line: &Line) -> bool {
-        let line_content = line.content();
         for filter in &self.filters {
             if let Some(prefix) = filter.strip_prefix('!') {
-                if line_content.contains(prefix) && !line_content.contains(filter) {
+                if line.content.contains(prefix) && !line.content.contains(filter) {
                     return false;
                 }
-            } else if !line_content.contains(filter) {
+            } else if !line.content.contains(filter) {
                 return false;
             }
         }
@@ -55,10 +54,9 @@ impl Renderer for LineFilter {
         _: Pos2,
         drawing_pos: Pos2,
     ) {
-        let line = &textarea.buffer().content()[line];
+        let line = &textarea.buffer.content[line];
         if !self.accept(line) {
-            let bottom_right =
-                Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea.line_height());
+            let bottom_right = Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea.line_height);
             let line_rect = Rect::from_min_max(drawing_pos, bottom_right);
             let painter = ui.painter();
             painter.rect(line_rect, 0.0, theme.deleting, Stroke::default());
@@ -68,14 +66,14 @@ impl Renderer for LineFilter {
 
 impl Command for LineFilter {
     fn execute(&self, buffer: &mut Buffer) {
-        let line_count = buffer.content().len();
-        buffer.content_mut().retain(|line| self.accept(line));
+        let line_count = buffer.line_count();
+        buffer.content.retain(|line| self.accept(line));
 
         let new_length = buffer.compute_length();
         info!(
             "Applied filter '{:?}' removed {} lines, new length {new_length}",
             self.filters,
-            line_count - buffer.content().len()
+            line_count - buffer.line_count()
         );
     }
 }

@@ -12,11 +12,11 @@ pub(crate) const DEFAULT_LINE_HEIGHT: f32 = 16.0;
 
 pub(crate) struct TextAreaProperties {
     pub(crate) buffer: Buffer,
-    renderers: Vec<Box<dyn Renderer>>,
-    line_height: f32,
-    font_id: FontId,
-    char_width: f32,
-    scroll_offset: Vec2,
+    pub(crate) renderers: Vec<Box<dyn Renderer>>,
+    pub(crate) line_height: f32,
+    pub(crate) font_id: FontId,
+    pub(crate) char_width: f32,
+    pub(crate) scroll_offset: Vec2,
 }
 
 impl Default for TextAreaProperties {
@@ -35,18 +35,6 @@ impl Default for TextAreaProperties {
 }
 
 impl TextAreaProperties {
-    pub(crate) fn set_scroll_offset(&mut self, scroll_offset: Vec2) {
-        self.scroll_offset = scroll_offset
-    }
-
-    pub(crate) fn char_width(&self) -> f32 {
-        self.char_width
-    }
-
-    pub(crate) fn set_char_width(&mut self, char_width: f32) {
-        self.char_width = char_width;
-    }
-
     pub(crate) fn set_font_id(&mut self, font_id: FontId) {
         self.font_id = font_id.clone();
         self.renderers
@@ -56,41 +44,17 @@ impl TextAreaProperties {
         self.line_height = font_id.size;
     }
 
-    pub(crate) fn font_id(&self) -> &FontId {
-        &self.font_id
-    }
-
     pub(crate) fn set_buffer(&mut self, buffer: Buffer) {
         info!(
             "set buffer: {}, line count: {}",
-            buffer.path(),
+            buffer.path,
             buffer.line_count()
         );
         self.buffer = buffer
     }
 
-    pub(crate) fn line_height(&self) -> f32 {
-        self.line_height
-    }
-
-    pub(crate) fn buffer(&self) -> &Buffer {
-        &self.buffer
-    }
-
     pub(crate) fn offset_x_to_column(&self, x: f32) -> usize {
-        (x / self.char_width()).floor() as usize
-    }
-
-    pub(crate) fn buffer_mut(&mut self) -> &mut Buffer {
-        &mut self.buffer
-    }
-
-    pub fn renderers(&self) -> &Vec<Box<dyn Renderer>> {
-        &self.renderers
-    }
-
-    pub fn scroll_offset(&self) -> &Vec2 {
-        &self.scroll_offset
+        (x / self.char_width).floor() as usize
     }
 
     pub(crate) fn gutter_width(&self) -> f32 {
@@ -102,17 +66,17 @@ impl TextAreaProperties {
     }
 
     pub(crate) fn text_width(&self) -> f32 {
-        self.buffer().max_line_length() as f32 * self.char_width()
+        self.buffer.max_line_length() as f32 * self.char_width
     }
 
     pub(crate) fn text_height(&self) -> f32 {
-        self.line_height() * self.buffer.line_count() as f32
+        self.line_height * self.buffer.line_count() as f32
     }
 
     pub(crate) fn get_row_range_for_rect(&self, rect: Rect) -> Range<usize> {
-        let min_row = (rect.top() / self.line_height()) as usize;
+        let min_row = (rect.top() / self.line_height) as usize;
         let max_row = cmp::min(
-            (rect.bottom() / self.line_height()) as usize,
+            (rect.bottom() / self.line_height) as usize,
             self.buffer.line_count(),
         );
         min_row..max_row
