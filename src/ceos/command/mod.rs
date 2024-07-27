@@ -6,7 +6,7 @@ use filter::columnfilter::ColumnFilter;
 use filter::linefilter::LineFilter;
 
 use crate::ceos::command::filter::linedrop::LineDrop;
-use crate::ceos::gui::textarea::buffer::Buffer;
+use crate::ceos::buffer::Buffer;
 use crate::ceos::gui::textarea::renderer::Renderer;
 use crate::ceos::Ceos;
 use crate::event::Event;

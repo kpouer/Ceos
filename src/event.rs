@@ -1,6 +1,6 @@
 use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::command::direct::zoom::Zoom;
-use crate::ceos::gui::textarea::buffer::Buffer;
+use crate::ceos::buffer::Buffer;
 use crate::event::Event::{BufferClosed, GotoLine, NewFont};
 use egui::FontId;
 

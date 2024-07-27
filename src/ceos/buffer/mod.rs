@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-use crate::ceos::gui::textarea::buffer::line::Line;
+use crate::ceos::buffer::line::Line;
 
 pub(crate) mod line;
 

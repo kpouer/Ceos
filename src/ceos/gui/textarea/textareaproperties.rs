@@ -1,4 +1,4 @@
-use crate::ceos::gui::textarea::buffer::Buffer;
+use crate::ceos::buffer::Buffer;
 use crate::ceos::gui::textarea::renderer::text_renderer::TextRenderer;
 use crate::ceos::gui::textarea::renderer::Renderer;
 use crate::ceos::gui::widget::gutter;
