@@ -1,5 +1,5 @@
 use crate::ceos::syntax::chunk::Chunk;
-use crate::ceos::syntax::token_type::Token;
+use crate::ceos::syntax::token::Token;
 use log::{debug, info};
 use logos::Logos;
 

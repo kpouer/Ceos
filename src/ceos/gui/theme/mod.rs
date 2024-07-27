@@ -1,4 +1,4 @@
-use crate::ceos::syntax::token_type::Token;
+use crate::ceos::syntax::token::Token;
 use eframe::epaint::Color32;
 use egui::Visuals;
 
