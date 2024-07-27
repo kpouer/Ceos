@@ -5,9 +5,9 @@ use eframe::epaint::Stroke;
 use egui::Ui;
 use log::info;
 
-use crate::ceos::command::Command;
 use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::Buffer;
+use crate::ceos::command::Command;
 use crate::ceos::gui::textarea::renderer::Renderer;
 use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;

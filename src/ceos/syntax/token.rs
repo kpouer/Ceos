@@ -1,6 +1,6 @@
 use logos::Logos;
 
-#[derive(Debug, Logos)]
+#[derive(Debug, Logos, PartialEq)]
 #[logos(skip r"[ \t\r\n\f]+")]
 pub(crate) enum Token {
     #[token("false")]

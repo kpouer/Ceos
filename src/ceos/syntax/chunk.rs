@@ -1,9 +1,9 @@
-use crate::ceos::syntax::token_type::Token;
+use crate::ceos::syntax::token::Token;
 use logos::Span;
 
 pub(crate) struct Chunk<'a> {
-    token: Option<Token>,
-    span: Span,
+    pub(crate) token: Option<Token>,
+    pub(crate) span: Span,
     text: &'a str,
 }
 
@@ -20,7 +20,7 @@ impl<'a> Chunk<'a> {
         self.span.start
     }
 
-    pub(crate) fn token(&self) -> Option<&Token> {
-        self.token.as_ref()
+    pub(crate) fn merge(&mut self, chunk: &Chunk) {
+        self.span.end = chunk.span.end;
     }
 }
