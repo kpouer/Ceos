@@ -1,7 +1,7 @@
+use crate::ceos::buffer::Buffer;
+use crate::ceos::gui::textarea::renderer::text_renderer::TextRenderer;
+use crate::ceos::gui::textarea::renderer::Renderer;
 use crate::ceos::gui::widget::gutter;
-use crate::ceos::textarea::buffer::Buffer;
-use crate::ceos::textarea::renderer::text_renderer::TextRenderer;
-use crate::ceos::textarea::renderer::Renderer;
 use eframe::emath::{Rect, Vec2};
 use eframe::epaint::FontId;
 use log::info;
@@ -11,7 +11,7 @@ use std::ops::Range;
 pub(crate) const DEFAULT_LINE_HEIGHT: f32 = 16.0;
 
 pub(crate) struct TextAreaProperties {
-    buffer: Buffer,
+    pub(crate) buffer: Buffer,
     renderers: Vec<Box<dyn Renderer>>,
     line_height: f32,
     font_id: FontId,
@@ -94,7 +94,7 @@ impl TextAreaProperties {
     }
 
     pub(crate) fn gutter_width(&self) -> f32 {
-        gutter::gutter_width(self.char_width, &self.buffer)
+        gutter::gutter_width(self.char_width, self.buffer.line_count())
     }
 
     pub(crate) fn text_bounds(&self) -> Vec2 {

@@ -2,17 +2,17 @@ use std::fmt::Display;
 
 use log::{debug, info};
 
-use buffer::columnfilter::ColumnFilter;
-use buffer::linefilter::LineFilter;
+use filter::columnfilter::ColumnFilter;
+use filter::linefilter::LineFilter;
 
-use crate::ceos::command::buffer::linedrop::LineDrop;
-use crate::ceos::textarea::buffer::Buffer;
-use crate::ceos::textarea::renderer::Renderer;
+use crate::ceos::command::filter::linedrop::LineDrop;
+use crate::ceos::buffer::Buffer;
+use crate::ceos::gui::textarea::renderer::Renderer;
 use crate::ceos::Ceos;
 use crate::event::Event;
 
-mod buffer;
 pub(crate) mod direct;
+mod filter;
 
 impl Ceos {
     pub(crate) fn try_filter_command(&mut self) {

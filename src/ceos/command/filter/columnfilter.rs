@@ -7,12 +7,12 @@ use egui::Ui;
 use log::debug;
 
 use crate::ceos::command::Command;
+use crate::ceos::buffer::line::Line;
+use crate::ceos::buffer::Buffer;
+use crate::ceos::gui::textarea::renderer::Renderer;
+use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::ceos::gui::tools;
-use crate::ceos::textarea::buffer::line::Line;
-use crate::ceos::textarea::buffer::Buffer;
-use crate::ceos::textarea::renderer::Renderer;
-use crate::ceos::textarea::textareaproperties::TextAreaProperties;
 use crate::ceos::tools::range::Range;
 
 #[derive(Debug, PartialEq)]
@@ -105,16 +105,19 @@ impl Display for ColumnFilter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
 
-    #[test]
-    fn test_try_from() -> anyhow::Result<(), ()> {
-        let result = ColumnFilter::try_from("3..22")?;
+    #[rstest]
+    #[case(3, Some(22), "3..22")]
+    fn test_try_from(
+        #[case] start: usize,
+        #[case] end: Option<usize>,
+        #[case] command: &str,
+    ) -> anyhow::Result<(), ()> {
+        let result = ColumnFilter::try_from(command)?;
         assert_eq!(
             ColumnFilter {
-                range: Range {
-                    start: 3,
-                    end: Some(22),
-                }
+                range: Range { start, end }
             },
             result
         );
@@ -156,7 +159,7 @@ mod tests {
         \n\
         3 delete me\n\
         4 keep me\n";
-        let mut buffer = Buffer::new_from_text(content);
+        let mut buffer = Buffer::from(content);
         assert_eq!(content.len(), buffer.len());
         assert_eq!(5, buffer.line_count());
         filter.execute(&mut buffer);

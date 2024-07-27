@@ -6,11 +6,11 @@ use egui::Ui;
 use log::info;
 
 use crate::ceos::command::Command;
+use crate::ceos::buffer::line::Line;
+use crate::ceos::buffer::Buffer;
+use crate::ceos::gui::textarea::renderer::Renderer;
+use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
-use crate::ceos::textarea::buffer::line::Line;
-use crate::ceos::textarea::buffer::Buffer;
-use crate::ceos::textarea::renderer::Renderer;
-use crate::ceos::textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) struct LineFilter {
     filters: Vec<String>,
@@ -97,7 +97,7 @@ mod tests {
         2 keep me\n\
         3 delete me\n\
         4 keep me\n";
-        let mut buffer = Buffer::new_from_text(content);
+        let mut buffer = Buffer::from(content);
         assert_eq!(content.len(), buffer.len());
         assert_eq!(4, buffer.line_count());
         filter.execute(&mut buffer);

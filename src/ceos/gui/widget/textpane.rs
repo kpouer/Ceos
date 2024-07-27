@@ -2,10 +2,10 @@ use egui::scroll_area::ScrollBarVisibility::AlwaysHidden;
 use egui::{Response, Ui, Widget};
 
 use crate::ceos::command::Command;
+use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::ceos::gui::widget::gutter::Gutter;
 use crate::ceos::gui::widget::textarea::TextArea;
-use crate::ceos::textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) struct TextPane<'a> {
     textarea_properties: &'a mut TextAreaProperties,

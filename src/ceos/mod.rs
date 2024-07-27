@@ -5,15 +5,15 @@ use crate::ceos::gui::frame_history::FrameHistory;
 use crate::event::Event;
 use crate::event::Event::BufferLoaded;
 use anyhow::Error;
+use buffer::Buffer;
+use gui::textarea::textareaproperties::TextAreaProperties;
 use gui::theme::Theme;
-use textarea::buffer::Buffer;
-use textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) mod command;
 pub(crate) mod gui;
 mod syntax;
-pub mod textarea;
 mod tools;
+pub(crate) mod buffer;
 
 pub(crate) struct Ceos {
     textarea: TextAreaProperties,
@@ -57,7 +57,7 @@ impl TryFrom<&str> for Ceos {
     type Error = Error;
 
     fn try_from(path: &str) -> Result<Self, Self::Error> {
-        let buffer = Buffer::try_from(path.to_string())?;
+        let buffer = Buffer::new_from_file(path.to_string())?;
         let textarea = buffer.into();
         Ok(Self {
             textarea,

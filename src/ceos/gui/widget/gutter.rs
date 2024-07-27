@@ -2,8 +2,7 @@ use eframe::emath::{Rect, Vec2};
 use eframe::epaint::Stroke;
 use egui::{Response, Ui, Widget};
 
-use crate::ceos::textarea::buffer::Buffer;
-use crate::ceos::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) struct Gutter<'a> {
     textarea_properties: &'a TextAreaProperties,
@@ -46,10 +45,31 @@ impl Widget for Gutter<'_> {
     }
 }
 
-pub(crate) fn gutter_width(char_width: f32, buffer: &Buffer) -> f32 {
-    if buffer.line_count() == 0 {
-        char_width * 2.0
+pub(crate) fn gutter_width(char_width: f32, line_count: usize) -> f32 {
+    if line_count == 0 {
+        char_width * 3.0
     } else {
-        char_width * (2.0 + 1.0 + buffer.line_count().ilog10() as f32)
+        char_width * (2.0 + 1.0 + line_count.ilog10() as f32)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(10.0, 0, 30.0)]
+    #[case(10.0, 1, 30.0)]
+    #[case(10.0, 9, 30.0)]
+    #[case(10.0, 10, 40.0)]
+    #[case(10.0, 99, 40.0)]
+    #[case(10.0, 100, 50.0)]
+    fn test_gutter_width(
+        #[case] char_width: f32,
+        #[case] line_count: usize,
+        #[case] expected: f32,
+    ) {
+        assert_eq!(gutter_width(char_width, line_count), expected);
     }
 }
