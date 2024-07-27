@@ -1,4 +1,4 @@
-use crate::ceos::textarea::textareaproperties::DEFAULT_LINE_HEIGHT;
+use crate::ceos::gui::textarea::textareaproperties::DEFAULT_LINE_HEIGHT;
 use eframe::epaint::FontId;
 
 #[derive(Debug, PartialEq)]

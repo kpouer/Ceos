@@ -1,6 +1,6 @@
 use crate::ceos::command::Command;
+use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
-use crate::ceos::textarea::textareaproperties::TextAreaProperties;
 use eframe::emath::{Pos2, Rect};
 use egui::Widget;
 

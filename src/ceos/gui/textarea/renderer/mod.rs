@@ -2,8 +2,8 @@ use eframe::emath::Pos2;
 use eframe::epaint::FontId;
 use egui::Ui;
 
+use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
-use crate::ceos::textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) mod text_renderer;
 

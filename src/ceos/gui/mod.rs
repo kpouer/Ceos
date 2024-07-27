@@ -8,12 +8,13 @@ use std::io::{LineWriter, Write};
 use std::thread;
 
 use crate::ceos::gui::widget::textpane::TextPane;
-use crate::ceos::textarea::buffer::Buffer;
 use crate::ceos::Ceos;
 use crate::event::Event::{BufferClosed, BufferLoaded, NewFont};
+use textarea::buffer::Buffer;
 use theme::Theme;
 
 pub(crate) mod frame_history;
+pub mod textarea;
 pub mod theme;
 pub(crate) mod tools;
 pub(crate) mod widget;

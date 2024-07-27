@@ -1,4 +1,4 @@
-use crate::ceos::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
 use eframe::emath::Vec2;
 use std::cmp;
 

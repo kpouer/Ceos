@@ -5,14 +5,13 @@ use crate::ceos::gui::frame_history::FrameHistory;
 use crate::event::Event;
 use crate::event::Event::BufferLoaded;
 use anyhow::Error;
+use gui::textarea::buffer::Buffer;
+use gui::textarea::textareaproperties::TextAreaProperties;
 use gui::theme::Theme;
-use textarea::buffer::Buffer;
-use textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) mod command;
 pub(crate) mod gui;
 mod syntax;
-pub mod textarea;
 mod tools;
 
 pub(crate) struct Ceos {

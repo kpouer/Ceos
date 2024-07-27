@@ -1,7 +1,7 @@
+use crate::ceos::gui::textarea::renderer::Renderer;
+use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::ceos::syntax::tokenizer;
-use crate::ceos::textarea::renderer::Renderer;
-use crate::ceos::textarea::textareaproperties::TextAreaProperties;
 use eframe::emath::Pos2;
 use egui::{FontId, Ui};
 
