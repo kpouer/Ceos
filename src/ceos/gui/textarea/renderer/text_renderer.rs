@@ -36,7 +36,8 @@ impl Renderer for TextRenderer {
         chunks.into_iter().for_each(|chunk| {
             drawing_pos.x = initial_offset + chunk.start() as f32 * textarea.char_width();
             let color = chunk
-                .token()
+                .token
+                .as_ref()
                 .map(|token| theme.color(token))
                 .unwrap_or(theme.text);
             painter.text(
