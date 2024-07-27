@@ -1,14 +1,13 @@
+use crate::ceos::buffer::line::Line;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-use crate::ceos::buffer::line::Line;
-
 pub(crate) mod line;
 
 pub(crate) struct Buffer {
-    path: String,
-    content: Vec<Line>,
+    pub(crate) path: String,
+    pub(crate) content: Vec<Line>,
     length: usize,
 }
 
@@ -56,12 +55,8 @@ impl Buffer {
         })
     }
 
-    pub(crate) fn path(&self) -> &str {
-        &self.path
-    }
-
     pub(crate) fn line_text(&self, line: usize) -> &str {
-        self.content[line].content()
+        &self.content[line].content
     }
 
     pub(crate) fn line_count(&self) -> usize {
@@ -84,14 +79,6 @@ impl Buffer {
         self.length = self.content.iter().map(|line| line.len()).sum();
         self.length += self.line_count();
         self.length
-    }
-
-    pub fn content(&self) -> &Vec<Line> {
-        &self.content
-    }
-
-    pub fn content_mut(&mut self) -> &mut Vec<Line> {
-        &mut self.content
     }
 }
 

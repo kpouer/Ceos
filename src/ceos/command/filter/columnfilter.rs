@@ -40,7 +40,7 @@ impl Renderer for ColumnFilter {
         _: Pos2,
         drawing_pos: Pos2,
     ) {
-        let char_width = tools::char_width(textarea.font_id().clone(), ui);
+        let char_width = tools::char_width(textarea.font_id.clone(), ui);
         let end_x = if self.range.end.is_some() {
             self.range.end.unwrap() as f32 * char_width
         } else {
@@ -50,10 +50,7 @@ impl Renderer for ColumnFilter {
             drawing_pos.x + self.range.start as f32 * char_width,
             drawing_pos.y,
         );
-        let bottom_right = Pos2::new(
-            drawing_pos.x + end_x,
-            drawing_pos.y + textarea.line_height(),
-        );
+        let bottom_right = Pos2::new(drawing_pos.x + end_x, drawing_pos.y + textarea.line_height);
         let line_rect = Rect::from_min_max(top_left, bottom_right);
         let painter = ui.painter();
         painter.rect(line_rect, 0.0, theme.deleting, Stroke::default());
@@ -62,32 +59,32 @@ impl Renderer for ColumnFilter {
 
 impl Command for ColumnFilter {
     fn execute(&self, buffer: &mut Buffer) {
-        let line_count = buffer.content().len();
+        let line_count = buffer.line_count();
 
         buffer
-            .content_mut()
+            .content
             .iter_mut()
             .for_each(|line| self.apply_to_line(line));
 
         let new_length = buffer.compute_length();
         debug!(
             "Applied filter removed {} lines, new length {new_length}",
-            line_count - buffer.content().len()
+            line_count - buffer.line_count()
         );
     }
 }
 
 impl ColumnFilter {
     pub(crate) fn apply_to_line(&self, line: &mut Line) {
-        let content = line.content_mut();
-        if self.range.start >= content.len() {
+        if self.range.start >= line.content.len() {
             return;
         }
 
         if let Some(end) = self.range.end {
-            content.drain(self.range.start..cmp::min(content.len(), end));
+            line.content
+                .drain(self.range.start..cmp::min(line.content.len(), end));
         } else {
-            content.drain(self.range.start..);
+            line.content.drain(self.range.start..);
         }
     }
 }
@@ -129,7 +126,7 @@ mod tests {
         let filter = ColumnFilter::try_from("..2")?;
         let mut line = Line::from("1 delete me");
         filter.apply_to_line(&mut line);
-        assert_eq!("delete me", line.content());
+        assert_eq!("delete me", line.content);
         Ok(())
     }
 
@@ -138,7 +135,7 @@ mod tests {
         let filter = ColumnFilter::try_from("..2")?;
         let mut line = Line::from("1");
         filter.apply_to_line(&mut line);
-        assert!(line.content().is_empty());
+        assert!(line.content.is_empty());
         Ok(())
     }
 
@@ -147,7 +144,7 @@ mod tests {
         let filter = ColumnFilter::try_from("..2")?;
         let mut line = Line::from("");
         filter.apply_to_line(&mut line);
-        assert!(line.content().is_empty());
+        assert!(line.content.is_empty());
         Ok(())
     }
 

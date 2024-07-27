@@ -45,7 +45,7 @@ impl Widget for TextArea<'_> {
                 );
             }
 
-            self.textarea_properties.renderers().iter().for_each(|r| {
+            self.textarea_properties.renderers.iter().for_each(|r| {
                 r.paint_line(
                     ui,
                     self.theme,
@@ -56,8 +56,8 @@ impl Widget for TextArea<'_> {
                 )
             });
 
-            drawing_pos.y += self.textarea_properties.line_height();
-            virtual_pos.y += self.textarea_properties.line_height();
+            drawing_pos.y += self.textarea_properties.line_height;
+            virtual_pos.y += self.textarea_properties.line_height;
         });
 
         let text_bounds = self.textarea_properties.text_bounds();

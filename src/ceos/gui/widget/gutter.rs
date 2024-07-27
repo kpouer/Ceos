@@ -26,17 +26,17 @@ impl Widget for Gutter<'_> {
         let painter = ui.painter();
         painter.rect(gutter_rect, 0.0, ui.visuals().faint_bg_color, Stroke::NONE);
         let mut pos = gutter_rect.right_top();
-        pos.x -= self.textarea_properties.char_width();
+        pos.x -= self.textarea_properties.char_width;
         let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
         row_range.into_iter().for_each(|line| {
             painter.text(
                 pos,
                 egui::Align2::RIGHT_TOP,
                 format!("{}", line + 1),
-                self.textarea_properties.font_id().clone(),
+                self.textarea_properties.font_id.clone(),
                 ui.visuals().text_color(),
             );
-            pos.y += self.textarea_properties.line_height();
+            pos.y += self.textarea_properties.line_height;
         });
 
         let size = Vec2::new(gutter_width, self.textarea_properties.text_height());
