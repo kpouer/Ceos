@@ -1,7 +1,8 @@
+use log::debug;
+use logos::Logos;
+
 use crate::ceos::syntax::chunk::Chunk;
 use crate::ceos::syntax::token::Token;
-use log::{debug, info};
-use logos::Logos;
 
 pub(crate) struct Tokenizer<'a> {
     pub(crate) tokens: Vec<Chunk<'a>>,
@@ -45,14 +46,6 @@ impl<'a> Tokenizer<'a> {
         }
         self.tokens = out
     }
-
-    fn dump_tokens(&self) {
-        info!("start");
-        for chunk in &self.tokens {
-            info!("token: {:?}", chunk.token);
-        }
-        info!("end");
-    }
 }
 
 fn push_item<'a>(chunks: &mut Vec<Chunk<'a>>, item: Chunk<'a>) {
@@ -61,11 +54,25 @@ fn push_item<'a>(chunks: &mut Vec<Chunk<'a>>, item: Chunk<'a>) {
     }
 }
 
-fn eventually_merge(chunks: &mut Vec<Chunk>, chunk: &Chunk) -> bool {
+fn eventually_merge(chunks: &mut [Chunk], chunk: &Chunk) -> bool {
     let last = chunks.last_mut().unwrap();
     if last.token == chunk.token {
         last.merge(chunk);
         return true;
     }
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tokenize() {
+        let text = "1 2 3 true false";
+        let mut tokenizer = Tokenizer::new(text);
+        assert_eq!(5, tokenizer.tokens.len());
+        tokenizer.merge_tokens();
+        assert_eq!(2, tokenizer.tokens.len());
+    }
 }
