@@ -2,7 +2,7 @@ use crate::ceos::buffer::Buffer;
 use crate::ceos::gui::textarea::renderer::text_renderer::TextRenderer;
 use crate::ceos::gui::textarea::renderer::Renderer;
 use crate::ceos::gui::widget::gutter;
-use eframe::emath::{Rect, Vec2};
+use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::FontId;
 use log::info;
 use std::cmp;
@@ -55,6 +55,14 @@ impl TextAreaProperties {
 
     pub(crate) fn offset_x_to_column(&self, x: f32) -> usize {
         (x / self.char_width).floor() as usize
+    }
+
+    pub(crate) fn y_to_line(&self, y: f32) -> usize {
+        (y / self.line_height).floor() as usize
+    }
+
+    pub(crate) fn point_to_text_position(&self, point: Pos2) -> (usize, usize) {
+        (self.offset_x_to_column(point.x), self.y_to_line(point.y))
     }
 
     pub(crate) fn gutter_width(&self) -> f32 {
