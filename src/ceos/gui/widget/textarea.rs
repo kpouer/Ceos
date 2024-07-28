@@ -2,9 +2,9 @@ use std::sync::mpsc::Sender;
 use std::thread;
 
 use eframe::emath::{Pos2, Rect, Vec2};
-use eframe::epaint::FontId;
-use egui::{Context, InputState,  Widget};
+use eframe::epaint::{FontId, Stroke};
 use egui::Event::{MouseWheel, Zoom};
+use egui::{Context, InputState, Widget};
 use log::{info, warn};
 
 use crate::ceos::buffer::Buffer;
@@ -17,6 +17,7 @@ use crate::event::Event::{BufferClosed, BufferLoaded, NewFont};
 pub(crate) struct TextArea<'a> {
     textarea_properties: &'a TextAreaProperties,
     current_command: &'a Option<Box<dyn Command>>,
+    drawing_rect: Rect,
     rect: Rect,
     theme: &'a Theme,
     sender: &'a Sender<Event>,
@@ -26,6 +27,7 @@ impl<'a> TextArea<'a> {
     pub(crate) fn new(
         textarea_properties: &'a TextAreaProperties,
         current_command: &'a Option<Box<dyn Command>>,
+        drawing_rect: Rect,
         rect: Rect,
         theme: &'a Theme,
         sender: &'a Sender<Event>,
@@ -33,6 +35,7 @@ impl<'a> TextArea<'a> {
         Self {
             textarea_properties,
             current_command,
+            drawing_rect,
             rect,
             theme,
             sender,
@@ -42,6 +45,8 @@ impl<'a> TextArea<'a> {
 
 impl Widget for TextArea<'_> {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+        ui.painter()
+            .rect(self.drawing_rect, 0.0, self.theme.background, Stroke::NONE);
         ui.set_height(self.textarea_properties.text_height());
         let mut drawing_pos = Pos2::new(ui.max_rect().left(), ui.clip_rect().top());
         let mut virtual_pos = self.rect.left_top();
@@ -108,7 +113,11 @@ impl TextArea<'_> {
             }
 
             i.events.iter().for_each(|event| match event {
-                MouseWheel { unit: _, delta, modifiers: _, } => self.handle_mouse_wheel(i, delta),
+                MouseWheel {
+                    unit: _,
+                    delta,
+                    modifiers: _,
+                } => self.handle_mouse_wheel(i, delta),
                 Zoom(delta) => self.handle_zoom(*delta),
                 _ => {}
             })

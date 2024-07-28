@@ -1,13 +1,13 @@
+use crate::ceos::buffer::Buffer;
+use crate::ceos::gui::widget::textpane::TextPane;
+use crate::ceos::Ceos;
+use crate::event::Event::{BufferClosed, BufferLoaded};
 use eframe::Frame;
 use egui::{Context, Visuals, Widget};
 use log::{error, info, warn};
 use std::fs::File;
 use std::io::{LineWriter, Write};
 use std::thread;
-use crate::ceos::buffer::Buffer;
-use crate::ceos::gui::widget::textpane::TextPane;
-use crate::ceos::Ceos;
-use crate::event::Event::{BufferClosed, BufferLoaded};
 use theme::Theme;
 
 pub(crate) mod frame_history;
@@ -35,12 +35,18 @@ impl eframe::App for Ceos {
         egui::CentralPanel::default()
             .frame(egui::containers::Frame::none())
             .show(ctx, |ui| {
-            if self.textarea.char_width == 0.0 {
-                let char_width = tools::char_width(self.textarea.font_id.clone(), ui);
-                self.textarea.char_width = char_width;
-            }
-            TextPane::new(&mut self.textarea, &self.current_command, &self.theme, &self.sender).ui(ui)
-        });
+                if self.textarea.char_width == 0.0 {
+                    let char_width = tools::char_width(self.textarea.font_id.clone(), ui);
+                    self.textarea.char_width = char_width;
+                }
+                TextPane::new(
+                    &mut self.textarea,
+                    &self.current_command,
+                    &self.theme,
+                    &self.sender,
+                )
+                .ui(ui)
+            });
     }
 }
 

@@ -1,7 +1,7 @@
-use std::sync::mpsc::Sender;
 use eframe::epaint::Vec2;
-use egui::{Response, Sense, Ui, Widget};
 use egui::scroll_area::ScrollBarVisibility::AlwaysHidden;
+use egui::{Response, Ui, Widget};
+use std::sync::mpsc::Sender;
 
 use crate::ceos::command::Command;
 use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
@@ -22,28 +22,27 @@ impl<'a> TextPane<'a> {
         textarea_properties: &'a mut TextAreaProperties,
         current_command: &'a Option<Box<dyn Command>>,
         theme: &'a Theme,
-        sender: &'a Sender<Event>
+        sender: &'a Sender<Event>,
     ) -> Self {
         Self {
             textarea_properties,
             current_command,
             theme,
-            sender
+            sender,
         }
     }
 }
 
 impl Widget for TextPane<'_> {
     fn ui(self, ui: &mut Ui) -> Response {
-        let rect = ui.max_rect().size();
+        let available_size = ui.available_size();
         let new_scroll_offset = ui.horizontal_top(|ui| {
             ui.spacing_mut().item_spacing = Vec2::ZERO;
             let gutter_width = self.textarea_properties.gutter_width();
-            println!("gutter size {gutter_width}");
             let current_scroll_offset = &self.textarea_properties.scroll_offset;
 
-            let gutter_size = Vec2::new(gutter_width, ui.available_height());
-            let (gutter_rect, response) = ui.allocate_exact_size(gutter_size, Sense::click_and_drag());
+            let mut gutter_rect = ui.available_rect_before_wrap();
+            gutter_rect.set_width(gutter_width);
             let scroll_result_gutter = egui::ScrollArea::vertical()
                 .id_source("gutter")
                 .auto_shrink(false)
@@ -51,10 +50,9 @@ impl Widget for TextPane<'_> {
                 .scroll_bar_visibility(AlwaysHidden)
                 .vertical_scroll_offset(current_scroll_offset.y)
                 .show_viewport(ui, |ui, rect| {
-                    // println!("rect {} gutter_rect {}", rect.size(), gutter_rect.size());
                     Gutter::new(self.textarea_properties, gutter_rect, rect).ui(ui);
                 });
-
+            let text_area_rect = ui.available_rect_before_wrap();
             let scroll_result_textarea = egui::ScrollArea::both()
                 .id_source("textarea")
                 .auto_shrink(false)
@@ -63,6 +61,7 @@ impl Widget for TextPane<'_> {
                     TextArea::new(
                         self.textarea_properties,
                         self.current_command,
+                        text_area_rect,
                         rect,
                         self.theme,
                         self.sender,
@@ -81,7 +80,7 @@ impl Widget for TextPane<'_> {
             offset
         });
         self.textarea_properties.scroll_offset = new_scroll_offset.inner;
-        let (_, response) = ui.allocate_exact_size(rect, egui::Sense::click_and_drag());
+        let (_, response) = ui.allocate_exact_size(available_size, egui::Sense::click_and_drag());
         response
     }
 }
