@@ -50,7 +50,7 @@ impl Widget for TextArea<'_> {
         ui.set_height(self.textarea_properties.text_height());
         let mut drawing_pos = Pos2::new(ui.max_rect().left(), ui.clip_rect().top());
         let mut virtual_pos = self.rect.left_top();
-        self.handle_input(ui.ctx(), ui.clip_rect().left_top());
+        self.handle_input(ui.ctx(), self.drawing_rect.left_top());
         let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
         row_range.into_iter().for_each(|line| {
             if let Some(filter_renderer) = &self.current_command {
@@ -108,7 +108,7 @@ impl TextArea<'_> {
                     pos.x -= top_left.x;
                     pos.y -= top_left.y;
                     let (column, line) = self.textarea_properties.point_to_text_position(pos);
-                    info!("point to column{column} line:{line},  topleft {top_left}, pos {pos}");
+                    info!("point to column:{column} line:{line},  topleft {top_left}, pos {pos}");
                 }
             }
 
