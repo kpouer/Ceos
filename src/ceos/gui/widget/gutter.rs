@@ -6,14 +6,20 @@ use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
 
 pub(crate) struct Gutter<'a> {
     textarea_properties: &'a TextAreaProperties,
-    rect: Rect,
+    drawing_rect: Rect,
+    virtual_rect: Rect,
 }
 
 impl<'a> Gutter<'a> {
-    pub(crate) fn new(textarea: &'a TextAreaProperties, rect: Rect) -> Self {
+    pub(crate) fn new(
+        textarea: &'a TextAreaProperties,
+        drawing_rect: Rect,
+        virtual_rect: Rect,
+    ) -> Self {
         Self {
             textarea_properties: textarea,
-            rect,
+            drawing_rect,
+            virtual_rect,
         }
     }
 }
@@ -21,13 +27,18 @@ impl<'a> Gutter<'a> {
 impl Widget for Gutter<'_> {
     fn ui(self, ui: &mut Ui) -> Response {
         let gutter_width = self.textarea_properties.gutter_width();
-        let mut gutter_rect = ui.clip_rect();
-        gutter_rect.set_width(gutter_width);
         let painter = ui.painter();
-        painter.rect(gutter_rect, 0.0, ui.visuals().faint_bg_color, Stroke::NONE);
-        let mut pos = gutter_rect.right_top();
+        painter.rect(
+            self.drawing_rect,
+            0.0,
+            ui.visuals().faint_bg_color,
+            Stroke::NONE,
+        );
+        let mut pos = self.drawing_rect.right_top();
         pos.x -= self.textarea_properties.char_width;
-        let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
+        let row_range = self
+            .textarea_properties
+            .get_row_range_for_rect(self.virtual_rect);
         row_range.into_iter().for_each(|line| {
             painter.text(
                 pos,
@@ -39,7 +50,10 @@ impl Widget for Gutter<'_> {
             pos.y += self.textarea_properties.line_height;
         });
 
-        let size = Vec2::new(gutter_width, self.textarea_properties.text_height());
+        let mut size = Vec2::new(gutter_width, self.textarea_properties.text_height());
+        if ui.available_height() > size.y {
+            size.y = ui.available_height();
+        }
         let (_, response) = ui.allocate_exact_size(size, egui::Sense::click_and_drag());
         response
     }

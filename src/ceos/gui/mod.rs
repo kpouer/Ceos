@@ -1,16 +1,13 @@
-use eframe::epaint::FontId;
+use crate::ceos::buffer::Buffer;
+use crate::ceos::gui::widget::textpane::TextPane;
+use crate::ceos::Ceos;
+use crate::event::Event::{BufferClosed, BufferLoaded};
 use eframe::Frame;
-use egui::Event::{MouseWheel, Zoom};
 use egui::{Context, Visuals, Widget};
 use log::{error, info, warn};
 use std::fs::File;
 use std::io::{LineWriter, Write};
 use std::thread;
-
-use crate::ceos::buffer::Buffer;
-use crate::ceos::gui::widget::textpane::TextPane;
-use crate::ceos::Ceos;
-use crate::event::Event::{BufferClosed, BufferLoaded, NewFont};
 use theme::Theme;
 
 pub(crate) mod frame_history;
@@ -32,17 +29,24 @@ impl eframe::App for Ceos {
             self.process_event(event)
         }
 
-        self.handle_input(ctx);
         self.build_menu_panel(ctx);
         self.build_bottom_panel(ctx);
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            if self.textarea.char_width == 0.0 {
-                let char_width = tools::char_width(self.textarea.font_id.clone(), ui);
-                self.textarea.char_width = char_width;
-            }
-            TextPane::new(&mut self.textarea, &self.current_command, &self.theme).ui(ui)
-        });
+        egui::CentralPanel::default()
+            .frame(egui::containers::Frame::none())
+            .show(ctx, |ui| {
+                if self.textarea.char_width == 0.0 {
+                    let char_width = tools::char_width(self.textarea.font_id.clone(), ui);
+                    self.textarea.char_width = char_width;
+                }
+                TextPane::new(
+                    &mut self.textarea,
+                    &self.current_command,
+                    &self.theme,
+                    &self.sender,
+                )
+                .ui(ui)
+            });
     }
 }
 
@@ -151,63 +155,5 @@ impl Ceos {
             Ok(_) => {}
             Err(err) => error!("{err}"),
         }
-    }
-
-    fn handle_input(&mut self, ctx: &Context) {
-        ctx.input(|i| {
-            if let Some(file) = i.raw.dropped_files.first() {
-                if let Some(path) = &file.path {
-                    let path = path.to_string_lossy();
-                    let path = path.to_string();
-                    let sender = self.sender.clone();
-                    thread::spawn(move || {
-                        sender.send(BufferClosed).unwrap();
-                        match Buffer::new_from_file(path) {
-                            Ok(buffer) => sender.send(BufferLoaded(buffer)).unwrap(),
-                            Err(e) => warn!("{:?}", e),
-                        }
-                    });
-                }
-            }
-            i.events.iter().for_each(|event| match event {
-                MouseWheel {
-                    unit: _,
-                    delta,
-                    modifiers: _,
-                } => {
-                    #[cfg(target_os = "macos")]
-                    if i.modifiers.command {
-                        self.zoom(delta.y);
-                    }
-                    #[cfg(not(target_os = "macos"))]
-                    if i.modifiers.ctrl {
-                        self.zoom(delta.y);
-                    }
-                }
-                Zoom(delta) => {
-                    if *delta < 1.0 {
-                        self.zoom(-(*delta));
-                    } else if *delta > 1.0 {
-                        self.zoom(*delta);
-                    }
-                }
-                _ => {}
-            })
-        });
-    }
-
-    fn zoom(&self, delta: f32) {
-        let current_font_size = self.textarea.font_id.size;
-        let new_font_size = current_font_size + delta;
-        if new_font_size < 1.0 {
-            return;
-        }
-
-        self.sender
-            .send(NewFont(FontId::new(
-                new_font_size,
-                egui::FontFamily::Monospace,
-            )))
-            .unwrap()
     }
 }
