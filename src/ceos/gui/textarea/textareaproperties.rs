@@ -76,7 +76,7 @@ impl TextAreaProperties {
     pub(crate) fn get_row_range_for_rect(&self, rect: Rect) -> Range<usize> {
         let min_row = (rect.top() / self.line_height) as usize;
         let max_row = cmp::min(
-            (rect.bottom() / self.line_height) as usize,
+            1 + (rect.bottom() / self.line_height) as usize,
             self.buffer.line_count(),
         );
         min_row..max_row
