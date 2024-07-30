@@ -6,6 +6,7 @@ use crate::event::Event;
 use crate::event::Event::BufferLoaded;
 use anyhow::Error;
 use buffer::Buffer;
+use egui::Context;
 use gui::textarea::textareaproperties::TextAreaProperties;
 use gui::theme::Theme;
 
@@ -27,11 +28,11 @@ pub(crate) struct Ceos {
 }
 
 impl Ceos {
-    pub(crate) fn process_event(&mut self, event: Event) {
+    pub(crate) fn process_event(&mut self, ctx: &Context, event: Event) {
         match event {
             BufferLoaded(buffer) => self.textarea.set_buffer(buffer),
             Event::BufferClosed => self.textarea.set_buffer(Default::default()),
-            Event::GotoLine(goto) => goto.execute(&mut self.textarea),
+            Event::GotoLine(goto) => goto.execute(ctx, &mut self.textarea),
             Event::NewFont(font_id) => self.textarea.set_font_id(font_id),
         }
     }

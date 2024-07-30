@@ -16,7 +16,6 @@ pub(crate) struct TextAreaProperties {
     pub(crate) line_height: f32,
     pub(crate) font_id: FontId,
     pub(crate) char_width: f32,
-    pub(crate) scroll_offset: Vec2,
 }
 
 impl Default for TextAreaProperties {
@@ -29,7 +28,6 @@ impl Default for TextAreaProperties {
             line_height: DEFAULT_LINE_HEIGHT,
             font_id,
             char_width: 0.0,
-            scroll_offset: Vec2::ZERO,
         }
     }
 }
