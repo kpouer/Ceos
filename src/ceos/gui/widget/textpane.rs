@@ -1,6 +1,6 @@
 use eframe::epaint::Vec2;
 use egui::scroll_area::ScrollBarVisibility::AlwaysHidden;
-use egui::{Id, Response, Ui, Widget};
+use egui::{Context, Id, Response, Ui, Widget};
 use std::sync::mpsc::Sender;
 
 use crate::ceos::command::Command;
@@ -42,11 +42,7 @@ impl Widget for TextPane<'_> {
 
             let mut gutter_rect = ui.available_rect_before_wrap();
             gutter_rect.set_width(gutter_width);
-            let id = Id::new("textpane");
-            let mut textpane_state = ui
-                .ctx()
-                .memory(|m| m.data.get_temp::<TextPaneState>(id))
-                .unwrap_or(TextPaneState::default());
+            let mut textpane_state = TextPaneState::get(ui.ctx());
             let scroll_result_gutter = egui::ScrollArea::vertical()
                 .id_source("gutter")
                 .auto_shrink(false)
@@ -82,10 +78,9 @@ impl Widget for TextPane<'_> {
                 textpane_state.scroll_offset.y
             };
             if textpane_state.scroll_offset != offset {
-                println!("tata {} {}", textpane_state.scroll_offset, offset);
                 textpane_state.scroll_offset = offset;
                 ui.ctx()
-                    .memory_mut(|m| m.data.insert_temp(id, textpane_state));
+                    .memory_mut(|m| m.data.insert_temp(TextPaneState::id(), textpane_state));
             }
         });
         let (_, response) = ui.allocate_exact_size(available_size, egui::Sense::click_and_drag());
@@ -94,6 +89,17 @@ impl Widget for TextPane<'_> {
 }
 
 #[derive(Default, Clone)]
-struct TextPaneState {
-    scroll_offset: Vec2,
+pub(crate) struct TextPaneState {
+    pub(crate) scroll_offset: Vec2,
+}
+
+impl TextPaneState {
+    pub(crate) fn id() -> Id {
+        Id::new("textpane")
+    }
+
+    pub(crate) fn get(ctx: &Context) -> Self {
+        ctx.memory(|m| m.data.get_temp::<TextPaneState>(Self::id()))
+            .unwrap_or_default()
+    }
 }

@@ -26,7 +26,7 @@ impl eframe::App for Ceos {
         self.frame_history
             .on_new_frame(ctx.input(|i| i.time), frame.info().cpu_usage);
         while let Ok(event) = self.receiver.try_recv() {
-            self.process_event(event)
+            self.process_event(ctx, event)
         }
 
         self.build_menu_panel(ctx);
