@@ -3,7 +3,7 @@ use crate::ceos::gui::widget::textpane::TextPane;
 use crate::ceos::Ceos;
 use crate::event::Event::{BufferClosed, BufferLoaded};
 use eframe::Frame;
-use egui::{Context, Visuals, Widget};
+use egui::{Context, Ui, Visuals, Widget};
 use log::{error, info, warn};
 use std::fs::File;
 use std::io::{LineWriter, Write};
@@ -57,31 +57,41 @@ impl Ceos {
 
             egui::menu::bar(ui, |ui| {
                 // NOTE: no File->Quit on web pages!
-                ui.menu_button("File", |ui| {
-                    if ui.button("Open...").clicked() {
-                        self.open_file();
-                    }
-                    if ui.button("Save").clicked() {
-                        self.save_file();
-                    }
-                    if ui.button("Close").clicked() {
-                        self.sender.send(BufferClosed).unwrap();
-                    }
-                    if ui.button("Quit").clicked() {
-                        info!("Quit");
-                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                    }
-                    if ui.button("☀ Solarized Light").clicked() {
-                        self.set_theme(Theme::solarized_light(), ctx);
-                    }
-                    if ui.button("🌙 Solarized Dark").clicked() {
-                        self.set_theme(Theme::solarized_dark(), ctx);
-                    }
-                    if ui.button("☀ jEdit").clicked() {
-                        self.set_theme(Theme::jEdit(), ctx);
-                    }
-                });
+                self.file_menu(ui);
+                self.view_menu(ui);
             });
+        });
+    }
+
+    fn file_menu(&mut self, ui: &mut Ui) {
+        ui.menu_button("File", |ui| {
+            if ui.button("Open...").clicked() {
+                self.open_file();
+            }
+            if ui.button("Save").clicked() {
+                self.save_file();
+            }
+            if ui.button("Close").clicked() {
+                self.sender.send(BufferClosed).unwrap();
+            }
+            if ui.button("Quit").clicked() {
+                info!("Quit");
+                ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+            }
+        });
+    }
+
+    fn view_menu(&mut self, ui: &mut Ui) {
+        ui.menu_button("View", |ui| {
+            if ui.button("☀ Solarized Light").clicked() {
+                self.set_theme(Theme::solarized_light(), ui.ctx());
+            }
+            if ui.button("🌙 Solarized Dark").clicked() {
+                self.set_theme(Theme::solarized_dark(), ui.ctx());
+            }
+            if ui.button("☀ jEdit").clicked() {
+                self.set_theme(Theme::jEdit(), ui.ctx());
+            }
         });
     }
 
