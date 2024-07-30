@@ -1,6 +1,6 @@
 use eframe::epaint::Vec2;
 use egui::scroll_area::ScrollBarVisibility::AlwaysHidden;
-use egui::{Response, Ui, Widget};
+use egui::{Id, Response, Ui, Widget};
 use std::sync::mpsc::Sender;
 
 use crate::ceos::command::Command;
@@ -36,19 +36,23 @@ impl<'a> TextPane<'a> {
 impl Widget for TextPane<'_> {
     fn ui(self, ui: &mut Ui) -> Response {
         let available_size = ui.available_size();
-        let new_scroll_offset = ui.horizontal_top(|ui| {
+        ui.horizontal_top(|ui| {
             ui.spacing_mut().item_spacing = Vec2::ZERO;
             let gutter_width = self.textarea_properties.gutter_width();
-            let current_scroll_offset = &self.textarea_properties.scroll_offset;
 
             let mut gutter_rect = ui.available_rect_before_wrap();
             gutter_rect.set_width(gutter_width);
+            let id = Id::new("textpane");
+            let mut textpane_state = ui
+                .ctx()
+                .memory(|m| m.data.get_temp::<TextPaneState>(id))
+                .unwrap_or(TextPaneState::default());
             let scroll_result_gutter = egui::ScrollArea::vertical()
                 .id_source("gutter")
                 .auto_shrink(false)
                 .max_width(gutter_width)
                 .scroll_bar_visibility(AlwaysHidden)
-                .vertical_scroll_offset(current_scroll_offset.y)
+                .vertical_scroll_offset(textpane_state.scroll_offset.y)
                 .show_viewport(ui, |ui, rect| {
                     Gutter::new(self.textarea_properties, gutter_rect, rect).ui(ui);
                 });
@@ -56,7 +60,7 @@ impl Widget for TextPane<'_> {
             let scroll_result_textarea = egui::ScrollArea::both()
                 .id_source("textarea")
                 .auto_shrink(false)
-                .scroll_offset(*current_scroll_offset)
+                .scroll_offset(textpane_state.scroll_offset)
                 .show_viewport(ui, |ui, rect| {
                     TextArea::new(
                         self.textarea_properties,
@@ -70,17 +74,26 @@ impl Widget for TextPane<'_> {
                 });
 
             let mut offset = scroll_result_textarea.state.offset;
-            offset.y = if scroll_result_gutter.state.offset.y != current_scroll_offset.y {
+            offset.y = if scroll_result_gutter.state.offset.y != textpane_state.scroll_offset.y {
                 scroll_result_gutter.state.offset.y
-            } else if scroll_result_textarea.state.offset.y != current_scroll_offset.y {
+            } else if scroll_result_textarea.state.offset.y != textpane_state.scroll_offset.y {
                 scroll_result_textarea.state.offset.y
             } else {
-                current_scroll_offset.y
+                textpane_state.scroll_offset.y
             };
-            offset
+            if textpane_state.scroll_offset != offset {
+                println!("tata {} {}", textpane_state.scroll_offset, offset);
+                textpane_state.scroll_offset = offset;
+                ui.ctx()
+                    .memory_mut(|m| m.data.insert_temp(id, textpane_state));
+            }
         });
-        self.textarea_properties.scroll_offset = new_scroll_offset.inner;
         let (_, response) = ui.allocate_exact_size(available_size, egui::Sense::click_and_drag());
         response
     }
+}
+
+#[derive(Default, Clone)]
+struct TextPaneState {
+    scroll_offset: Vec2,
 }
