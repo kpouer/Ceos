@@ -4,6 +4,7 @@ use crate::ceos::Ceos;
 use crate::event::Event::{BufferClosed, BufferLoaded};
 use eframe::Frame;
 use egui::{Context, Ui, Visuals, Widget};
+use humansize::{format_size_i, DECIMAL};
 use log::{error, info, warn};
 use std::fs::File;
 use std::io::{LineWriter, Write};
@@ -117,13 +118,21 @@ impl Ceos {
                         self.try_filter_command();
                     }
                 });
-                ui.label(format!("Length: {}", self.textarea.buffer.len(),));
+                self.status_bar(ui);
             });
             if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                 self.execute_command();
                 self.command_buffer.clear();
             }
             self.frame_history.ui(ui);
+        });
+    }
+
+    fn status_bar(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            let size = format_size_i(self.textarea.buffer.len(), DECIMAL);
+            ui.label(format!("Length: {size}"));
+            ui.label(format!("{} lines", self.textarea.buffer.line_count()));
         });
     }
 
