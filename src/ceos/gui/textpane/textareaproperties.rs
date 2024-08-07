@@ -1,6 +1,10 @@
 use crate::ceos::buffer::Buffer;
 use crate::ceos::gui::textpane::gutter;
-use crate::ceos::gui::textpane::renderer::renderer_manager::{RendererManager, TEXT_LAYER};
+use crate::ceos::gui::textpane::position::Position;
+use crate::ceos::gui::textpane::renderer::caret_renderer::CaretRenderer;
+use crate::ceos::gui::textpane::renderer::renderer_manager::{
+    RendererManager, CARET_LAYER, TEXT_LAYER,
+};
 use crate::ceos::gui::textpane::renderer::text_renderer::TextRenderer;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::FontId;
@@ -16,6 +20,7 @@ pub(crate) struct TextAreaProperties {
     pub(crate) font_id: FontId,
     pub(crate) char_width: f32,
     pub(crate) renderer_manager: RendererManager,
+    pub(crate) caret_position: Position,
 }
 
 impl Default for TextAreaProperties {
@@ -23,12 +28,14 @@ impl Default for TextAreaProperties {
         let font_id = egui::FontId::new(DEFAULT_LINE_HEIGHT, egui::FontFamily::Monospace);
         let mut renderer_manager = RendererManager::default();
         renderer_manager.add_renderer(TEXT_LAYER, Box::new(TextRenderer::new(font_id.clone())));
+        renderer_manager.add_renderer(CARET_LAYER, Box::new(CaretRenderer::default()));
         Self {
             buffer: Default::default(),
             renderer_manager,
             line_height: DEFAULT_LINE_HEIGHT,
             font_id,
             char_width: 0.0,
+            caret_position: Position::default(),
         }
     }
 }
@@ -50,7 +57,7 @@ impl TextAreaProperties {
         self.buffer = buffer
     }
 
-    pub(crate) fn offset_x_to_column(&self, x: f32) -> usize {
+    pub(crate) fn x_to_column(&self, x: f32) -> usize {
         (x / self.char_width).floor() as usize
     }
 
@@ -59,7 +66,7 @@ impl TextAreaProperties {
     }
 
     pub(crate) fn point_to_text_position(&self, point: Pos2) -> (usize, usize) {
-        (self.offset_x_to_column(point.x), self.y_to_line(point.y))
+        (self.x_to_column(point.x), self.y_to_line(point.y))
     }
 
     pub(crate) fn gutter_width(&self) -> f32 {

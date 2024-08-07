@@ -8,6 +8,7 @@ use egui::Ui;
 pub(crate) const BASE_LAYER: u8 = 0;
 pub(crate) const HIGHLIGHT_LAYER: u8 = 50;
 pub(crate) const TEXT_LAYER: u8 = 100;
+pub(crate) const CARET_LAYER: u8 = 150;
 
 #[derive(Default)]
 pub(crate) struct RendererManager {
@@ -25,6 +26,12 @@ impl RendererManager {
         }
 
         self.renderers.push(entry);
+    }
+
+    pub(crate) fn before_frame(&mut self) {
+        self.renderers
+            .iter_mut()
+            .for_each(|r| r.renderer.before_frame());
     }
 
     pub(crate) fn set_font_id(&mut self, font_id: FontId) {

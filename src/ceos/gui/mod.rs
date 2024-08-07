@@ -40,6 +40,7 @@ impl eframe::App for Ceos {
                         tools::char_width(self.textarea_properties.font_id.clone(), ui);
                     self.textarea_properties.char_width = char_width;
                 }
+                self.before_frame();
                 TextPane::new(
                     &mut self.textarea_properties,
                     &self.current_command,
@@ -52,6 +53,13 @@ impl eframe::App for Ceos {
 }
 
 impl Ceos {
+    fn before_frame(&mut self) {
+        if let Some(command) = self.current_command.as_mut() {
+            command.before_frame();
+        }
+        self.textarea_properties.renderer_manager.before_frame();
+    }
+
     fn build_menu_panel(&mut self, ctx: &Context) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:

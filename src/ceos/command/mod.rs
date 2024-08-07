@@ -7,6 +7,7 @@ use filter::linefilter::LineFilter;
 
 use crate::ceos::buffer::Buffer;
 use crate::ceos::command::filter::linedrop::LineDrop;
+use crate::ceos::command::filter::search::Search;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::Ceos;
 use crate::event::Event;
@@ -22,6 +23,8 @@ impl Ceos {
         } else if let Ok(command) = ColumnFilter::try_from(command_str) {
             self.current_command = Some(Box::new(command));
         } else if let Ok(command) = LineDrop::try_from(command_str) {
+            self.current_command = Some(Box::new(command));
+        } else if let Ok(command) = Search::try_from(command_str) {
             self.current_command = Some(Box::new(command));
         } else {
             self.current_command = None;

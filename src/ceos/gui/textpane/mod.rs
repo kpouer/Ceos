@@ -4,6 +4,7 @@ use egui::{Context, Id, Response, Ui, Widget};
 use std::sync::mpsc::Sender;
 
 use crate::ceos::command::Command;
+use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::theme::Theme;
 use crate::event::Event;
 use gutter::Gutter;
@@ -11,6 +12,7 @@ use textarea::TextArea;
 use textareaproperties::TextAreaProperties;
 
 pub(crate) mod gutter;
+mod position;
 pub(crate) mod renderer;
 mod textarea;
 pub(crate) mod textareaproperties;
@@ -74,6 +76,15 @@ impl Widget for TextPane<'_> {
                     .ui(ui)
                 });
 
+            if let Some(pointer_pos) = scroll_result_textarea.inner.interact_pointer_pos() {
+                let column = self
+                    .textarea_properties
+                    .x_to_column(pointer_pos.x - text_area_rect.left());
+                let line = self
+                    .textarea_properties
+                    .y_to_line(pointer_pos.y - text_area_rect.top());
+                self.textarea_properties.caret_position = Position { column, line };
+            }
             let mut offset = scroll_result_textarea.state.offset;
             offset.y = if scroll_result_gutter.state.offset.y != textpane_state.scroll_offset.y {
                 scroll_result_gutter.state.offset.y
