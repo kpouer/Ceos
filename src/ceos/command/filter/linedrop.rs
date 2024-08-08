@@ -8,8 +8,8 @@ use log::info;
 
 use crate::ceos::buffer::Buffer;
 use crate::ceos::command::Command;
-use crate::ceos::gui::textarea::renderer::Renderer;
-use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::gui::textpane::renderer::Renderer;
+use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::ceos::tools::range::Range;
 
@@ -38,7 +38,6 @@ impl Renderer for LineDrop {
         theme: &Theme,
         textarea: &TextAreaProperties,
         line: usize,
-        _: Pos2,
         drawing_pos: Pos2,
     ) {
         if self.range.contains(line + 1) {

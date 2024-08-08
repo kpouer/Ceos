@@ -9,8 +9,8 @@ use log::debug;
 use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::Buffer;
 use crate::ceos::command::Command;
-use crate::ceos::gui::textarea::renderer::Renderer;
-use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::gui::textpane::renderer::Renderer;
+use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::ceos::gui::tools;
 use crate::ceos::tools::range::Range;
@@ -37,7 +37,6 @@ impl Renderer for ColumnFilter {
         theme: &Theme,
         textarea: &TextAreaProperties,
         _: usize,
-        _: Pos2,
         drawing_pos: Pos2,
     ) {
         let char_width = tools::char_width(textarea.font_id.clone(), ui);

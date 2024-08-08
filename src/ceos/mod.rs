@@ -7,7 +7,7 @@ use crate::event::Event::BufferLoaded;
 use anyhow::Error;
 use buffer::Buffer;
 use egui::Context;
-use gui::textarea::textareaproperties::TextAreaProperties;
+use gui::textpane::textareaproperties::TextAreaProperties;
 use gui::theme::Theme;
 
 pub(crate) mod buffer;
@@ -17,7 +17,7 @@ mod syntax;
 mod tools;
 
 pub(crate) struct Ceos {
-    textarea: TextAreaProperties,
+    textarea_properties: TextAreaProperties,
     sender: Sender<Event>,
     receiver: Receiver<Event>,
     command_buffer: String,
@@ -30,10 +30,10 @@ pub(crate) struct Ceos {
 impl Ceos {
     pub(crate) fn process_event(&mut self, ctx: &Context, event: Event) {
         match event {
-            BufferLoaded(buffer) => self.textarea.set_buffer(buffer),
-            Event::BufferClosed => self.textarea.set_buffer(Default::default()),
-            Event::GotoLine(goto) => goto.execute(ctx, &mut self.textarea),
-            Event::NewFont(font_id) => self.textarea.set_font_id(font_id),
+            BufferLoaded(buffer) => self.textarea_properties.set_buffer(buffer),
+            Event::BufferClosed => self.textarea_properties.set_buffer(Default::default()),
+            Event::GotoLine(goto) => goto.execute(ctx, &mut self.textarea_properties),
+            Event::NewFont(font_id) => self.textarea_properties.set_font_id(font_id),
         }
     }
 }
@@ -44,7 +44,7 @@ impl Default for Ceos {
         Self {
             sender: user_input_sender,
             receiver: user_input_receiver,
-            textarea: Default::default(),
+            textarea_properties: Default::default(),
             command_buffer: String::new(),
             current_command: None,
             frame_history: Default::default(),
@@ -61,7 +61,7 @@ impl TryFrom<&str> for Ceos {
         let buffer = Buffer::new_from_file(path.to_string())?;
         let textarea = buffer.into();
         Ok(Self {
-            textarea,
+            textarea_properties: textarea,
             ..Default::default()
         })
     }

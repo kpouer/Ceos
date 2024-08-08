@@ -1,5 +1,4 @@
 use crate::ceos::buffer::Buffer;
-use crate::ceos::gui::widget::textpane::TextPane;
 use crate::ceos::Ceos;
 use crate::event::Event::{BufferClosed, BufferLoaded};
 use eframe::Frame;
@@ -9,13 +8,13 @@ use log::{error, info, warn};
 use std::fs::File;
 use std::io::{LineWriter, Write};
 use std::thread;
+use textpane::TextPane;
 use theme::Theme;
 
 pub(crate) mod frame_history;
-pub mod textarea;
+pub(crate) mod textpane;
 pub mod theme;
 pub(crate) mod tools;
-pub(crate) mod widget;
 
 impl eframe::App for Ceos {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
@@ -36,12 +35,13 @@ impl eframe::App for Ceos {
         egui::CentralPanel::default()
             .frame(egui::containers::Frame::none())
             .show(ctx, |ui| {
-                if self.textarea.char_width == 0.0 {
-                    let char_width = tools::char_width(self.textarea.font_id.clone(), ui);
-                    self.textarea.char_width = char_width;
+                if self.textarea_properties.char_width == 0.0 {
+                    let char_width =
+                        tools::char_width(self.textarea_properties.font_id.clone(), ui);
+                    self.textarea_properties.char_width = char_width;
                 }
                 TextPane::new(
-                    &mut self.textarea,
+                    &mut self.textarea_properties,
                     &self.current_command,
                     &self.theme,
                     &self.sender,
@@ -130,9 +130,12 @@ impl Ceos {
 
     fn status_bar(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            let size = format_size_i(self.textarea.buffer.len(), DECIMAL);
+            let size = format_size_i(self.textarea_properties.buffer.len(), DECIMAL);
             ui.label(format!("Length: {size}"));
-            ui.label(format!("{} lines", self.textarea.buffer.line_count()));
+            ui.label(format!(
+                "{} lines",
+                self.textarea_properties.buffer.line_count()
+            ));
         });
     }
 
@@ -154,10 +157,10 @@ impl Ceos {
 
     fn save_file(&self) {
         info!("save_file");
-        if !self.textarea.buffer.path.is_empty() {
-            let file = File::create(&self.textarea.buffer.path).unwrap();
+        if !self.textarea_properties.buffer.path.is_empty() {
+            let file = File::create(&self.textarea_properties.buffer.path).unwrap();
             let mut file = LineWriter::new(file);
-            self.textarea
+            self.textarea_properties
                 .buffer
                 .content
                 .iter()

@@ -9,7 +9,7 @@ use log::{info, warn};
 
 use crate::ceos::buffer::Buffer;
 use crate::ceos::command::Command;
-use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::event::Event;
 use crate::event::Event::{BufferClosed, BufferLoaded, NewFont};
@@ -49,7 +49,6 @@ impl Widget for TextArea<'_> {
             .rect(self.drawing_rect, 0.0, self.theme.background, Stroke::NONE);
         ui.set_height(self.textarea_properties.text_height());
         let mut drawing_pos = Pos2::new(ui.max_rect().left(), ui.clip_rect().top());
-        let mut virtual_pos = self.rect.left_top();
         self.handle_input(ui.ctx(), self.drawing_rect.left_top());
         let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
         row_range.into_iter().for_each(|line| {
@@ -59,24 +58,19 @@ impl Widget for TextArea<'_> {
                     self.theme,
                     self.textarea_properties,
                     line,
-                    virtual_pos,
                     drawing_pos,
                 );
             }
 
-            self.textarea_properties.renderers.iter().for_each(|r| {
-                r.paint_line(
-                    ui,
-                    self.theme,
-                    self.textarea_properties,
-                    line,
-                    virtual_pos,
-                    drawing_pos,
-                )
-            });
+            self.textarea_properties.renderer_manager.paint_line(
+                ui,
+                self.theme,
+                self.textarea_properties,
+                line,
+                drawing_pos,
+            );
 
             drawing_pos.y += self.textarea_properties.line_height;
-            virtual_pos.y += self.textarea_properties.line_height;
         });
 
         let text_bounds = self.textarea_properties.text_bounds();
