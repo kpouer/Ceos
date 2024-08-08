@@ -5,6 +5,7 @@ use egui::Ui;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 
+pub(crate) mod renderer_manager;
 pub(crate) mod text_renderer;
 
 pub(crate) trait Renderer {

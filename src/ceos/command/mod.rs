@@ -35,7 +35,7 @@ impl Ceos {
     pub(crate) fn execute_command(&mut self) {
         if let Some(command) = self.current_command.take() {
             info!("Execute command {}", command);
-            command.execute(&mut self.textarea.buffer);
+            command.execute(&mut self.textarea_properties.buffer);
         } else if let Ok(command) = Event::try_from(self.command_buffer.as_str()) {
             self.sender.send(command).unwrap();
         }

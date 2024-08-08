@@ -1,7 +1,7 @@
 use crate::ceos::buffer::Buffer;
 use crate::ceos::gui::textpane::gutter;
+use crate::ceos::gui::textpane::renderer::renderer_manager::{RendererManager, TEXT_LAYER};
 use crate::ceos::gui::textpane::renderer::text_renderer::TextRenderer;
-use crate::ceos::gui::textpane::renderer::Renderer;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::FontId;
 use log::info;
@@ -12,19 +12,20 @@ pub(crate) const DEFAULT_LINE_HEIGHT: f32 = 16.0;
 
 pub(crate) struct TextAreaProperties {
     pub(crate) buffer: Buffer,
-    pub(crate) renderers: Vec<Box<dyn Renderer>>,
     pub(crate) line_height: f32,
     pub(crate) font_id: FontId,
     pub(crate) char_width: f32,
+    pub(crate) renderer_manager: RendererManager,
 }
 
 impl Default for TextAreaProperties {
     fn default() -> Self {
         let font_id = egui::FontId::new(DEFAULT_LINE_HEIGHT, egui::FontFamily::Monospace);
-        let renderers: Vec<Box<dyn Renderer>> = vec![Box::new(TextRenderer::from(font_id.clone()))];
+        let mut renderer_manager = RendererManager::default();
+        renderer_manager.add_renderer(TEXT_LAYER, Box::new(TextRenderer::from(font_id.clone())));
         Self {
             buffer: Default::default(),
-            renderers,
+            renderer_manager,
             line_height: DEFAULT_LINE_HEIGHT,
             font_id,
             char_width: 0.0,
@@ -35,11 +36,9 @@ impl Default for TextAreaProperties {
 impl TextAreaProperties {
     pub(crate) fn set_font_id(&mut self, font_id: FontId) {
         self.font_id = font_id.clone();
-        self.renderers
-            .iter_mut()
-            .for_each(|r| r.set_font_id(font_id.clone()));
         self.char_width = 0.0;
         self.line_height = font_id.size;
+        self.renderer_manager.set_font_id(font_id);
     }
 
     pub(crate) fn set_buffer(&mut self, buffer: Buffer) {

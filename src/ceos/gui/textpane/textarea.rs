@@ -64,16 +64,14 @@ impl Widget for TextArea<'_> {
                 );
             }
 
-            self.textarea_properties.renderers.iter().for_each(|r| {
-                r.paint_line(
-                    ui,
-                    self.theme,
-                    self.textarea_properties,
-                    line,
-                    virtual_pos,
-                    drawing_pos,
-                )
-            });
+            self.textarea_properties.renderer_manager.paint_line(
+                ui,
+                self.theme,
+                self.textarea_properties,
+                line,
+                virtual_pos,
+                drawing_pos,
+            );
 
             drawing_pos.y += self.textarea_properties.line_height;
             virtual_pos.y += self.textarea_properties.line_height;
