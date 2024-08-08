@@ -9,8 +9,8 @@ pub(crate) struct TextRenderer {
     font_id: FontId,
 }
 
-impl From<FontId> for TextRenderer {
-    fn from(font_id: FontId) -> Self {
+impl TextRenderer {
+    pub(crate) fn new(font_id: FontId) -> Self {
         Self { font_id }
     }
 }
