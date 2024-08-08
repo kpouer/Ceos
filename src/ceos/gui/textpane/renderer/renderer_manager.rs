@@ -39,18 +39,11 @@ impl RendererManager {
         theme: &Theme,
         textarea_properties: &TextAreaProperties,
         line: usize,
-        virtual_pos: Pos2,
         drawing_pos: Pos2,
     ) {
         self.renderers.iter().for_each(|r| {
-            r.renderer.paint_line(
-                ui,
-                theme,
-                textarea_properties,
-                line,
-                virtual_pos,
-                drawing_pos,
-            )
+            r.renderer
+                .paint_line(ui, theme, textarea_properties, line, drawing_pos)
         });
     }
 }

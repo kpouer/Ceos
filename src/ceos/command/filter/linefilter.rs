@@ -51,7 +51,6 @@ impl Renderer for LineFilter {
         theme: &Theme,
         textarea: &TextAreaProperties,
         line: usize,
-        _: Pos2,
         drawing_pos: Pos2,
     ) {
         let line = &textarea.buffer.content[line];

@@ -15,7 +15,6 @@ pub(crate) trait Renderer {
         theme: &Theme,
         textarea: &TextAreaProperties,
         line: usize,
-        virtual_pos: Pos2,
         drawing_pos: Pos2,
     );
 

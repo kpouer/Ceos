@@ -37,7 +37,6 @@ impl Renderer for ColumnFilter {
         theme: &Theme,
         textarea: &TextAreaProperties,
         _: usize,
-        _: Pos2,
         drawing_pos: Pos2,
     ) {
         let char_width = tools::char_width(textarea.font_id.clone(), ui);

@@ -49,7 +49,6 @@ impl Widget for TextArea<'_> {
             .rect(self.drawing_rect, 0.0, self.theme.background, Stroke::NONE);
         ui.set_height(self.textarea_properties.text_height());
         let mut drawing_pos = Pos2::new(ui.max_rect().left(), ui.clip_rect().top());
-        let mut virtual_pos = self.rect.left_top();
         self.handle_input(ui.ctx(), self.drawing_rect.left_top());
         let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
         row_range.into_iter().for_each(|line| {
@@ -59,7 +58,6 @@ impl Widget for TextArea<'_> {
                     self.theme,
                     self.textarea_properties,
                     line,
-                    virtual_pos,
                     drawing_pos,
                 );
             }
@@ -69,12 +67,10 @@ impl Widget for TextArea<'_> {
                 self.theme,
                 self.textarea_properties,
                 line,
-                virtual_pos,
                 drawing_pos,
             );
 
             drawing_pos.y += self.textarea_properties.line_height;
-            virtual_pos.y += self.textarea_properties.line_height;
         });
 
         let text_bounds = self.textarea_properties.text_bounds();

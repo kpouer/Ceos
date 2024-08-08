@@ -38,7 +38,6 @@ impl Renderer for LineDrop {
         theme: &Theme,
         textarea: &TextAreaProperties,
         line: usize,
-        _: Pos2,
         drawing_pos: Pos2,
     ) {
         if self.range.contains(line + 1) {
