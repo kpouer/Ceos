@@ -2,7 +2,7 @@ use eframe::emath::{Rect, Vec2};
 use eframe::epaint::Stroke;
 use egui::{Response, Ui, Widget};
 
-use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 
 pub(crate) struct Gutter<'a> {
     textarea_properties: &'a TextAreaProperties,

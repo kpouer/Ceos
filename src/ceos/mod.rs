@@ -7,7 +7,7 @@ use crate::event::Event::BufferLoaded;
 use anyhow::Error;
 use buffer::Buffer;
 use egui::Context;
-use gui::textarea::textareaproperties::TextAreaProperties;
+use gui::textpane::textareaproperties::TextAreaProperties;
 use gui::theme::Theme;
 
 pub(crate) mod buffer;

@@ -1,5 +1,4 @@
 use crate::ceos::buffer::Buffer;
-use crate::ceos::gui::widget::textpane::TextPane;
 use crate::ceos::Ceos;
 use crate::event::Event::{BufferClosed, BufferLoaded};
 use eframe::Frame;
@@ -9,13 +8,13 @@ use log::{error, info, warn};
 use std::fs::File;
 use std::io::{LineWriter, Write};
 use std::thread;
+use textpane::TextPane;
 use theme::Theme;
 
 pub(crate) mod frame_history;
-pub mod textarea;
+pub(crate) mod textpane;
 pub mod theme;
 pub(crate) mod tools;
-pub(crate) mod widget;
 
 impl eframe::App for Ceos {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {

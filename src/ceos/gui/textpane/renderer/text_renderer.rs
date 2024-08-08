@@ -1,5 +1,5 @@
-use crate::ceos::gui::textarea::renderer::Renderer;
-use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::gui::textpane::renderer::Renderer;
+use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::ceos::syntax::tokenizer::Tokenizer;
 use eframe::emath::Pos2;

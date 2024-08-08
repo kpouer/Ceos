@@ -9,7 +9,7 @@ use log::{info, warn};
 
 use crate::ceos::buffer::Buffer;
 use crate::ceos::command::Command;
-use crate::ceos::gui::textarea::textareaproperties::TextAreaProperties;
+use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::event::Event;
 use crate::event::Event::{BufferClosed, BufferLoaded, NewFont};
