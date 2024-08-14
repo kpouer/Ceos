@@ -15,7 +15,6 @@ fn main() -> anyhow::Result<()> {
             .with_inner_size([INITIAL_WIDTH as f32, INITIAL_HEIGHT as f32]),
         ..Default::default()
     };
-    // thread::spawn(move|| run_loop(image_data_sender, interaction_receiver));
     let _ = eframe::run_native(
         "Ceos",
         native_options,
