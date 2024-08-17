@@ -7,6 +7,7 @@ use crate::ceos::gui::theme::Theme;
 
 pub(crate) mod caret_renderer;
 pub(crate) mod renderer_manager;
+pub(crate) mod selection_renderer;
 pub(crate) mod text_renderer;
 
 pub(crate) trait Renderer {

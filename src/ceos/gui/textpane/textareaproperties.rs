@@ -3,9 +3,11 @@ use crate::ceos::gui::textpane::gutter;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::renderer::caret_renderer::CaretRenderer;
 use crate::ceos::gui::textpane::renderer::renderer_manager::{
-    RendererManager, CARET_LAYER, TEXT_LAYER,
+    RendererManager, CARET_LAYER, SELECTION_LAYER, TEXT_LAYER,
 };
+use crate::ceos::gui::textpane::renderer::selection_renderer::SelectionRenderer;
 use crate::ceos::gui::textpane::renderer::text_renderer::TextRenderer;
+use crate::ceos::gui::textpane::selection::Selection;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::FontId;
 use log::info;
@@ -21,6 +23,7 @@ pub(crate) struct TextAreaProperties {
     pub(crate) char_width: f32,
     pub(crate) renderer_manager: RendererManager,
     pub(crate) caret_position: Position,
+    pub(crate) selection: Option<Selection>,
 }
 
 impl Default for TextAreaProperties {
@@ -28,6 +31,7 @@ impl Default for TextAreaProperties {
         let font_id = egui::FontId::new(DEFAULT_LINE_HEIGHT, egui::FontFamily::Monospace);
         let mut renderer_manager = RendererManager::default();
         renderer_manager.add_renderer(TEXT_LAYER, Box::new(TextRenderer::new(font_id.clone())));
+        renderer_manager.add_renderer(SELECTION_LAYER, Box::new(SelectionRenderer {}));
         renderer_manager.add_renderer(CARET_LAYER, Box::new(CaretRenderer::default()));
         Self {
             buffer: Default::default(),
@@ -36,6 +40,7 @@ impl Default for TextAreaProperties {
             font_id,
             char_width: 0.0,
             caret_position: Position::default(),
+            selection: None,
         }
     }
 }

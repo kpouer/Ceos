@@ -1,19 +1,20 @@
-use eframe::epaint::Vec2;
-use egui::scroll_area::ScrollBarVisibility::AlwaysHidden;
-use egui::{Context, Id, Response, Ui, Widget};
-use std::sync::mpsc::Sender;
-
 use crate::ceos::command::Command;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::theme::Theme;
 use crate::event::Event;
+use eframe::epaint::Vec2;
+use egui::scroll_area::ScrollBarVisibility::AlwaysHidden;
+use egui::{Context, Id, Response, Ui, Widget};
 use gutter::Gutter;
+use log::info;
+use std::sync::mpsc::Sender;
 use textarea::TextArea;
 use textareaproperties::TextAreaProperties;
 
 pub(crate) mod gutter;
 mod position;
 pub(crate) mod renderer;
+mod selection;
 mod textarea;
 pub(crate) mod textareaproperties;
 
