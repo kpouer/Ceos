@@ -28,6 +28,12 @@ impl Renderer for SelectionRenderer {
                     Pos2::new(start_x, drawing_pos.y),
                     Pos2::new(end_x, drawing_pos.y + textarea_properties.line_height),
                 ]);
+                ui.painter().rect(
+                    rect,
+                    0.0,
+                    ui.style().visuals.selection.bg_fill,
+                    ui.style().visuals.selection.stroke,
+                );
             }
         }
     }

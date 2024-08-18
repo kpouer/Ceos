@@ -9,6 +9,7 @@ use log::{info, warn};
 
 use crate::ceos::buffer::Buffer;
 use crate::ceos::command::Command;
+use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::event::Event;
@@ -43,8 +44,8 @@ impl<'a> TextArea<'a> {
     }
 }
 
-impl Widget for TextArea<'_> {
-    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+impl Widget for &mut TextArea<'_> {
+    fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
         ui.painter()
             .rect(self.drawing_rect, 0.0, self.theme.background, Stroke::NONE);
         ui.set_height(self.textarea_properties.text_height());
@@ -80,30 +81,17 @@ impl Widget for TextArea<'_> {
 }
 
 impl TextArea<'_> {
-    fn handle_input(&self, ctx: &Context, top_left: Pos2) {
+    fn handle_input(&mut self, ctx: &Context, top_left: Pos2) {
         ctx.input(|i| {
-            if let Some(file) = i.raw.dropped_files.first() {
-                if let Some(path) = &file.path {
-                    let path = path.to_string_lossy();
-                    let path = path.to_string();
-                    let sender = self.sender.clone();
-                    thread::spawn(move || {
-                        sender.send(BufferClosed).unwrap();
-                        match Buffer::new_from_file(path) {
-                            Ok(buffer) => sender.send(BufferLoaded(buffer)).unwrap(),
-                            Err(e) => warn!("{:?}", e),
-                        }
-                    });
-                }
-            }
-
+            self.handle_dropped_file(i);
+            let mut textarea_properties = &mut self.textarea_properties;
             if i.pointer.primary_clicked() {
                 if let Some(mut pos) = i.pointer.latest_pos() {
                     pos.x -= top_left.x;
                     pos.y -= top_left.y;
-                    let (column, line) = self.textarea_properties.point_to_text_position(pos);
+                    let (column, line) = textarea_properties.point_to_text_position(pos);
                     info!("point to column:{column} line:{line},  topleft {top_left}, pos {pos}");
-                    self.textarea_properties.caret_position = Position { column, line };
+                    // textarea_properties.caret_position = Position { column, line };
                 }
             }
 
@@ -117,6 +105,23 @@ impl TextArea<'_> {
                 _ => {}
             })
         });
+    }
+
+    fn handle_dropped_file(&mut self, i: &InputState) {
+        if let Some(file) = i.raw.dropped_files.first() {
+            if let Some(path) = &file.path {
+                let path = path.to_string_lossy();
+                let path = path.to_string();
+                let sender = self.sender.clone();
+                thread::spawn(move || {
+                    sender.send(BufferClosed).unwrap();
+                    match Buffer::new_from_file(path) {
+                        Ok(buffer) => sender.send(BufferLoaded(buffer)).unwrap(),
+                        Err(e) => warn!("{:?}", e),
+                    }
+                });
+            }
+        }
     }
 
     fn handle_mouse_wheel(&self, input_state: &InputState, delta: &Vec2) {

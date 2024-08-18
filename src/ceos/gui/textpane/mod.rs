@@ -6,7 +6,6 @@ use eframe::epaint::Vec2;
 use egui::scroll_area::ScrollBarVisibility::AlwaysHidden;
 use egui::{Context, Id, Response, Ui, Widget};
 use gutter::Gutter;
-use log::info;
 use std::sync::mpsc::Sender;
 use textarea::TextArea;
 use textareaproperties::TextAreaProperties;
