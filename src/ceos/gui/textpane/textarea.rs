@@ -9,7 +9,6 @@ use log::{info, warn};
 
 use crate::ceos::buffer::Buffer;
 use crate::ceos::command::Command;
-use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::event::Event;
@@ -45,7 +44,7 @@ impl<'a> TextArea<'a> {
 }
 
 impl Widget for &mut TextArea<'_> {
-    fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
+    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         ui.painter()
             .rect(self.drawing_rect, 0.0, self.theme.background, Stroke::NONE);
         ui.set_height(self.textarea_properties.text_height());
