@@ -139,6 +139,10 @@ impl Ceos {
             self.command_buffer.clear();
         } else if ui.input(|i| i.key_pressed(Key::W) && i.modifiers.ctrl) {
             self.sender.send(BufferClosed).unwrap();
+        } else if ui.input(|i| i.key_pressed(Key::O) && i.modifiers.ctrl) {
+            self.open_file();
+        } else if ui.input(|i| i.key_pressed(Key::S) && i.modifiers.ctrl) {
+            self.save_file();
         }
     }
 
@@ -173,16 +177,24 @@ impl Ceos {
         info!("save_file");
         if !self.textarea_properties.buffer.path.is_empty() {
             let file = File::create(&self.textarea_properties.buffer.path).unwrap();
-            let mut file = LineWriter::new(file);
-            self.textarea_properties
-                .buffer
-                .content
-                .iter()
-                .map(|line| &line.content)
-                .for_each(|line| {
-                    Self::write(&mut file, line.as_bytes());
-                    Self::write(&mut file, b"\n");
-                })
+            match File::create(&self.textarea_properties.buffer.path) {
+                Ok(file) => {
+                    let mut file = LineWriter::new(file);
+                    self.textarea_properties
+                        .buffer
+                        .content
+                        .iter()
+                        .map(|line| &line.content)
+                        .for_each(|line| {
+                            Self::write(&mut file, line.as_bytes());
+                            Self::write(&mut file, b"\n");
+                        })
+                }
+                Err(err) => error!(
+                    "Unable to save file {} becaues {err}",
+                    self.textarea_properties.buffer.path
+                ),
+            }
         }
     }
 
