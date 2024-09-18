@@ -2,7 +2,7 @@ use crate::ceos::buffer::Buffer;
 use crate::ceos::Ceos;
 use crate::event::Event::{BufferClosed, BufferLoaded};
 use eframe::Frame;
-use egui::{Context, Ui, Visuals, Widget};
+use egui::{Context, Key, Ui, Visuals, Widget};
 use humansize::{format_size_i, DECIMAL};
 use log::{error, info, warn};
 use std::fs::File;
@@ -128,12 +128,18 @@ impl Ceos {
                 });
                 self.status_bar(ui);
             });
-            if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                self.execute_command();
-                self.command_buffer.clear();
-            }
+            self.handle_keys(ui);
             self.frame_history.ui(ui);
         });
+    }
+
+    fn handle_keys(&mut self, ui: &Ui) {
+        if ui.input(|i| i.key_pressed(Key::Enter)) {
+            self.execute_command();
+            self.command_buffer.clear();
+        } else if ui.input(|i| i.key_pressed(Key::W) && i.modifiers.ctrl) {
+            self.sender.send(BufferClosed).unwrap();
+        }
     }
 
     fn status_bar(&mut self, ui: &mut Ui) {
