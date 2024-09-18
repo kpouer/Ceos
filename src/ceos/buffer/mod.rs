@@ -39,7 +39,7 @@ impl From<&str> for Buffer {
 
 impl Buffer {
     pub(crate) fn new_from_file(path: String) -> anyhow::Result<Self> {
-        let lines = read_lines(&path).unwrap();
+        let lines = read_lines(&path)?;
         let mut content = Vec::new();
         let mut length = 0;
         #[allow(clippy::manual_flatten)]
