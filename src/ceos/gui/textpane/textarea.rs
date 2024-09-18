@@ -83,7 +83,7 @@ impl TextArea<'_> {
     fn handle_input(&mut self, ctx: &Context, top_left: Pos2) {
         ctx.input(|i| {
             self.handle_dropped_file(i);
-            let mut textarea_properties = &mut self.textarea_properties;
+            let textarea_properties = &self.textarea_properties;
             if i.pointer.primary_clicked() {
                 if let Some(mut pos) = i.pointer.latest_pos() {
                     pos.x -= top_left.x;

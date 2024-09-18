@@ -69,6 +69,7 @@ impl Command for LineFilter {
         buffer.content.retain(|line| self.accept(line));
 
         let new_length = buffer.compute_length();
+        buffer.dirty = true;
         info!(
             "Applied filter '{:?}' removed {} lines, new length {new_length}",
             self.filters,

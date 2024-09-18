@@ -173,10 +173,10 @@ impl Ceos {
         });
     }
 
-    fn save_file(&self) {
+    fn save_file(&mut self) {
         info!("save_file");
-        if !self.textarea_properties.buffer.path.is_empty() {
-            let file = File::create(&self.textarea_properties.buffer.path).unwrap();
+        if !self.textarea_properties.buffer.path.is_empty() && self.textarea_properties.buffer.dirty
+        {
             match File::create(&self.textarea_properties.buffer.path) {
                 Ok(file) => {
                     let mut file = LineWriter::new(file);
@@ -188,7 +188,8 @@ impl Ceos {
                         .for_each(|line| {
                             Self::write(&mut file, line.as_bytes());
                             Self::write(&mut file, b"\n");
-                        })
+                        });
+                    self.textarea_properties.buffer.dirty = false;
                 }
                 Err(err) => error!(
                     "Unable to save file {} becaues {err}",

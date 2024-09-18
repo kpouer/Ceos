@@ -9,6 +9,7 @@ pub(crate) struct Buffer {
     pub(crate) path: String,
     pub(crate) content: Vec<Line>,
     length: usize,
+    pub(crate) dirty: bool,
 }
 
 impl Default for Buffer {
@@ -29,6 +30,7 @@ impl From<&str> for Buffer {
             path: String::new(),
             content,
             length: 0,
+            dirty: false,
         };
         buffer.compute_length();
         buffer
@@ -52,6 +54,7 @@ impl Buffer {
             path,
             content,
             length,
+            dirty: false,
         })
     }
 

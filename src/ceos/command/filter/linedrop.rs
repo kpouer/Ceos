@@ -61,6 +61,7 @@ impl Command for LineDrop {
         }
 
         let new_length = buffer.compute_length();
+        buffer.dirty = true;
         info!(
             "Removed range '{:?}' removed {} lines, new length {new_length}",
             self.range,

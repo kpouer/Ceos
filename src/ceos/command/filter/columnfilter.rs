@@ -66,6 +66,7 @@ impl Command for ColumnFilter {
             .for_each(|line| self.apply_to_line(line));
 
         let new_length = buffer.compute_length();
+        buffer.dirty = true;
         debug!(
             "Applied filter removed {} lines, new length {new_length}",
             line_count - buffer.line_count()
