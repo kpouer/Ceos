@@ -66,10 +66,7 @@ impl Renderer for LineFilter {
 impl Command for LineFilter {
     fn execute(&self, buffer: &mut Buffer) {
         let line_count = buffer.line_count();
-        buffer.content.retain(|line| self.accept(line));
-
-        let new_length = buffer.compute_length();
-        buffer.dirty = true;
+        let new_length = buffer.retain_line_mut(|line| self.accept(line));
         info!(
             "Applied filter '{:?}' removed {} lines, new length {new_length}",
             self.filters,
@@ -99,6 +96,7 @@ mod tests {
         assert_eq!(content.len(), buffer.len());
         assert_eq!(4, buffer.line_count());
         filter.execute(&mut buffer);
+        assert!(buffer.dirty);
         assert_eq!(2, buffer.line_count());
         Ok(())
     }

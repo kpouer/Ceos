@@ -76,6 +76,13 @@ impl Buffer {
         new_length
     }
 
+    pub(crate) fn retain_line_mut(&mut self, filter: impl FnMut(&Line) -> bool) -> usize {
+        self.content.retain(filter);
+        let new_length = self.compute_length();
+        self.dirty = true;
+        new_length
+    }
+
     pub(crate) fn line_text(&self, line: usize) -> &str {
         &self.content[line].content
     }
