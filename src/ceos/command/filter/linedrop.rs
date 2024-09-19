@@ -52,16 +52,12 @@ impl Renderer for LineDrop {
 impl Command for LineDrop {
     fn execute(&self, buffer: &mut Buffer) {
         let line_count = buffer.line_count();
-        if let Some(end) = self.range.end {
-            buffer
-                .content
-                .drain(self.range.start..cmp::min(line_count, end));
+        let new_length = if let Some(end) = self.range.end {
+            buffer.drain_line_mut(self.range.start..cmp::min(line_count, end))
         } else {
-            buffer.content.drain(self.range.start..);
-        }
+            buffer.drain_line_mut(self.range.start..)
+        };
 
-        let new_length = buffer.compute_length();
-        buffer.dirty = true;
         info!(
             "Removed range '{:?}' removed {} lines, new length {new_length}",
             self.range,
@@ -73,5 +69,57 @@ impl Command for LineDrop {
 impl Display for LineDrop {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "LineDrop '{}:{:?}'", self.range.start, self.range.end)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::ceos::buffer::Buffer;
+    use crate::ceos::command::filter::linedrop::LineDrop;
+    use crate::ceos::command::Command;
+
+    const CONTENT: &str = "1 delete me\n\
+        2 keep me\n\
+        \n\
+        3 delete me\n\
+        4 keep me\n";
+
+    #[test]
+    fn test_filter_prefix() -> anyhow::Result<(), ()> {
+        let mut buffer = Buffer::from(CONTENT);
+        assert_eq!(CONTENT.len(), buffer.len());
+        assert_eq!(5, buffer.line_count());
+        let filter = LineDrop::try_from("l ..2")?;
+        filter.execute(&mut buffer);
+        assert_eq!(3, buffer.line_count());
+        assert_eq!("3 delete me", buffer.line_text(1));
+        assert!(buffer.dirty);
+        Ok(())
+    }
+
+    #[test]
+    fn test_filter_range() -> anyhow::Result<(), ()> {
+        let mut buffer = Buffer::from(CONTENT);
+        assert_eq!(CONTENT.len(), buffer.len());
+        assert_eq!(5, buffer.line_count());
+        let filter = LineDrop::try_from("l 3..")?;
+        filter.execute(&mut buffer);
+        assert_eq!(3, buffer.line_count());
+        assert_eq!("2 keep me", buffer.line_text(1));
+        assert!(buffer.dirty);
+        Ok(())
+    }
+
+    #[test]
+    fn test_filter_suffix() -> anyhow::Result<(), ()> {
+        let mut buffer = Buffer::from(CONTENT);
+        assert_eq!(CONTENT.len(), buffer.len());
+        assert_eq!(5, buffer.line_count());
+        let filter = LineDrop::try_from("l 2..4")?;
+        filter.execute(&mut buffer);
+        assert_eq!(3, buffer.line_count());
+        assert_eq!("2 keep me", buffer.line_text(1));
+        assert!(buffer.dirty);
+        Ok(())
     }
 }

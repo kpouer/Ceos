@@ -1,6 +1,7 @@
 use crate::ceos::buffer::line::Line;
 use std::fs::File;
 use std::io::{self, BufRead};
+use std::ops::RangeBounds;
 use std::path::Path;
 
 pub(crate) mod line;
@@ -56,6 +57,16 @@ impl Buffer {
             length,
             dirty: false,
         })
+    }
+
+    pub(crate) fn drain_line_mut<R>(&mut self, range: R) -> usize
+    where
+        R: RangeBounds<usize>,
+    {
+        self.content.drain(range);
+        let new_length = self.compute_length();
+        self.dirty = true;
+        new_length
     }
 
     pub(crate) fn filter_line_mut(&mut self, filter: impl FnMut(&mut Line)) -> usize {
