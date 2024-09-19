@@ -59,14 +59,7 @@ impl Renderer for ColumnFilter {
 impl Command for ColumnFilter {
     fn execute(&self, buffer: &mut Buffer) {
         let line_count = buffer.line_count();
-
-        buffer
-            .content
-            .iter_mut()
-            .for_each(|line| self.apply_to_line(line));
-
-        let new_length = buffer.compute_length();
-        buffer.dirty = true;
+        let new_length = buffer.filter_line_mut(|line| self.apply_to_line(line));
         debug!(
             "Applied filter removed {} lines, new length {new_length}",
             line_count - buffer.line_count()
