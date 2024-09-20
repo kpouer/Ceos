@@ -13,6 +13,9 @@ use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::ceos::tools::range::Range;
 
+/// LineDrop filter
+///
+/// It will drop a range of lines of the buffer
 #[derive(Debug, PartialEq)]
 pub(crate) struct LineDrop {
     range: Range,
