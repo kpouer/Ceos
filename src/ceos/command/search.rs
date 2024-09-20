@@ -1,17 +1,17 @@
-use eframe::emath::{Pos2, Rect};
-use eframe::epaint::Stroke;
-use egui::Ui;
-use log::info;
-use std::fmt::Display;
-
 use crate::ceos::buffer::Buffer;
-use crate::ceos::command::Command;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
+use eframe::emath::{Pos2, Rect};
+use eframe::epaint::Stroke;
+use egui::Ui;
+use std::fmt::Display;
 
+/// Search filter
 pub(crate) struct Search {
     pattern: String,
+    // the lines containing the search value
+    pub(crate) lines: Vec<usize>,
 }
 
 impl TryFrom<&str> for Search {
@@ -20,7 +20,10 @@ impl TryFrom<&str> for Search {
     fn try_from(command: &str) -> Result<Self, Self::Error> {
         if command.starts_with("s ") && command.len() > 2 {
             let pattern = command[2..].to_string();
-            Ok(Self { pattern })
+            Ok(Self {
+                pattern,
+                lines: Vec::new(),
+            })
         } else {
             Err("Command not valid".to_string())
         }
@@ -49,23 +52,13 @@ impl Renderer for Search {
     }
 }
 
-impl Command for Search {
-    fn execute(&self, buffer: &mut Buffer) {
-        let line_count = buffer.line_count();
-        // buffer.content.retain(|line| self.accept(line));
-        //
-        let new_length = buffer.compute_length();
-        info!(
-            "Applied filter '{}' removed {} lines, new length {new_length}",
-            self.pattern,
-            line_count - buffer.line_count()
-        );
-    }
-}
-
-impl Display for Search {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Search '{}'", self.pattern)
+impl Search {
+    pub(crate) fn init(&mut self, buffer: &Buffer) {
+        buffer.content.iter().enumerate().for_each(|(i, line)| {
+            if line.content.contains(&self.pattern) {
+                self.lines.push(i);
+            }
+        })
     }
 }
 

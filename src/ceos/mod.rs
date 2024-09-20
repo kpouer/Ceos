@@ -1,5 +1,6 @@
 use std::sync::mpsc::{channel, Receiver, Sender};
 
+use crate::ceos::command::search::Search;
 use crate::ceos::command::Command;
 use crate::ceos::gui::frame_history::FrameHistory;
 use crate::event::Event;
@@ -22,6 +23,7 @@ pub(crate) struct Ceos {
     receiver: Receiver<Event>,
     command_buffer: String,
     current_command: Option<Box<dyn Command>>,
+    search: Option<Search>,
     frame_history: FrameHistory,
     theme: Theme,
     initialized: bool,
@@ -50,6 +52,7 @@ impl Default for Ceos {
             frame_history: Default::default(),
             theme: Theme::default(),
             initialized: false,
+            search: None,
         }
     }
 }

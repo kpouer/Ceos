@@ -1,4 +1,5 @@
 use crate::ceos::buffer::Buffer;
+use crate::ceos::gui::searchpanel::build_search_panel;
 use crate::ceos::Ceos;
 use crate::event::Event::{BufferClosed, BufferLoaded};
 use eframe::Frame;
@@ -12,6 +13,7 @@ use textpane::TextPane;
 use theme::Theme;
 
 pub(crate) mod frame_history;
+mod searchpanel;
 pub(crate) mod textpane;
 pub mod theme;
 pub(crate) mod tools;
@@ -111,7 +113,14 @@ impl Ceos {
     }
 
     fn build_bottom_panel(&mut self, ctx: &Context) {
-        egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
+        let mut bottom = egui::TopBottomPanel::bottom("bottom_panel");
+        if self.search.is_some() {
+            bottom = bottom
+                .max_height(200.0)
+                .default_height(200.0)
+                .resizable(true);
+        }
+        bottom.show(ctx, |ui| {
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
                     ui.label("Command: ");
@@ -123,12 +132,17 @@ impl Ceos {
                         memory.request_focus(response.id);
                     });
                     if response.changed() {
-                        self.try_filter_command();
+                        if !self.try_search() {
+                            self.try_filter_command();
+                        }
                     }
                 });
                 self.status_bar(ui);
             });
             self.handle_keys(ui);
+            if let Some(search) = &self.search {
+                build_search_panel(&self.textarea_properties.buffer, ui, search);
+            }
             self.frame_history.ui(ui);
         });
     }

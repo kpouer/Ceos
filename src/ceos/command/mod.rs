@@ -7,15 +7,25 @@ use filter::linefilter::LineFilter;
 
 use crate::ceos::buffer::Buffer;
 use crate::ceos::command::filter::linedrop::LineDrop;
-use crate::ceos::command::filter::search::Search;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::Ceos;
 use crate::event::Event;
+use search::Search;
 
 pub(crate) mod direct;
 mod filter;
+pub(crate) mod search;
 
 impl Ceos {
+    pub(crate) fn try_search(&mut self) -> bool {
+        if let Ok(mut search) = Search::try_from(self.command_buffer.as_str()) {
+            search.init(&self.textarea_properties.buffer);
+            self.search = Some(search);
+            return true;
+        }
+        false
+    }
+
     pub(crate) fn try_filter_command(&mut self) {
         let command_str = self.command_buffer.as_str();
         if let Ok(command) = LineFilter::try_from(command_str) {
@@ -23,8 +33,6 @@ impl Ceos {
         } else if let Ok(command) = ColumnFilter::try_from(command_str) {
             self.current_command = Some(Box::new(command));
         } else if let Ok(command) = LineDrop::try_from(command_str) {
-            self.current_command = Some(Box::new(command));
-        } else if let Ok(command) = Search::try_from(command_str) {
             self.current_command = Some(Box::new(command));
         } else {
             self.current_command = None;
