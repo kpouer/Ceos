@@ -131,17 +131,15 @@ impl Ceos {
                     ui.memory_mut(|memory| {
                         memory.request_focus(response.id);
                     });
-                    if response.changed() {
-                        if !self.try_search() {
-                            self.try_filter_command();
-                        }
+                    if response.changed() && !self.try_search() {
+                        self.try_filter_command();
                     }
                 });
                 self.status_bar(ui);
             });
             self.handle_keys(ui);
             if let Some(search) = &self.search {
-                build_search_panel(&self.textarea_properties.buffer, ui, search);
+                build_search_panel(&self.sender, &self.textarea_properties.buffer, ui, search);
             }
             self.frame_history.ui(ui);
         });

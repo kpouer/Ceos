@@ -5,7 +5,6 @@ use crate::ceos::gui::theme::Theme;
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::Stroke;
 use egui::Ui;
-use std::fmt::Display;
 
 /// Search filter
 pub(crate) struct Search {

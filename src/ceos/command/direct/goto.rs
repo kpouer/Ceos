@@ -10,6 +10,12 @@ pub(crate) struct Goto {
     line: usize,
 }
 
+impl From<usize> for Goto {
+    fn from(line: usize) -> Self {
+        Self { line }
+    }
+}
+
 impl TryFrom<&str> for Goto {
     type Error = ();
 
