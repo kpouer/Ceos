@@ -1,7 +1,8 @@
 use crate::ceos::buffer::Buffer;
+use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::gui::searchpanel::build_search_panel;
 use crate::ceos::Ceos;
-use crate::event::Event::{BufferClosed, BufferLoaded};
+use crate::event::Event::{BufferClosed, BufferLoaded, GotoLine};
 use eframe::Frame;
 use egui::{Context, Key, Ui, Visuals, Widget};
 use humansize::{format_size_i, DECIMAL};
@@ -155,6 +156,16 @@ impl Ceos {
             self.open_file();
         } else if ui.input(|i| i.key_pressed(Key::S) && i.modifiers.ctrl) {
             self.save_file();
+        } else if ui.input(|i| i.key_pressed(Key::F3)) {
+            self.search.iter_mut().for_each(|s| {
+                s.next();
+                self.sender.send(GotoLine(Goto::from(s.line()))).unwrap()
+            });
+        } else if ui.input(|i| i.key_pressed(Key::F3) && i.modifiers.shift) {
+            self.search.iter_mut().for_each(|s| {
+                s.prev();
+                self.sender.send(GotoLine(Goto::from(s.line()))).unwrap()
+            });
         }
     }
 

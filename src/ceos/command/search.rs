@@ -11,6 +11,7 @@ pub(crate) struct Search {
     pattern: String,
     // the lines containing the search value
     pub(crate) lines: Vec<usize>,
+    index: usize,
 }
 
 impl TryFrom<&str> for Search {
@@ -22,6 +23,7 @@ impl TryFrom<&str> for Search {
             Ok(Self {
                 pattern,
                 lines: Vec::new(),
+                index: 0,
             })
         } else {
             Err("Command not valid".to_string())
@@ -58,6 +60,25 @@ impl Search {
                 self.lines.push(i);
             }
         })
+    }
+
+    pub(crate) fn next(&mut self) {
+        self.index = (self.index + 1) % self.lines.len();
+    }
+
+    pub(crate) fn prev(&mut self) {
+        if self.lines.is_empty() {
+            return;
+        }
+        if self.index == 0 {
+            self.index = self.lines.len() - 1;
+        } else {
+            self.index -= 1;
+        }
+    }
+
+    pub(crate) fn line(&self) -> usize {
+        self.lines[self.index]
     }
 }
 
