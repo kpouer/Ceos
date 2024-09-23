@@ -1,3 +1,4 @@
+use crate::ceos::command::search::Search;
 use crate::ceos::command::Command;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::theme::Theme;
@@ -20,6 +21,7 @@ pub(crate) mod textareaproperties;
 pub(crate) struct TextPane<'a> {
     textarea_properties: &'a mut TextAreaProperties,
     current_command: &'a Option<Box<dyn Command>>,
+    search: &'a Option<Search>,
     theme: &'a Theme,
     sender: &'a Sender<Event>,
 }
@@ -30,12 +32,14 @@ impl<'a> TextPane<'a> {
         current_command: &'a Option<Box<dyn Command>>,
         theme: &'a Theme,
         sender: &'a Sender<Event>,
+        search: &'a Option<Search>,
     ) -> Self {
         Self {
             textarea_properties,
             current_command,
             theme,
             sender,
+            search,
         }
     }
 }
@@ -72,6 +76,7 @@ impl Widget for TextPane<'_> {
                         rect,
                         self.theme,
                         self.sender,
+                        self.search,
                     )
                     .ui(ui)
                 });

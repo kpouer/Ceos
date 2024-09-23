@@ -48,6 +48,7 @@ impl eframe::App for Ceos {
                     &self.current_command,
                     &self.theme,
                     &self.sender,
+                    &self.search_panel.search,
                 )
                 .ui(ui)
             });
