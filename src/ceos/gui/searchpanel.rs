@@ -7,43 +7,45 @@ use egui::{Label, ScrollArea, Sense, TextWrapMode};
 use egui_extras::{Column, TableBuilder, TableRow};
 use std::sync::mpsc::Sender;
 
-pub(crate) fn build_search_panel(
-    sender: &Sender<Event>,
-    buffer: &Buffer,
-    ui: &mut egui::Ui,
-    search: &Search,
-) {
-    ScrollArea::both().show(ui, |ui| {
-        let table = TableBuilder::new(ui)
-            .sense(Sense::click())
-            .column(Column::auto().resizable(true))
-            .column(Column::remainder());
-        table.body(|body| {
-            body.rows(30.0, search.lines.len(), |mut row| {
-                let row_index = row.index();
-                let line_number = search.lines[row_index];
-                add_row(sender, &mut row, line_number, line_number.to_string());
-                add_row(
-                    sender,
-                    &mut row,
-                    line_number,
-                    buffer.line_text(line_number).to_string(),
-                );
-            });
-        });
-    });
+pub(crate) struct SearchPanel {
+    sender: Sender<Event>,
 }
 
-fn add_row(sender: &Sender<Event>, row: &mut TableRow, line_number: usize, text: String) {
-    let label = Label::new(text)
-        .wrap_mode(TextWrapMode::Extend)
-        .selectable(false);
-    row.col(|ui| {
-        ui.add(label);
-    })
-    .1
-    .clicked()
-    .then(|| {
-        sender.send(GotoLine(Goto::from(line_number))).unwrap();
-    });
+impl SearchPanel {
+    pub(crate) fn new(sender: Sender<Event>) -> Self {
+        Self { sender }
+    }
+
+    pub(crate) fn ui(&self, buffer: &Buffer, ui: &mut egui::Ui, search: &Search) {
+        ScrollArea::both().show(ui, |ui| {
+            TableBuilder::new(ui)
+                .sense(Sense::click())
+                .column(Column::auto().resizable(true))
+                .column(Column::remainder())
+                .body(|body| {
+                    body.rows(30.0, search.lines.len(), |mut row| {
+                        let row_index = row.index();
+                        let line_number = search.lines[row_index];
+                        self.add_row(&mut row, line_number, line_number.to_string());
+                        self.add_row(
+                            &mut row,
+                            line_number,
+                            buffer.line_text(line_number).to_string(),
+                        );
+                    });
+                });
+        });
+    }
+
+    fn add_row(&self, row: &mut TableRow, line_number: usize, text: String) {
+        let label = Label::new(text)
+            .wrap_mode(TextWrapMode::Extend)
+            .selectable(false);
+        row.col(|ui| {
+            ui.add(label);
+        })
+        .1
+        .clicked()
+        .then(|| self.sender.send(GotoLine(Goto::from(line_number))).unwrap());
+    }
 }

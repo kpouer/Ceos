@@ -3,6 +3,7 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use crate::ceos::command::search::Search;
 use crate::ceos::command::Command;
 use crate::ceos::gui::frame_history::FrameHistory;
+use crate::ceos::gui::searchpanel::SearchPanel;
 use crate::event::Event;
 use crate::event::Event::BufferLoaded;
 use anyhow::Error;
@@ -25,24 +26,15 @@ pub(crate) struct Ceos {
     current_command: Option<Box<dyn Command>>,
     search: Option<Search>,
     frame_history: FrameHistory,
+    search_panel: SearchPanel,
     theme: Theme,
     initialized: bool,
-}
-
-impl Ceos {
-    pub(crate) fn process_event(&mut self, ctx: &Context, event: Event) {
-        match event {
-            BufferLoaded(buffer) => self.textarea_properties.set_buffer(buffer),
-            Event::BufferClosed => self.textarea_properties.set_buffer(Default::default()),
-            Event::GotoLine(goto) => goto.execute(ctx, &mut self.textarea_properties),
-            Event::NewFont(font_id) => self.textarea_properties.set_font_id(font_id),
-        }
-    }
 }
 
 impl Default for Ceos {
     fn default() -> Self {
         let (user_input_sender, user_input_receiver) = channel::<Event>();
+        let search_panel = SearchPanel::new(user_input_sender.clone());
         Self {
             sender: user_input_sender,
             receiver: user_input_receiver,
@@ -50,6 +42,7 @@ impl Default for Ceos {
             command_buffer: String::new(),
             current_command: None,
             frame_history: Default::default(),
+            search_panel,
             theme: Theme::default(),
             initialized: false,
             search: None,
@@ -67,5 +60,16 @@ impl TryFrom<&str> for Ceos {
             textarea_properties: textarea,
             ..Default::default()
         })
+    }
+}
+
+impl Ceos {
+    pub(crate) fn process_event(&mut self, ctx: &Context, event: Event) {
+        match event {
+            BufferLoaded(buffer) => self.textarea_properties.set_buffer(buffer),
+            Event::BufferClosed => self.textarea_properties.set_buffer(Default::default()),
+            Event::GotoLine(goto) => goto.execute(ctx, &mut self.textarea_properties),
+            Event::NewFont(font_id) => self.textarea_properties.set_font_id(font_id),
+        }
     }
 }

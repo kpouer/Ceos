@@ -1,6 +1,5 @@
 use crate::ceos::buffer::Buffer;
 use crate::ceos::command::direct::goto::Goto;
-use crate::ceos::gui::searchpanel::build_search_panel;
 use crate::ceos::Ceos;
 use crate::event::Event::{BufferClosed, BufferLoaded, GotoLine};
 use eframe::Frame;
@@ -14,7 +13,7 @@ use textpane::TextPane;
 use theme::Theme;
 
 pub(crate) mod frame_history;
-mod searchpanel;
+pub(crate) mod searchpanel;
 pub(crate) mod textpane;
 pub mod theme;
 pub(crate) mod tools;
@@ -138,11 +137,12 @@ impl Ceos {
                 });
                 self.status_bar(ui);
             });
-            self.handle_keys(ui);
             if let Some(search) = &self.search {
-                build_search_panel(&self.sender, &self.textarea_properties.buffer, ui, search);
+                self.search_panel
+                    .ui(&self.textarea_properties.buffer, ui, search);
             }
             self.frame_history.ui(ui);
+            self.handle_keys(ui);
         });
     }
 
