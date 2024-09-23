@@ -8,12 +8,16 @@ use egui_extras::{Column, TableBuilder, TableRow};
 use std::sync::mpsc::Sender;
 
 pub(crate) struct SearchPanel {
+    pub(crate) search: Option<Search>,
     sender: Sender<Event>,
 }
 
 impl SearchPanel {
     pub(crate) fn new(sender: Sender<Event>) -> Self {
-        Self { sender }
+        Self {
+            search: None,
+            sender,
+        }
     }
 
     pub(crate) fn ui(&self, buffer: &Buffer, ui: &mut egui::Ui, search: &Search) {

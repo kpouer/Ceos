@@ -114,7 +114,7 @@ impl Ceos {
 
     fn build_bottom_panel(&mut self, ctx: &Context) {
         let mut bottom = egui::TopBottomPanel::bottom("bottom_panel");
-        if self.search.is_some() {
+        if self.search_panel.search.is_some() {
             bottom = bottom
                 .max_height(200.0)
                 .default_height(200.0)
@@ -137,7 +137,7 @@ impl Ceos {
                 });
                 self.status_bar(ui);
             });
-            if let Some(search) = &self.search {
+            if let Some(search) = &self.search_panel.search {
                 self.search_panel
                     .ui(&self.textarea_properties.buffer, ui, search);
             }
@@ -157,12 +157,12 @@ impl Ceos {
         } else if ui.input(|i| i.key_pressed(Key::S) && i.modifiers.ctrl) {
             self.save_file();
         } else if ui.input(|i| i.key_pressed(Key::F3)) {
-            self.search.iter_mut().for_each(|s| {
+            self.search_panel.search.iter_mut().for_each(|s| {
                 s.next();
                 self.sender.send(GotoLine(Goto::from(s.line()))).unwrap()
             });
         } else if ui.input(|i| i.key_pressed(Key::F3) && i.modifiers.shift) {
-            self.search.iter_mut().for_each(|s| {
+            self.search_panel.search.iter_mut().for_each(|s| {
                 s.prev();
                 self.sender.send(GotoLine(Goto::from(s.line()))).unwrap()
             });
