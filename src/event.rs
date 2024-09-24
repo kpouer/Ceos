@@ -5,6 +5,9 @@ use crate::event::Event::{BufferClosed, GotoLine, NewFont};
 use egui::FontId;
 
 pub(crate) enum Event {
+    /// BufferLoading(path, current, size)
+    OpenFile(String),
+    BufferLoading(String, usize, usize),
     BufferLoaded(Buffer),
     BufferClosed,
     GotoLine(Goto),

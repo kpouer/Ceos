@@ -78,7 +78,7 @@ impl Ceos {
     fn file_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("File", |ui| {
             if ui.button("Open...").clicked() {
-                self.open_file();
+                self.browse_open_file();
             }
             if ui.button("Save").clicked() {
                 self.save_file();
@@ -160,7 +160,7 @@ impl Ceos {
         } else if ui.input(|i| i.key_pressed(Key::W) && i.modifiers.ctrl) {
             self.sender.send(BufferClosed).unwrap();
         } else if ui.input(|i| i.key_pressed(Key::O) && i.modifiers.ctrl) {
-            self.open_file();
+            self.browse_open_file();
         } else if ui.input(|i| i.key_pressed(Key::S) && i.modifiers.ctrl) {
             self.save_file();
         } else if ui.input(|i| i.key_pressed(Key::F3)) {
@@ -191,18 +191,24 @@ impl Ceos {
         });
     }
 
-    fn open_file(&self) {
-        info!("Open file");
+    pub(crate) fn browse_open_file(&self) {
+        info!("Browse open file");
+        let sender = self.sender.clone();
+        if let Some(path) = rfd::FileDialog::new().set_directory("./").pick_file() {
+            let path = path.into_os_string();
+            let path = path.to_str().unwrap();
+            self.open_file(path.to_string());
+        }
+    }
+
+    pub(crate) fn open_file(&self, path: String) {
+        info!("Open file {path}");
         let sender = self.sender.clone();
         thread::spawn(move || {
-            if let Some(path) = rfd::FileDialog::new().set_directory("./").pick_file() {
-                let path = path.into_os_string();
-                let path = path.to_str().unwrap();
-                sender.send(BufferClosed).unwrap();
-                match Buffer::new_from_file(path.to_string()) {
-                    Ok(buffer) => sender.send(BufferLoaded(buffer)).unwrap(),
-                    Err(e) => warn!("{:?}", e),
-                }
+            sender.send(BufferClosed).unwrap();
+            match Buffer::new_from_file(path.to_string()) {
+                Ok(buffer) => sender.send(BufferLoaded(buffer)).unwrap(),
+                Err(e) => warn!("{:?}", e),
             }
         });
     }

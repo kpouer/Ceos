@@ -63,6 +63,10 @@ impl TryFrom<&str> for Ceos {
 impl Ceos {
     pub(crate) fn process_event(&mut self, ctx: &Context, event: Event) {
         match event {
+            Event::OpenFile(path) => self.open_file(path),
+            Event::BufferLoading(path, current, size) => {
+                //todo : do something
+            }
             BufferLoaded(buffer) => self.textarea_properties.set_buffer(buffer),
             Event::BufferClosed => self.textarea_properties.set_buffer(Default::default()),
             Event::GotoLine(goto) => goto.execute(ctx, &mut self.textarea_properties),

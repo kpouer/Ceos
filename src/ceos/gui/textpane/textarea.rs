@@ -1,5 +1,4 @@
 use std::sync::mpsc::Sender;
-use std::thread;
 
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::{FontId, Stroke};
@@ -7,14 +6,13 @@ use egui::Event::{MouseWheel, Zoom};
 use egui::{Context, InputState, Widget};
 use log::{info, warn};
 
-use crate::ceos::buffer::Buffer;
 use crate::ceos::command::search::Search;
 use crate::ceos::command::Command;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::event::Event;
-use crate::event::Event::{BufferClosed, BufferLoaded, NewFont};
+use crate::event::Event::{NewFont, OpenFile};
 
 pub(crate) struct TextArea<'a> {
     textarea_properties: &'a TextAreaProperties,
@@ -120,14 +118,7 @@ impl TextArea<'_> {
             if let Some(path) = &file.path {
                 let path = path.to_string_lossy();
                 let path = path.to_string();
-                let sender = self.sender.clone();
-                thread::spawn(move || {
-                    sender.send(BufferClosed).unwrap();
-                    match Buffer::new_from_file(path) {
-                        Ok(buffer) => sender.send(BufferLoaded(buffer)).unwrap(),
-                        Err(e) => warn!("{:?}", e),
-                    }
-                });
+                self.sender.send(OpenFile(path)).unwrap();
             }
         }
     }
