@@ -20,7 +20,7 @@ impl Ceos {
     pub(crate) fn try_search(&mut self) -> bool {
         if let Ok(mut search) = Search::try_from(self.command_buffer.as_str()) {
             search.init(&self.textarea_properties.buffer);
-            self.search_panel.search = Some(search);
+            self.search_panel.search = search;
             return true;
         }
         false

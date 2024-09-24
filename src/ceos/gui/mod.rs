@@ -115,7 +115,7 @@ impl Ceos {
 
     fn build_bottom_panel(&mut self, ctx: &Context) {
         let mut bottom = egui::TopBottomPanel::bottom("bottom_panel");
-        if self.search_panel.search.is_some() {
+        if !self.search_panel.search.lines.is_empty() {
             bottom = bottom
                 .max_height(200.0)
                 .default_height(200.0)
@@ -132,15 +132,20 @@ impl Ceos {
                     ui.memory_mut(|memory| {
                         memory.request_focus(response.id);
                     });
-                    if response.changed() && !self.try_search() {
-                        self.try_filter_command();
+                    if response.changed() {
+                        if self.try_search() {
+                            self.sender
+                                .send(GotoLine(Goto::new(self.search_panel.search.line())))
+                                .unwrap();
+                        } else {
+                            self.try_filter_command();
+                        }
                     }
                 });
                 self.status_bar(ui);
             });
-            if let Some(search) = &self.search_panel.search {
-                self.search_panel
-                    .ui(&self.textarea_properties.buffer, ui, search);
+            if self.search_panel.search.has_results() {
+                self.search_panel.ui(&self.textarea_properties.buffer, ui);
             }
             self.frame_history.ui(ui);
             self.handle_keys(ui);
@@ -148,6 +153,7 @@ impl Ceos {
     }
 
     fn handle_keys(&mut self, ui: &Ui) {
+        #[allow(clippy::collapsible_if)]
         if ui.input(|i| i.key_pressed(Key::Enter)) {
             self.execute_command();
             self.command_buffer.clear();
@@ -158,15 +164,19 @@ impl Ceos {
         } else if ui.input(|i| i.key_pressed(Key::S) && i.modifiers.ctrl) {
             self.save_file();
         } else if ui.input(|i| i.key_pressed(Key::F3)) {
-            self.search_panel.search.iter_mut().for_each(|s| {
-                s.next();
-                self.sender.send(GotoLine(Goto::from(s.line()))).unwrap()
-            });
+            if self.search_panel.search.has_results() {
+                self.search_panel.search.next();
+                self.sender
+                    .send(GotoLine(Goto::from(self.search_panel.search.line())))
+                    .unwrap();
+            }
         } else if ui.input(|i| i.key_pressed(Key::F3) && i.modifiers.shift) {
-            self.search_panel.search.iter_mut().for_each(|s| {
-                s.prev();
-                self.sender.send(GotoLine(Goto::from(s.line()))).unwrap()
-            });
+            if self.search_panel.search.has_results() {
+                self.search_panel.search.prev();
+                self.sender
+                    .send(GotoLine(Goto::from(self.search_panel.search.line())))
+                    .unwrap();
+            }
         }
     }
 

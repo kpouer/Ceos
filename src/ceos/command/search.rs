@@ -7,6 +7,7 @@ use eframe::epaint::Stroke;
 use egui::Ui;
 
 /// Search filter
+#[derive(Default)]
 pub(crate) struct Search {
     pattern: String,
     // the lines containing the search value
@@ -60,6 +61,10 @@ impl Search {
                 self.lines.push(i);
             }
         })
+    }
+
+    pub(crate) fn has_results(&self) -> bool {
+        !self.lines.is_empty()
     }
 
     pub(crate) fn next(&mut self) {

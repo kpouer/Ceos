@@ -30,6 +30,10 @@ impl TryFrom<&str> for Goto {
 }
 
 impl Goto {
+    pub(crate) fn new(line: usize) -> Self {
+        Self { line }
+    }
+
     pub(crate) fn execute(&self, ctx: &Context, textarea: &mut TextAreaProperties) {
         let y_offset = textarea.line_height
             * ((cmp::min(self.line, textarea.buffer.line_count()) as f32) - 1.0);

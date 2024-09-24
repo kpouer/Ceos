@@ -23,7 +23,7 @@ pub(crate) struct TextArea<'a> {
     rect: Rect,
     theme: &'a Theme,
     sender: &'a Sender<Event>,
-    search: &'a Option<Search>,
+    search: &'a Search,
 }
 
 impl<'a> TextArea<'a> {
@@ -34,7 +34,7 @@ impl<'a> TextArea<'a> {
         rect: Rect,
         theme: &'a Theme,
         sender: &'a Sender<Event>,
-        search: &'a Option<Search>,
+        search: &'a Search,
     ) -> Self {
         Self {
             textarea_properties,
@@ -57,14 +57,9 @@ impl Widget for &mut TextArea<'_> {
         self.handle_input(ui.ctx(), self.drawing_rect.left_top());
         let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
         row_range.into_iter().for_each(|line| {
-            if let Some(filter_renderer) = &self.search {
-                filter_renderer.paint_line(
-                    ui,
-                    self.theme,
-                    self.textarea_properties,
-                    line,
-                    drawing_pos,
-                );
+            if !self.search.lines.is_empty() {
+                self.search
+                    .paint_line(ui, self.theme, self.textarea_properties, line, drawing_pos);
             }
             if let Some(filter_renderer) = &self.current_command {
                 filter_renderer.paint_line(
