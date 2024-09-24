@@ -11,7 +11,7 @@ use egui::Ui;
 pub(crate) struct Search {
     pattern: String,
     // the lines containing the search value
-    pub(crate) lines: Vec<usize>,
+    lines: Vec<usize>,
     index: usize,
 }
 
@@ -84,6 +84,14 @@ impl Search {
 
     pub(crate) fn line(&self) -> usize {
         self.lines[self.index]
+    }
+
+    pub(crate) fn line_number(&self, index: usize) -> usize {
+        self.lines[index]
+    }
+
+    pub(crate) fn result_count(&self) -> usize {
+        self.lines.len()
     }
 }
 

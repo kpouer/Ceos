@@ -57,7 +57,7 @@ impl Widget for &mut TextArea<'_> {
         self.handle_input(ui.ctx(), self.drawing_rect.left_top());
         let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
         row_range.into_iter().for_each(|line| {
-            if !self.search.lines.is_empty() {
+            if self.search.has_results() {
                 self.search
                     .paint_line(ui, self.theme, self.textarea_properties, line, drawing_pos);
             }

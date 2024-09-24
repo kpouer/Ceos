@@ -115,7 +115,7 @@ impl Ceos {
 
     fn build_bottom_panel(&mut self, ctx: &Context) {
         let mut bottom = egui::TopBottomPanel::bottom("bottom_panel");
-        if !self.search_panel.search.lines.is_empty() {
+        if self.search_panel.search.has_results() {
             bottom = bottom
                 .max_height(200.0)
                 .default_height(200.0)

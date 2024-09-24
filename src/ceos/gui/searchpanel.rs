@@ -27,9 +27,9 @@ impl SearchPanel {
                 .column(Column::auto().resizable(true))
                 .column(Column::remainder())
                 .body(|body| {
-                    body.rows(30.0, self.search.lines.len(), |mut row| {
+                    body.rows(30.0, self.search.result_count(), |mut row| {
                         let row_index = row.index();
-                        let line_number = self.search.lines[row_index];
+                        let line_number = self.search.line_number(row_index);
                         self.add_row(&mut row, line_number, line_number.to_string());
                         self.add_row(
                             &mut row,
