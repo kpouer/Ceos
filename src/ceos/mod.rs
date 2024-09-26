@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 use crate::ceos::command::Command;
@@ -47,23 +48,13 @@ impl Default for Ceos {
     }
 }
 
-impl TryFrom<&str> for Ceos {
-    type Error = Error;
-
-    fn try_from(path: &str) -> Result<Self, Self::Error> {
-        let buffer = Buffer::new_from_file(path.to_string())?;
-        let textarea = buffer.into();
-        Ok(Self {
-            textarea_properties: textarea,
-            ..Default::default()
-        })
-    }
-}
-
 impl Ceos {
     pub(crate) fn process_event(&mut self, ctx: &Context, event: Event) {
         match event {
             Event::OpenFile(path) => self.open_file(path),
+            Event::BufferLoadingStarted(path, size) => {
+                //todo : do something
+            }
             Event::BufferLoading(path, current, size) => {
                 //todo : do something
             }

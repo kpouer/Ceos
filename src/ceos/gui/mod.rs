@@ -1,13 +1,14 @@
 use crate::ceos::buffer::Buffer;
 use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::Ceos;
-use crate::event::Event::{BufferClosed, BufferLoaded, GotoLine};
+use crate::event::Event::{BufferClosed, BufferLoaded, BufferLoadingStarted, GotoLine};
 use eframe::Frame;
 use egui::{Context, Key, Ui, Visuals, Widget};
 use humansize::{format_size_i, DECIMAL};
 use log::{error, info, warn};
 use std::fs::File;
 use std::io::{LineWriter, Write};
+use std::path::{Path, PathBuf};
 use std::thread;
 use textpane::TextPane;
 use theme::Theme;
@@ -193,20 +194,19 @@ impl Ceos {
 
     pub(crate) fn browse_open_file(&self) {
         info!("Browse open file");
-        let sender = self.sender.clone();
         if let Some(path) = rfd::FileDialog::new().set_directory("./").pick_file() {
             let path = path.into_os_string();
             let path = path.to_str().unwrap();
-            self.open_file(path.to_string());
+            self.open_file(path.into());
         }
     }
 
-    pub(crate) fn open_file(&self, path: String) {
-        info!("Open file {path}");
+    pub(crate) fn open_file(&self, path: PathBuf) {
+        info!("Open file {path:?}");
         let sender = self.sender.clone();
         thread::spawn(move || {
             sender.send(BufferClosed).unwrap();
-            match Buffer::new_from_file(path.to_string()) {
+            match Buffer::new_from_file(path, &sender) {
                 Ok(buffer) => sender.send(BufferLoaded(buffer)).unwrap(),
                 Err(e) => warn!("{:?}", e),
             }
@@ -215,26 +215,24 @@ impl Ceos {
 
     fn save_file(&mut self) {
         info!("save_file");
-        if !self.textarea_properties.buffer.path.is_empty() && self.textarea_properties.buffer.dirty
-        {
-            match File::create(&self.textarea_properties.buffer.path) {
-                Ok(file) => {
-                    let mut file = LineWriter::new(file);
-                    self.textarea_properties
-                        .buffer
-                        .content
-                        .iter()
-                        .map(|line| &line.content)
-                        .for_each(|line| {
-                            Self::write(&mut file, line.as_bytes());
-                            Self::write(&mut file, b"\n");
-                        });
-                    self.textarea_properties.buffer.dirty = false;
+        if self.textarea_properties.buffer.dirty {
+            if let Some(path) = &self.textarea_properties.buffer.path {
+                match File::create(path) {
+                    Ok(file) => {
+                        let mut file = LineWriter::new(file);
+                        self.textarea_properties
+                            .buffer
+                            .content
+                            .iter()
+                            .map(|line| &line.content)
+                            .for_each(|line| {
+                                Self::write(&mut file, line.as_bytes());
+                                Self::write(&mut file, b"\n");
+                            });
+                        self.textarea_properties.buffer.dirty = false;
+                    }
+                    Err(err) => error!("Unable to save file {path:?} becaues {err}"),
                 }
-                Err(err) => error!(
-                    "Unable to save file {} becaues {err}",
-                    self.textarea_properties.buffer.path
-                ),
             }
         }
     }

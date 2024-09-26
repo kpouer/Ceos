@@ -4,7 +4,7 @@ use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::{FontId, Stroke};
 use egui::Event::{MouseWheel, Zoom};
 use egui::{Context, InputState, Widget};
-use log::{info, warn};
+use log::info;
 
 use crate::ceos::command::search::Search;
 use crate::ceos::command::Command;
@@ -116,9 +116,7 @@ impl TextArea<'_> {
     fn handle_dropped_file(&mut self, i: &InputState) {
         if let Some(file) = i.raw.dropped_files.first() {
             if let Some(path) = &file.path {
-                let path = path.to_string_lossy();
-                let path = path.to_string();
-                self.sender.send(OpenFile(path)).unwrap();
+                self.sender.send(OpenFile(path.to_owned())).unwrap();
             }
         }
     }

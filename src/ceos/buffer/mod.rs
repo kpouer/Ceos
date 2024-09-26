@@ -1,22 +1,21 @@
 use crate::ceos::buffer::line::Line;
+use crate::event::Event;
+use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::ops::RangeBounds;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::mpsc::Sender;
+use std::time::{Duration, Instant};
 
 pub(crate) mod line;
 
+#[derive(Default)]
 pub(crate) struct Buffer {
-    pub(crate) path: String,
+    pub(crate) path: Option<PathBuf>,
     pub(crate) content: Vec<Line>,
     length: usize,
     pub(crate) dirty: bool,
-}
-
-impl Default for Buffer {
-    fn default() -> Self {
-        Self::from("")
-    }
 }
 
 impl From<&str> for Buffer {
@@ -28,7 +27,7 @@ impl From<&str> for Buffer {
         });
 
         let mut buffer = Self {
-            path: String::new(),
+            path: None,
             content,
             length: 0,
             dirty: false,
@@ -39,20 +38,31 @@ impl From<&str> for Buffer {
 }
 
 impl Buffer {
-    pub(crate) fn new_from_file(path: String) -> anyhow::Result<Self> {
-        let lines = read_lines(&path)?;
-        let mut content = Vec::new();
+    pub(crate) fn new_from_file(path: PathBuf, sender: &Sender<Event>) -> anyhow::Result<Self> {
+        let file_size = std::fs::metadata(&path)?.len() as usize;
+        sender.send(BufferLoadingStarted(path.clone(), file_size))?;
+        let file = File::open(&path)?;
+        let mut line_text = String::with_capacity(500);
+        let mut buffer = io::BufReader::new(file);
+        let mut content = Vec::with_capacity(file_size / 100);
         let mut length = 0;
-        #[allow(clippy::manual_flatten)]
-        for line in lines {
-            if let Ok(text) = line {
-                length += text.len();
-                content.push(Line::from(text));
+        let mut start = Instant::now();
+        loop {
+            let bytes = buffer.read_line(&mut line_text)?;
+            if bytes == 0 {
+                break;
+            }
+            length += line_text.len();
+            content.push(Line::from(line_text.as_str()));
+            line_text.clear();
+            if start.elapsed() > Duration::from_millis(50) {
+                sender.send(BufferLoading(path.clone(), length, file_size))?;
+                start = Instant::now();
             }
         }
 
         Ok(Self {
-            path,
+            path: Some(path),
             content,
             length,
             dirty: false,

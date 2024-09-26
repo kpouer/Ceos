@@ -55,7 +55,7 @@ impl TextAreaProperties {
 
     pub(crate) fn set_buffer(&mut self, buffer: Buffer) {
         info!(
-            "set buffer: {}, line count: {}",
+            "set buffer: {:?}, line count: {}",
             buffer.path,
             buffer.line_count()
         );
