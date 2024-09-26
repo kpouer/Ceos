@@ -60,9 +60,6 @@ impl Buffer {
                 sender.send(BufferLoading(path.clone(), length, file_size))?;
                 start = Instant::now();
             }
-            if content.len() % 1000 == 0 {
-                thread::sleep(Duration::from_millis(10));
-            }
         }
 
         Ok(Self {

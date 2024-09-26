@@ -33,15 +33,18 @@ impl eframe::App for Ceos {
         }
 
         if let Some(loading_progress) = &self.loading_progress {
-            println!("Loading");
             egui::CentralPanel::default().show(ctx, |ui| {
                 ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
-                    ui.label(format!("Loading {:?}", loading_progress.path));
+                    let percent = loading_progress.current as f32 / loading_progress.size as f32;
                     ui.add(
-                        ProgressBar::new(
-                            loading_progress.current as f32 / loading_progress.size as f32,
-                        )
-                        .desired_width(300.0),
+                        ProgressBar::new(percent)
+                            .text(format!(
+                                "Loading {:?} {}/100 %",
+                                loading_progress.path,
+                                (percent * 100.0) as usize
+                            ))
+                            .rounding(10.0)
+                            .desired_width(600.0),
                     );
                 });
             });
