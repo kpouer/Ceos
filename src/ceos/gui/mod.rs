@@ -3,12 +3,12 @@ use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::Ceos;
 use crate::event::Event::{BufferClosed, BufferLoaded, BufferLoadingStarted, GotoLine};
 use eframe::Frame;
-use egui::{Context, Key, Ui, Visuals, Widget};
+use egui::{Align, Context, Direction, Key, Layout, ProgressBar, Ui, Visuals, Widget};
 use humansize::{format_size_i, DECIMAL};
 use log::{error, info, warn};
 use std::fs::File;
 use std::io::{LineWriter, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::thread;
 use textpane::TextPane;
 use theme::Theme;
@@ -30,6 +30,23 @@ impl eframe::App for Ceos {
             .on_new_frame(ctx.input(|i| i.time), frame.info().cpu_usage);
         while let Ok(event) = self.receiver.try_recv() {
             self.process_event(ctx, event)
+        }
+
+        if let Some(loading_progress) = &self.loading_progress {
+            println!("Loading");
+            egui::CentralPanel::default().show(ctx, |ui| {
+                ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
+                    ui.label(format!("Loading {:?}", loading_progress.path));
+                    ui.add(
+                        ProgressBar::new(
+                            loading_progress.current as f32 / loading_progress.size as f32,
+                        )
+                        .desired_width(300.0),
+                    );
+                });
+            });
+            ctx.request_repaint_after(std::time::Duration::from_millis(50));
+            return;
         }
 
         self.build_menu_panel(ctx);

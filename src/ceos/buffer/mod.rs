@@ -6,6 +6,7 @@ use std::io::{self, BufRead};
 use std::ops::RangeBounds;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::Sender;
+use std::thread;
 use std::time::{Duration, Instant};
 
 pub(crate) mod line;
@@ -58,6 +59,9 @@ impl Buffer {
             if start.elapsed() > Duration::from_millis(50) {
                 sender.send(BufferLoading(path.clone(), length, file_size))?;
                 start = Instant::now();
+            }
+            if content.len() % 1000 == 0 {
+                thread::sleep(Duration::from_millis(10));
             }
         }
 
