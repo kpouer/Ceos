@@ -1,9 +1,9 @@
 use crate::ceos::buffer::Buffer;
 use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::Ceos;
-use crate::event::Event::{BufferClosed, BufferLoaded, BufferLoadingStarted, GotoLine};
+use crate::event::Event::{BufferClosed, BufferLoaded, GotoLine};
 use eframe::Frame;
-use egui::{Align, Context, Direction, Key, Layout, ProgressBar, Ui, Visuals, Widget};
+use egui::{Align, Context, Key, Layout, ProgressBar, Ui, Visuals, Widget};
 use humansize::{format_size_i, DECIMAL};
 use log::{error, info, warn};
 use std::fs::File;

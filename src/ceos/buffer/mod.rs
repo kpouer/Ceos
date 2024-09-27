@@ -6,7 +6,6 @@ use std::io::{self, BufRead};
 use std::ops::RangeBounds;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::Sender;
-use std::thread;
 use std::time::{Duration, Instant};
 
 pub(crate) mod line;
