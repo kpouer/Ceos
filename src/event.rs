@@ -14,6 +14,7 @@ pub(crate) enum Event {
     BufferClosed,
     GotoLine(Goto),
     NewFont(FontId),
+    SetCommand(String),
 }
 
 impl TryFrom<&str> for Event {

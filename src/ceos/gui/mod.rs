@@ -153,7 +153,8 @@ impl Ceos {
                     ui.memory_mut(|memory| {
                         memory.request_focus(response.id);
                     });
-                    if response.changed() {
+                    if self.command_buffer_updated || response.changed() {
+                        self.command_buffer_updated = false;
                         if self.try_search() {
                             self.sender
                                 .send(GotoLine(Goto::new(self.search_panel.search.line())))

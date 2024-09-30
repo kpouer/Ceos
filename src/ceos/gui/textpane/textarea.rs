@@ -3,7 +3,7 @@ use std::sync::mpsc::Sender;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::{FontId, Stroke};
 use egui::Event::{MouseWheel, Zoom};
-use egui::{Context, InputState, Widget};
+use egui::{Context, InputState, Response, Widget};
 use log::info;
 
 use crate::ceos::command::search::Search;
@@ -13,7 +13,7 @@ use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::event::Event;
-use crate::event::Event::{NewFont, OpenFile};
+use crate::event::Event::{NewFont, OpenFile, SetCommand};
 
 pub(crate) struct TextArea<'a> {
     textarea_properties: &'a mut TextAreaProperties,
@@ -57,20 +57,28 @@ impl Widget for &mut TextArea<'_> {
             ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::Text);
         }
 
-        if response.clicked() {
+        if response.clicked() || response.drag_started() {
+            self.update_caret_position(rect, &response);
+            response.mark_changed();
+        }
+
+        if response.dragged() || response.drag_stopped() {
             if let Some(pointer_pos) = response.interact_pointer_pos() {
                 let column = self
                     .textarea_properties
                     .x_to_column(pointer_pos.x - rect.left());
-                let line = self
-                    .textarea_properties
-                    .y_to_line(pointer_pos.y - rect.top());
-                self.textarea_properties.caret_position = Position { column, line };
+                let caret_column = self.textarea_properties.caret_position.column;
+                if caret_column > column {
+                    self.sender
+                        .send(SetCommand(format!("{column}..{caret_column}")))
+                        .unwrap();
+                } else {
+                    self.sender
+                        .send(SetCommand(format!("{caret_column}..{column}")))
+                        .unwrap();
+                }
+                response.mark_changed();
             }
-        }
-
-        if response.drag_started() {
-            response.mark_changed();
         }
 
         if ui.is_rect_visible(rect) {
@@ -117,6 +125,18 @@ impl Widget for &mut TextArea<'_> {
 }
 
 impl TextArea<'_> {
+    fn update_caret_position(&mut self, rect: Rect, response: &Response) {
+        if let Some(pointer_pos) = response.interact_pointer_pos() {
+            let column = self
+                .textarea_properties
+                .x_to_column(pointer_pos.x - rect.left());
+            let line = self
+                .textarea_properties
+                .y_to_line(pointer_pos.y - rect.top());
+            self.textarea_properties.caret_position = Position { column, line };
+        }
+    }
+
     fn handle_input(&self, ctx: &Context, top_left: Pos2) {
         ctx.input(|i| {
             self.handle_dropped_file(i);

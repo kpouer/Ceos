@@ -22,6 +22,7 @@ pub(crate) struct Ceos {
     sender: Sender<Event>,
     receiver: Receiver<Event>,
     command_buffer: String,
+    command_buffer_updated: bool,
     current_command: Option<Box<dyn Command>>,
     frame_history: FrameHistory,
     search_panel: SearchPanel,
@@ -45,6 +46,7 @@ impl Default for Ceos {
             receiver: user_input_receiver,
             textarea_properties: Default::default(),
             command_buffer: String::new(),
+            command_buffer_updated: false,
             current_command: None,
             frame_history: Default::default(),
             search_panel,
@@ -58,6 +60,10 @@ impl Default for Ceos {
 impl Ceos {
     pub(crate) fn process_event(&mut self, ctx: &Context, event: Event) {
         match event {
+            Event::SetCommand(command) => {
+                self.command_buffer = command;
+                self.command_buffer_updated = true;
+            }
             Event::OpenFile(path) => self.open_file(path),
             Event::BufferLoadingStarted(path, size) => {
                 self.loading_progress = Some(LoadingProgress {
