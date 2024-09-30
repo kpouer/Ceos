@@ -3,9 +3,6 @@ use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use eframe::emath::Pos2;
 use egui::Rect;
-use std::time::Duration;
-
-const PERIOD: Duration = Duration::from_millis(500);
 
 pub(crate) struct SelectionRenderer;
 

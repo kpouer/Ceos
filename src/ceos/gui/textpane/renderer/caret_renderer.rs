@@ -4,9 +4,6 @@ use crate::ceos::gui::theme::Theme;
 use eframe::emath::Pos2;
 use egui::text_selection::visuals::paint_text_cursor;
 use egui::Rect;
-use std::time::Duration;
-
-const PERIOD: Duration = Duration::from_millis(500);
 
 pub(crate) struct CaretRenderer {
     last_change: f64,
