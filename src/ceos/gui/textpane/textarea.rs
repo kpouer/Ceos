@@ -48,46 +48,63 @@ impl<'a> TextArea<'a> {
 
 impl Widget for &mut TextArea<'_> {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
-        ui.painter()
-            .rect(self.drawing_rect, 0.0, self.theme.background, Stroke::NONE);
-        ui.set_height(self.textarea_properties.text_height());
-        let mut drawing_pos = Pos2::new(ui.max_rect().left(), ui.clip_rect().top());
-        self.handle_input(ui.ctx(), self.drawing_rect.left_top());
-        let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
-        row_range.into_iter().for_each(|line| {
-            if self.search.has_results() {
-                self.search
-                    .paint_line(ui, self.theme, self.textarea_properties, line, drawing_pos);
-            }
-            if let Some(filter_renderer) = &self.current_command {
-                filter_renderer.paint_line(
+        let text_bounds = self.textarea_properties.text_bounds();
+        let (rect, mut response) =
+            ui.allocate_exact_size(text_bounds, egui::Sense::click_and_drag());
+
+        if response.hovered() {
+            ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::Text);
+        }
+
+        if response.drag_started() {
+            response.mark_changed();
+        }
+
+        if ui.is_rect_visible(rect) {
+            ui.painter()
+                .rect(self.drawing_rect, 0.0, self.theme.background, Stroke::NONE);
+            ui.set_height(self.textarea_properties.text_height());
+            let mut drawing_pos = Pos2::new(ui.max_rect().left(), ui.clip_rect().top());
+            self.handle_input(ui.ctx(), self.drawing_rect.left_top());
+            let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
+            row_range.into_iter().for_each(|line| {
+                if self.search.has_results() {
+                    self.search.paint_line(
+                        ui,
+                        self.theme,
+                        self.textarea_properties,
+                        line,
+                        drawing_pos,
+                    );
+                }
+                if let Some(filter_renderer) = &self.current_command {
+                    filter_renderer.paint_line(
+                        ui,
+                        self.theme,
+                        self.textarea_properties,
+                        line,
+                        drawing_pos,
+                    );
+                }
+
+                self.textarea_properties.renderer_manager.paint_line(
                     ui,
                     self.theme,
                     self.textarea_properties,
                     line,
                     drawing_pos,
                 );
-            }
 
-            self.textarea_properties.renderer_manager.paint_line(
-                ui,
-                self.theme,
-                self.textarea_properties,
-                line,
-                drawing_pos,
-            );
+                drawing_pos.y += self.textarea_properties.line_height;
+            });
+        }
 
-            drawing_pos.y += self.textarea_properties.line_height;
-        });
-
-        let text_bounds = self.textarea_properties.text_bounds();
-        let (_, response) = ui.allocate_exact_size(text_bounds, egui::Sense::click_and_drag());
         response
     }
 }
 
 impl TextArea<'_> {
-    fn handle_input(&mut self, ctx: &Context, top_left: Pos2) {
+    fn handle_input(&self, ctx: &Context, top_left: Pos2) {
         ctx.input(|i| {
             self.handle_dropped_file(i);
             let textarea_properties = &self.textarea_properties;
@@ -113,7 +130,7 @@ impl TextArea<'_> {
         });
     }
 
-    fn handle_dropped_file(&mut self, i: &InputState) {
+    fn handle_dropped_file(&self, i: &InputState) {
         if let Some(file) = i.raw.dropped_files.first() {
             if let Some(path) = &file.path {
                 self.sender.send(OpenFile(path.to_owned())).unwrap();
