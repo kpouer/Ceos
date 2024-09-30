@@ -8,6 +8,7 @@ use log::info;
 
 use crate::ceos::command::search::Search;
 use crate::ceos::command::Command;
+use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
@@ -15,7 +16,7 @@ use crate::event::Event;
 use crate::event::Event::{NewFont, OpenFile};
 
 pub(crate) struct TextArea<'a> {
-    textarea_properties: &'a TextAreaProperties,
+    textarea_properties: &'a mut TextAreaProperties,
     current_command: &'a Option<Box<dyn Command>>,
     drawing_rect: Rect,
     rect: Rect,
@@ -26,7 +27,7 @@ pub(crate) struct TextArea<'a> {
 
 impl<'a> TextArea<'a> {
     pub(crate) fn new(
-        textarea_properties: &'a TextAreaProperties,
+        textarea_properties: &'a mut TextAreaProperties,
         current_command: &'a Option<Box<dyn Command>>,
         drawing_rect: Rect,
         rect: Rect,
@@ -54,6 +55,18 @@ impl Widget for &mut TextArea<'_> {
 
         if response.hovered() {
             ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::Text);
+        }
+
+        if response.clicked() {
+            if let Some(pointer_pos) = response.interact_pointer_pos() {
+                let column = self
+                    .textarea_properties
+                    .x_to_column(pointer_pos.x - rect.left());
+                let line = self
+                    .textarea_properties
+                    .y_to_line(pointer_pos.y - rect.top());
+                self.textarea_properties.caret_position = Position { column, line };
+            }
         }
 
         if response.drag_started() {
