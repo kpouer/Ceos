@@ -54,7 +54,7 @@ impl Widget for TextPane<'_> {
             gutter_rect.set_width(gutter_width);
             let mut textpane_state = TextPaneState::get(ui.ctx());
             let scroll_result_gutter = egui::ScrollArea::vertical()
-                .id_source("gutter")
+                .id_salt("gutter")
                 .auto_shrink(false)
                 .max_width(gutter_width)
                 .scroll_bar_visibility(AlwaysHidden)
@@ -64,7 +64,7 @@ impl Widget for TextPane<'_> {
                 });
             let text_area_rect = ui.available_rect_before_wrap();
             let scroll_result_textarea = egui::ScrollArea::both()
-                .id_source("textarea")
+                .id_salt("textarea")
                 .auto_shrink(false)
                 .scroll_offset(textpane_state.scroll_offset)
                 .show_viewport(ui, |ui, rect| {
