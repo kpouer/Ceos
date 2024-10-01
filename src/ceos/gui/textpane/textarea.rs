@@ -48,7 +48,7 @@ impl<'a> TextArea<'a> {
 }
 
 impl Widget for &mut TextArea<'_> {
-    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+    fn ui(self, ui: &mut egui::Ui) -> Response {
         let text_bounds = self.textarea_properties.text_bounds();
         let (rect, mut response) =
             ui.allocate_exact_size(text_bounds, egui::Sense::click_and_drag());

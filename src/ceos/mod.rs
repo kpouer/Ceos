@@ -19,6 +19,7 @@ use std::io::{LineWriter, Write};
 use std::path::PathBuf;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
+use Event::NewFont;
 
 pub(crate) mod buffer;
 pub(crate) mod command;
@@ -89,9 +90,9 @@ impl Ceos {
                 self.loading_progress = None;
                 self.textarea_properties.set_buffer(buffer);
             }
-            Event::BufferClosed => self.textarea_properties.set_buffer(Default::default()),
-            Event::GotoLine(goto) => goto.execute(ctx, &mut self.textarea_properties),
-            Event::NewFont(font_id) => self.textarea_properties.set_font_id(font_id),
+            BufferClosed => self.textarea_properties.set_buffer(Default::default()),
+            GotoLine(goto) => goto.execute(ctx, &mut self.textarea_properties),
+            NewFont(font_id) => self.textarea_properties.set_font_id(font_id),
         }
     }
 }
@@ -179,10 +180,8 @@ impl eframe::App for Ceos {
             .frame(egui::containers::Frame::none())
             .show(ctx, |ui| {
                 if self.textarea_properties.char_width == 0.0 {
-                    let char_width = crate::ceos::gui::tools::char_width(
-                        self.textarea_properties.font_id.clone(),
-                        ui,
-                    );
+                    let char_width =
+                        gui::tools::char_width(self.textarea_properties.font_id.clone(), ui);
                     self.textarea_properties.char_width = char_width;
                 }
                 self.before_frame();

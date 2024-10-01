@@ -89,7 +89,7 @@ impl FrameHistory {
                 Shape::text(
                     f,
                     pos2(rect.left(), y),
-                    egui::Align2::LEFT_BOTTOM,
+                    Align2::LEFT_BOTTOM,
                     text,
                     TextStyle::Monospace.resolve(ui.style()),
                     color,

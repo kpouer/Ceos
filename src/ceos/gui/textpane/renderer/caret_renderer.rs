@@ -22,7 +22,7 @@ impl Renderer for CaretRenderer {
         _: &Theme,
         textarea_properties: &TextAreaProperties,
         line: usize,
-        drawing_pos: egui::Pos2,
+        drawing_pos: Pos2,
     ) {
         let now = ui.ctx().input(|i| i.time);
         let time_since_last_edit = now - self.last_change;

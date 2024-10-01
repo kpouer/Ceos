@@ -28,7 +28,7 @@ pub(crate) struct TextAreaProperties {
 
 impl Default for TextAreaProperties {
     fn default() -> Self {
-        let font_id = egui::FontId::new(DEFAULT_LINE_HEIGHT, egui::FontFamily::Monospace);
+        let font_id = FontId::new(DEFAULT_LINE_HEIGHT, egui::FontFamily::Monospace);
         let mut renderer_manager = RendererManager::default();
         renderer_manager.add_renderer(TEXT_LAYER, Box::new(TextRenderer::new(font_id.clone())));
         renderer_manager.add_renderer(SELECTION_LAYER, Box::new(SelectionRenderer {}));

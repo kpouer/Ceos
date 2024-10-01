@@ -13,7 +13,7 @@ impl Renderer for SelectionRenderer {
         _: &Theme,
         textarea_properties: &TextAreaProperties,
         line: usize,
-        drawing_pos: egui::Pos2,
+        drawing_pos: Pos2,
     ) {
         if let Some(selection) = &textarea_properties.selection {
             if selection.line == line {
