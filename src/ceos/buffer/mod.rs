@@ -1,20 +1,21 @@
 use crate::ceos::buffer::line::Line;
+use crate::event::Event;
+use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use std::fs::File;
 use std::io::{self, BufRead};
-use std::path::Path;
+use std::ops::RangeBounds;
+use std::path::PathBuf;
+use std::sync::mpsc::Sender;
+use std::time::{Duration, Instant};
 
 pub(crate) mod line;
 
+#[derive(Default)]
 pub(crate) struct Buffer {
-    pub(crate) path: String,
+    pub(crate) path: Option<PathBuf>,
     pub(crate) content: Vec<Line>,
     length: usize,
-}
-
-impl Default for Buffer {
-    fn default() -> Self {
-        Self::from("")
-    }
+    pub(crate) dirty: bool,
 }
 
 impl From<&str> for Buffer {
@@ -26,9 +27,10 @@ impl From<&str> for Buffer {
         });
 
         let mut buffer = Self {
-            path: String::new(),
+            path: None,
             content,
             length: 0,
+            dirty: false,
         };
         buffer.compute_length();
         buffer
@@ -36,23 +38,59 @@ impl From<&str> for Buffer {
 }
 
 impl Buffer {
-    pub(crate) fn new_from_file(path: String) -> anyhow::Result<Self> {
-        let lines = read_lines(&path).unwrap();
-        let mut content = Vec::new();
+    pub(crate) fn new_from_file(path: PathBuf, sender: &Sender<Event>) -> anyhow::Result<Self> {
+        let file_size = std::fs::metadata(&path)?.len() as usize;
+        sender.send(BufferLoadingStarted(path.clone(), file_size))?;
+        let file = File::open(&path)?;
+        let mut line_text = String::with_capacity(500);
+        let mut buffer = io::BufReader::new(file);
+        let mut content = Vec::with_capacity(file_size / 100);
         let mut length = 0;
-        #[allow(clippy::manual_flatten)]
-        for line in lines {
-            if let Ok(text) = line {
-                length += text.len();
-                content.push(Line::from(text));
+        let mut start = Instant::now();
+        loop {
+            let bytes = buffer.read_line(&mut line_text)?;
+            if bytes == 0 {
+                break;
+            }
+            length += line_text.len();
+            content.push(Line::from(line_text.as_str()));
+            line_text.clear();
+            if start.elapsed() > Duration::from_millis(50) {
+                sender.send(BufferLoading(path.clone(), length, file_size))?;
+                start = Instant::now();
             }
         }
 
         Ok(Self {
-            path,
+            path: Some(path),
             content,
             length,
+            dirty: false,
         })
+    }
+
+    pub(crate) fn drain_line_mut<R>(&mut self, range: R) -> usize
+    where
+        R: RangeBounds<usize>,
+    {
+        self.content.drain(range);
+        let new_length = self.compute_length();
+        self.dirty = true;
+        new_length
+    }
+
+    pub(crate) fn filter_line_mut(&mut self, filter: impl FnMut(&mut Line)) -> usize {
+        self.content.iter_mut().for_each(filter);
+        let new_length = self.compute_length();
+        self.dirty = true;
+        new_length
+    }
+
+    pub(crate) fn retain_line_mut(&mut self, filter: impl FnMut(&Line) -> bool) -> usize {
+        self.content.retain(filter);
+        let new_length = self.compute_length();
+        self.dirty = true;
+        new_length
     }
 
     pub(crate) fn line_text(&self, line: usize) -> &str {
@@ -80,16 +118,6 @@ impl Buffer {
         self.length += self.line_count();
         self.length
     }
-}
-
-// The output is wrapped in a Result to allow matching on errors.
-// Returns an Iterator to the Reader of the lines of the file.
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where
-    P: AsRef<Path>,
-{
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
 }
 
 #[cfg(test)]

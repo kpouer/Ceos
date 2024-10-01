@@ -3,12 +3,18 @@ use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::command::direct::zoom::Zoom;
 use crate::event::Event::{BufferClosed, GotoLine, NewFont};
 use egui::FontId;
+use std::path::PathBuf;
 
 pub(crate) enum Event {
+    /// BufferLoading(path, current, size)
+    OpenFile(PathBuf),
+    BufferLoadingStarted(PathBuf, usize),
+    BufferLoading(PathBuf, usize, usize),
     BufferLoaded(Buffer),
     BufferClosed,
     GotoLine(Goto),
     NewFont(FontId),
+    SetCommand(String),
 }
 
 impl TryFrom<&str> for Event {

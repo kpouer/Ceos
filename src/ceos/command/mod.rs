@@ -10,11 +10,22 @@ use crate::ceos::command::filter::linedrop::LineDrop;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::Ceos;
 use crate::event::Event;
+use search::Search;
 
 pub(crate) mod direct;
 mod filter;
+pub(crate) mod search;
 
 impl Ceos {
+    pub(crate) fn try_search(&mut self) -> bool {
+        if let Ok(mut search) = Search::try_from(self.command_buffer.as_str()) {
+            search.init(&self.textarea_properties.buffer);
+            self.search_panel.search = search;
+            return true;
+        }
+        false
+    }
+
     pub(crate) fn try_filter_command(&mut self) {
         let command_str = self.command_buffer.as_str();
         if let Ok(command) = LineFilter::try_from(command_str) {

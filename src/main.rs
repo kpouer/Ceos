@@ -4,18 +4,17 @@ use crate::ceos::Ceos;
 mod ceos;
 mod event;
 
-const INITIAL_WIDTH: usize = 1024;
-const INITIAL_HEIGHT: usize = 768;
+const INITIAL_WIDTH: f32 = 1024.0;
+const INITIAL_HEIGHT: f32 = 768.0;
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_drag_and_drop(true)
-            .with_inner_size([INITIAL_WIDTH as f32, INITIAL_HEIGHT as f32]),
+            .with_inner_size([INITIAL_WIDTH, INITIAL_HEIGHT]),
         ..Default::default()
     };
-    // thread::spawn(move|| run_loop(image_data_sender, interaction_receiver));
     let _ = eframe::run_native(
         "Ceos",
         native_options,
