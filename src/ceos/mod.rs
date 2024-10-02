@@ -5,6 +5,7 @@ use crate::ceos::command::Command;
 use crate::ceos::gui::frame_history::FrameHistory;
 use crate::ceos::gui::searchpanel::SearchPanel;
 use crate::ceos::gui::textpane::TextPane;
+use crate::ceos::progress_manager::{ProgressManager, BUFFER_LOADING};
 use crate::event::Event;
 use crate::event::Event::{BufferClosed, BufferLoaded, GotoLine};
 use eframe::emath::Align;
@@ -24,6 +25,7 @@ use Event::NewFont;
 pub(crate) mod buffer;
 pub(crate) mod command;
 pub(crate) mod gui;
+mod progress_manager;
 mod syntax;
 mod tools;
 
@@ -37,13 +39,7 @@ pub(crate) struct Ceos {
     search_panel: SearchPanel,
     theme: Theme,
     initialized: bool,
-    loading_progress: Option<LoadingProgress>,
-}
-
-struct LoadingProgress {
-    path: PathBuf,
-    current: usize,
-    size: usize,
+    progress_manager: ProgressManager,
 }
 
 impl Default for Ceos {
@@ -60,7 +56,7 @@ impl Default for Ceos {
             search_panel,
             theme: Theme::default(),
             initialized: false,
-            loading_progress: None,
+            progress_manager: Default::default(),
         }
     }
 }
@@ -74,20 +70,14 @@ impl Ceos {
             }
             Event::OpenFile(path) => self.open_file(path),
             Event::BufferLoadingStarted(path, size) => {
-                self.loading_progress = Some(LoadingProgress {
-                    path,
-                    current: 0,
-                    size,
-                })
+                self.progress_manager
+                    .add(BUFFER_LOADING.into(), format!("Loading {path:?}"), size)
             }
-            Event::BufferLoading(path, current, size) => match &mut self.loading_progress {
-                None => warn!("Unexpected BufferLoading event"),
-                Some(loading_progress) => {
-                    loading_progress.current = current;
-                }
-            },
+            Event::BufferLoading(path, current, size) => {
+                self.progress_manager.update(BUFFER_LOADING, current)
+            }
             BufferLoaded(buffer) => {
-                self.loading_progress = None;
+                self.progress_manager.remove(BUFFER_LOADING);
                 self.textarea_properties.set_buffer(buffer);
             }
             BufferClosed => self.textarea_properties.set_buffer(Default::default()),
@@ -153,20 +143,25 @@ impl eframe::App for Ceos {
             self.process_event(ctx, event)
         }
 
-        if let Some(loading_progress) = &self.loading_progress {
+        if !self.progress_manager.is_empty() {
             egui::CentralPanel::default().show(ctx, |ui| {
                 ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
-                    let percent = loading_progress.current as f32 / loading_progress.size as f32;
-                    ui.add(
-                        ProgressBar::new(percent)
-                            .text(format!(
-                                "Loading {:?} {}/100 %",
-                                loading_progress.path,
-                                (percent * 100.0) as usize
-                            ))
-                            .rounding(10.0)
-                            .desired_width(600.0),
-                    );
+                    self.progress_manager
+                        .iter()
+                        .map(|(key, progress)| {
+                            let percent = progress.percent();
+                            ProgressBar::new(percent)
+                                .text(format!(
+                                    "{} {}/100 %",
+                                    progress.label,
+                                    (percent * 100.0) as usize
+                                ))
+                                .rounding(10.0)
+                                .desired_width(600.0)
+                        })
+                        .for_each(|progress_bar| {
+                            ui.add(progress_bar);
+                        });
                 });
             });
             ctx.request_repaint_after(std::time::Duration::from_millis(50));
