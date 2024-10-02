@@ -13,7 +13,7 @@ use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::event::Event;
-use crate::event::Event::{NewFont, OpenFile, SetCommand};
+use crate::event::Event::{ClearCommand, NewFont, OpenFile, SetCommand};
 
 pub(crate) struct TextArea<'a> {
     textarea_properties: &'a mut TextAreaProperties,
@@ -58,11 +58,10 @@ impl Widget for &mut TextArea<'_> {
         }
 
         if response.clicked() || response.drag_started() {
+            self.sender.send(ClearCommand).unwrap();
             self.update_caret_position(rect, &response);
             response.mark_changed();
-        }
-
-        if response.dragged() || response.drag_stopped() {
+        } else if response.dragged() || response.drag_stopped() {
             if let Some(pointer_pos) = response.interact_pointer_pos() {
                 let column = self
                     .textarea_properties

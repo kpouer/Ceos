@@ -64,6 +64,10 @@ impl Default for Ceos {
 impl Ceos {
     pub(crate) fn process_event(&mut self, ctx: &Context, event: Event) {
         match event {
+            Event::ClearCommand => {
+                self.command_buffer = String::new();
+                self.current_command = None;
+            }
             Event::SetCommand(command) => {
                 self.command_buffer = command;
                 self.try_filter_command();
@@ -73,7 +77,7 @@ impl Ceos {
                 self.progress_manager
                     .add(BUFFER_LOADING.into(), format!("Loading {path:?}"), size)
             }
-            Event::BufferLoading(path, current, size) => {
+            Event::BufferLoading(_, current, _) => {
                 self.progress_manager.update(BUFFER_LOADING, current)
             }
             BufferLoaded(buffer) => {
