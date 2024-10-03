@@ -1,10 +1,10 @@
-use std::cmp;
-use std::fmt::Display;
-
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::Stroke;
 use egui::Ui;
 use log::debug;
+use std::cmp;
+use std::fmt::Display;
+use std::sync::mpsc::Sender;
 
 use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::Buffer;
@@ -14,18 +14,22 @@ use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::ceos::gui::tools;
 use crate::ceos::tools::range::Range;
+use crate::event::Event;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub(crate) struct ColumnFilter {
+    sender: Sender<Event>,
     range: Range,
 }
 
-impl TryFrom<&str> for ColumnFilter {
+impl TryFrom<(&str, &Sender<Event>)> for ColumnFilter {
     type Error = ();
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
+    fn try_from((value, sender): (&str, &Sender<Event>)) -> Result<Self, Self::Error> {
+        let range = Range::try_from(value)?;
         Ok(ColumnFilter {
-            range: Range::try_from(value)?,
+            sender: sender.clone(),
+            range,
         })
     }
 }
@@ -59,7 +63,13 @@ impl Renderer for ColumnFilter {
 impl Command for ColumnFilter {
     fn execute(&self, buffer: &mut Buffer) {
         let line_count = buffer.line_count();
-        let new_length = buffer.filter_line_mut(|line| self.apply_to_line(line));
+        let refresh_rate = line_count / 100;
+        let new_length = buffer.filter_line_mut(|(index, line)| {
+            if index % refresh_rate == 0 {
+                self.apply_to_line(line);
+            }
+            self.apply_to_line(line)
+        });
         debug!(
             "Applied filter removed {} lines, new length {new_length}",
             line_count - buffer.line_count()
@@ -96,6 +106,13 @@ impl Display for ColumnFilter {
 mod tests {
     use super::*;
     use rstest::rstest;
+    use std::sync::mpsc::channel;
+
+    impl PartialEq for ColumnFilter {
+        fn eq(&self, other: &Self) -> bool {
+            self.range == other.range
+        }
+    }
 
     #[rstest]
     #[case(3, Some(22), "3..22")]
@@ -104,9 +121,11 @@ mod tests {
         #[case] end: Option<usize>,
         #[case] command: &str,
     ) -> anyhow::Result<(), ()> {
-        let result = ColumnFilter::try_from(command)?;
+        let (sender, _) = channel::<Event>();
+        let result = ColumnFilter::try_from((command, &sender))?;
         assert_eq!(
             ColumnFilter {
+                sender,
                 range: Range { start, end }
             },
             result
@@ -116,7 +135,8 @@ mod tests {
 
     #[test]
     fn test_filter_line_prefix() -> anyhow::Result<(), ()> {
-        let filter = ColumnFilter::try_from("..2")?;
+        let (sender, _) = channel::<Event>();
+        let filter = ColumnFilter::try_from(("..2", &sender))?;
         let mut line = Line::from("1 delete me");
         filter.apply_to_line(&mut line);
         assert_eq!("delete me", line.content);
@@ -125,7 +145,8 @@ mod tests {
 
     #[test]
     fn test_filter_line_prefix_short() -> anyhow::Result<(), ()> {
-        let filter = ColumnFilter::try_from("..2")?;
+        let (sender, _) = channel::<Event>();
+        let filter = ColumnFilter::try_from(("..2", &sender))?;
         let mut line = Line::from("1");
         filter.apply_to_line(&mut line);
         assert!(line.content.is_empty());
@@ -134,7 +155,8 @@ mod tests {
 
     #[test]
     fn test_filter_line_prefix_empty() -> anyhow::Result<(), ()> {
-        let filter = ColumnFilter::try_from("..2")?;
+        let (sender, _) = channel::<Event>();
+        let filter = ColumnFilter::try_from(("..2", &sender))?;
         let mut line = Line::from("");
         filter.apply_to_line(&mut line);
         assert!(line.content.is_empty());
@@ -143,7 +165,8 @@ mod tests {
 
     #[test]
     fn test_filter() -> anyhow::Result<(), ()> {
-        let filter = ColumnFilter::try_from("..2")?;
+        let (sender, _) = channel::<Event>();
+        let filter = ColumnFilter::try_from(("..2", &sender))?;
         let content = "1 delete me\n\
         2 keep me\n\
         \n\

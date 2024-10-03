@@ -1,5 +1,8 @@
 use crate::ceos::buffer::Buffer;
 use crate::ceos::command::direct::goto::Goto;
+use crate::ceos::command::filter::columnfilter::ColumnFilter;
+use crate::ceos::command::filter::linedrop::LineDrop;
+use crate::ceos::command::filter::linefilter::LineFilter;
 use crate::ceos::command::search::Search;
 use crate::ceos::command::Command;
 use crate::ceos::gui::frame_history::FrameHistory;
@@ -103,17 +106,11 @@ impl Ceos {
 
     pub(crate) fn try_filter_command(&mut self) {
         let command_str = self.command_buffer.as_str();
-        if let Ok(command) =
-            crate::ceos::command::filter::linefilter::LineFilter::try_from(command_str)
-        {
+        if let Ok(command) = LineFilter::try_from(command_str) {
             self.current_command = Some(Box::new(command));
-        } else if let Ok(command) =
-            crate::ceos::command::filter::columnfilter::ColumnFilter::try_from(command_str)
-        {
+        } else if let Ok(command) = ColumnFilter::try_from((command_str, &self.sender)) {
             self.current_command = Some(Box::new(command));
-        } else if let Ok(command) =
-            crate::ceos::command::filter::linedrop::LineDrop::try_from(command_str)
-        {
+        } else if let Ok(command) = LineDrop::try_from(command_str) {
             self.current_command = Some(Box::new(command));
         } else {
             self.current_command = None;
