@@ -1,6 +1,6 @@
 const SEPARATOR: &str = "..";
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) struct Range {
     pub(crate) start: usize,
     pub(crate) end: Option<usize>,

@@ -1,11 +1,3 @@
-use eframe::emath::{Pos2, Rect};
-use eframe::epaint::Stroke;
-use egui::Ui;
-use log::debug;
-use std::cmp;
-use std::fmt::Display;
-use std::sync::mpsc::Sender;
-
 use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::Buffer;
 use crate::ceos::command::Command;
@@ -15,6 +7,16 @@ use crate::ceos::gui::theme::Theme;
 use crate::ceos::gui::tools;
 use crate::ceos::tools::range::Range;
 use crate::event::Event;
+use crate::event::Event::{TaskEnded, TaskStarted, TaskUpdated};
+use eframe::emath::{Pos2, Rect};
+use eframe::epaint::Stroke;
+use egui::Ui;
+use log::debug;
+use std::fmt::Display;
+use std::sync::mpsc::Sender;
+use std::time::Duration;
+use std::{cmp, thread};
+use uuid::Uuid;
 
 #[derive(Debug)]
 pub(crate) struct ColumnFilter {
@@ -64,12 +66,24 @@ impl Command for ColumnFilter {
     fn execute(&self, buffer: &mut Buffer) {
         let line_count = buffer.line_count();
         let refresh_rate = line_count / 100;
+        let task_id = Uuid::new_v4().to_string();
+        self.sender
+            .send(TaskStarted(
+                task_id.clone(),
+                "ColumnFilter".to_string(),
+                line_count,
+            ))
+            .unwrap();
+        let sender = self.sender.clone();
+        let range = self.range.clone();
         let new_length = buffer.filter_line_mut(|(index, line)| {
             if index % refresh_rate == 0 {
-                self.apply_to_line(line);
+                sender.send(TaskUpdated(task_id.clone(), index)).unwrap();
+                thread::sleep(Duration::from_millis(200));
             }
-            self.apply_to_line(line)
+            Self::apply_to_line(&range, line)
         });
+        self.sender.send(TaskEnded(task_id)).unwrap();
         debug!(
             "Applied filter removed {} lines, new length {new_length}",
             line_count - buffer.line_count()
@@ -78,16 +92,16 @@ impl Command for ColumnFilter {
 }
 
 impl ColumnFilter {
-    pub(crate) fn apply_to_line(&self, line: &mut Line) {
-        if self.range.start >= line.content.len() {
+    pub(crate) fn apply_to_line(range: &Range, line: &mut Line) {
+        if range.start >= line.content.len() {
             return;
         }
 
-        if let Some(end) = self.range.end {
+        if let Some(end) = range.end {
             line.content
-                .drain(self.range.start..cmp::min(line.content.len(), end));
+                .drain(range.start..cmp::min(line.content.len(), end));
         } else {
-            line.content.drain(self.range.start..);
+            line.content.drain(range.start..);
         }
     }
 }

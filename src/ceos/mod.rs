@@ -90,6 +90,12 @@ impl Ceos {
             BufferClosed => self.textarea_properties.set_buffer(Default::default()),
             GotoLine(goto) => goto.execute(ctx, &mut self.textarea_properties),
             NewFont(font_id) => self.textarea_properties.set_font_id(font_id),
+            Event::TaskStarted(task_id, label, max) => {
+                self.progress_manager
+                    .add(task_id, "ColumnFilter".to_string(), max)
+            }
+            Event::TaskUpdated(task_id, value) => self.progress_manager.update(&task_id, value),
+            Event::TaskEnded(task_id) => self.progress_manager.remove(&task_id),
         }
     }
 }

@@ -16,6 +16,9 @@ pub(crate) enum Event {
     NewFont(FontId),
     SetCommand(String),
     ClearCommand,
+    TaskStarted(String, String, usize),
+    TaskUpdated(String, usize),
+    TaskEnded(String),
 }
 
 impl TryFrom<&str> for Event {
