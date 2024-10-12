@@ -94,7 +94,8 @@ mod tests {
 
     #[test]
     fn test_filter() -> anyhow::Result<(), String> {
-        let filter = LineFilter::try_from("filter delete")?;
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let filter = LineFilter::try_from(("filter delete", sender))?;
         let content = "1 delete me\n\
         2 keep me\n\
         3 delete me\n\
@@ -102,9 +103,12 @@ mod tests {
         let mut buffer = Buffer::from(content);
         assert_eq!(content.len(), buffer.len());
         assert_eq!(4, buffer.line_count());
-        filter.execute(&mut buffer);
-        assert!(buffer.dirty);
-        assert_eq!(2, buffer.line_count());
-        Ok(())
+        filter.execute(buffer);
+        if let BufferLoaded(buffer) = receiver.recv().unwrap() {
+            assert!(buffer.dirty);
+            assert_eq!(2, buffer.line_count());
+            return Ok(());
+        }
+        Err("Missing buffer".to_string())
     }
 }
