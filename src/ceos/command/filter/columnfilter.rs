@@ -7,7 +7,7 @@ use crate::ceos::gui::theme::Theme;
 use crate::ceos::gui::tools;
 use crate::ceos::tools::range::Range;
 use crate::event::Event;
-use crate::event::Event::{TaskEnded, TaskStarted, TaskUpdated};
+use crate::event::Event::{BufferLoaded, TaskEnded, TaskStarted, TaskUpdated};
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::Stroke;
 use egui::Ui;
@@ -24,15 +24,12 @@ pub(crate) struct ColumnFilter {
     range: Range,
 }
 
-impl TryFrom<(&str, &Sender<Event>)> for ColumnFilter {
+impl TryFrom<(&str, Sender<Event>)> for ColumnFilter {
     type Error = ();
 
-    fn try_from((value, sender): (&str, &Sender<Event>)) -> Result<Self, Self::Error> {
+    fn try_from((value, sender): (&str, Sender<Event>)) -> Result<Self, Self::Error> {
         let range = Range::try_from(value)?;
-        Ok(ColumnFilter {
-            sender: sender.clone(),
-            range,
-        })
+        Ok(ColumnFilter { sender, range })
     }
 }
 
@@ -63,7 +60,7 @@ impl Renderer for ColumnFilter {
 }
 
 impl Command for ColumnFilter {
-    fn execute(&self, buffer: &mut Buffer) {
+    fn execute(&self, mut buffer: Buffer) {
         let line_count = buffer.line_count();
         let refresh_rate = line_count / 100;
         let task_id = Uuid::new_v4().to_string();
@@ -76,18 +73,21 @@ impl Command for ColumnFilter {
             .unwrap();
         let sender = self.sender.clone();
         let range = self.range.clone();
-        let new_length = buffer.filter_line_mut(|(index, line)| {
-            if index % refresh_rate == 0 {
-                sender.send(TaskUpdated(task_id.clone(), index)).unwrap();
-                thread::sleep(Duration::from_millis(200));
-            }
-            Self::apply_to_line(&range, line)
+        thread::spawn(move || {
+            let new_length = buffer.filter_line_mut(|(index, line)| {
+                if index % refresh_rate == 0 {
+                    sender.send(TaskUpdated(task_id.clone(), index)).unwrap();
+                    thread::sleep(Duration::from_millis(20));
+                }
+                Self::apply_to_line(&range, line)
+            });
+            sender.send(TaskEnded(task_id)).unwrap();
+            debug!(
+                "Applied filter removed {} lines, new length {new_length}",
+                line_count - buffer.line_count()
+            );
+            sender.send(BufferLoaded(buffer)).unwrap();
         });
-        self.sender.send(TaskEnded(task_id)).unwrap();
-        debug!(
-            "Applied filter removed {} lines, new length {new_length}",
-            line_count - buffer.line_count()
-        );
     }
 }
 

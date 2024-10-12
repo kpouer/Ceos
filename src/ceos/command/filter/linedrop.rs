@@ -1,10 +1,10 @@
-use std::cmp;
-use std::fmt::Display;
-
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::Stroke;
 use egui::Ui;
 use log::info;
+use std::cmp;
+use std::fmt::Display;
+use std::sync::mpsc::Sender;
 
 use crate::ceos::buffer::Buffer;
 use crate::ceos::command::Command;
@@ -12,21 +12,25 @@ use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::ceos::tools::range::Range;
+use crate::event::Event;
+use crate::event::Event::BufferLoaded;
 
 /// LineDrop filter
 ///
 /// It will drop a range of lines of the buffer
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub(crate) struct LineDrop {
+    sender: Sender<Event>,
     range: Range,
 }
 
-impl TryFrom<&str> for LineDrop {
+impl TryFrom<(&str, Sender<Event>)> for LineDrop {
     type Error = ();
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
+    fn try_from((value, sender): (&str, Sender<Event>)) -> Result<Self, Self::Error> {
         if let Some(remaining) = value.strip_prefix("l ") {
             return Ok(LineDrop {
+                sender,
                 range: Range::try_from(remaining)?,
             });
         }
@@ -53,7 +57,7 @@ impl Renderer for LineDrop {
 }
 
 impl Command for LineDrop {
-    fn execute(&self, buffer: &mut Buffer) {
+    fn execute(&self, mut buffer: Buffer) {
         let line_count = buffer.line_count();
         let new_length = if let Some(end) = self.range.end {
             buffer.drain_line_mut(self.range.start..cmp::min(line_count, end))
@@ -66,6 +70,7 @@ impl Command for LineDrop {
             self.range,
             line_count - buffer.line_count()
         );
+        self.sender.send(BufferLoaded(buffer)).unwrap();
     }
 }
 

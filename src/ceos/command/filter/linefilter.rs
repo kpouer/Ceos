@@ -1,9 +1,9 @@
-use std::fmt::Display;
-
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::Stroke;
 use egui::Ui;
 use log::info;
+use std::fmt::Display;
+use std::sync::mpsc::Sender;
 
 use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::Buffer;
@@ -11,8 +11,11 @@ use crate::ceos::command::Command;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
+use crate::event::Event;
+use crate::event::Event::BufferLoaded;
 
 pub(crate) struct LineFilter {
+    sender: Sender<Event>,
     filters: Vec<String>,
 }
 
@@ -31,13 +34,16 @@ impl LineFilter {
     }
 }
 
-impl TryFrom<&str> for LineFilter {
+impl TryFrom<(&str, Sender<Event>)> for LineFilter {
     type Error = String;
 
-    fn try_from(command: &str) -> Result<Self, Self::Error> {
+    fn try_from((command, sender): (&str, Sender<Event>)) -> Result<Self, Self::Error> {
         if command.starts_with("filter ") && command.len() > 7 {
             let command = command[7..].split('&').map(|tok| tok.to_string()).collect();
-            Ok(Self { filters: command })
+            Ok(Self {
+                sender,
+                filters: command,
+            })
         } else {
             Err("Command not valid".to_string())
         }
@@ -64,7 +70,7 @@ impl Renderer for LineFilter {
 }
 
 impl Command for LineFilter {
-    fn execute(&self, buffer: &mut Buffer) {
+    fn execute(&self, mut buffer: Buffer) {
         let line_count = buffer.line_count();
         let new_length = buffer.retain_line_mut(|line| self.accept(line));
         info!(
@@ -72,6 +78,7 @@ impl Command for LineFilter {
             self.filters,
             line_count - buffer.line_count()
         );
+        self.sender.send(BufferLoaded(buffer)).unwrap();
     }
 }
 

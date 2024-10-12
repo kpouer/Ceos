@@ -112,11 +112,11 @@ impl Ceos {
 
     pub(crate) fn try_filter_command(&mut self) {
         let command_str = self.command_buffer.as_str();
-        if let Ok(command) = LineFilter::try_from(command_str) {
+        if let Ok(command) = LineFilter::try_from((command_str, self.sender.clone())) {
             self.current_command = Some(Box::new(command));
-        } else if let Ok(command) = ColumnFilter::try_from((command_str, &self.sender)) {
+        } else if let Ok(command) = ColumnFilter::try_from((command_str, self.sender.clone())) {
             self.current_command = Some(Box::new(command));
-        } else if let Ok(command) = LineDrop::try_from(command_str) {
+        } else if let Ok(command) = LineDrop::try_from((command_str, self.sender.clone())) {
             self.current_command = Some(Box::new(command));
         } else {
             self.current_command = None;
@@ -130,7 +130,9 @@ impl Ceos {
     pub(crate) fn execute_command(&mut self) {
         if let Some(command) = self.current_command.take() {
             info!("Execute command {}", command);
-            command.execute(&mut self.textarea_properties.buffer);
+            std::mem::swap(&mut self.command_buffer, &mut String::new());
+            let buffer = std::mem::take(&mut self.textarea_properties.buffer);
+            command.execute(buffer);
         } else if let Ok(command) = Event::try_from(self.command_buffer.as_str()) {
             self.sender.send(command).unwrap();
         }
