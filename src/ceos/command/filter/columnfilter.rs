@@ -43,8 +43,8 @@ impl Renderer for ColumnFilter {
         drawing_pos: Pos2,
     ) {
         let char_width = tools::char_width(textarea.font_id.clone(), ui);
-        let end_x = if self.range.end.is_some() {
-            self.range.end.unwrap() as f32 * char_width
+        let end_x = if let Some(end) = self.range.end {
+            end as f32 * char_width
         } else {
             ui.max_rect().width()
         };
