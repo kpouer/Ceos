@@ -136,7 +136,7 @@ mod tests {
         #[case] command: &str,
     ) -> anyhow::Result<(), ()> {
         let (sender, _) = channel::<Event>();
-        let result = ColumnFilter::try_from((command, &sender))?;
+        let result = ColumnFilter::try_from((command, sender.clone()))?;
         assert_eq!(
             ColumnFilter {
                 sender,
@@ -150,9 +150,9 @@ mod tests {
     #[test]
     fn test_filter_line_prefix() -> anyhow::Result<(), ()> {
         let (sender, _) = channel::<Event>();
-        let filter = ColumnFilter::try_from(("..2", &sender))?;
+        let filter = ColumnFilter::try_from(("..2", sender.clone()))?;
         let mut line = Line::from("1 delete me");
-        filter.apply_to_line(&mut line);
+        ColumnFilter::apply_to_line(&filter.range, &mut line);
         assert_eq!("delete me", line.content);
         Ok(())
     }
@@ -160,9 +160,9 @@ mod tests {
     #[test]
     fn test_filter_line_prefix_short() -> anyhow::Result<(), ()> {
         let (sender, _) = channel::<Event>();
-        let filter = ColumnFilter::try_from(("..2", &sender))?;
+        let filter = ColumnFilter::try_from(("..2", sender.clone()))?;
         let mut line = Line::from("1");
-        filter.apply_to_line(&mut line);
+        ColumnFilter::apply_to_line(&filter.range, &mut line);
         assert!(line.content.is_empty());
         Ok(())
     }
@@ -170,27 +170,31 @@ mod tests {
     #[test]
     fn test_filter_line_prefix_empty() -> anyhow::Result<(), ()> {
         let (sender, _) = channel::<Event>();
-        let filter = ColumnFilter::try_from(("..2", &sender))?;
+        let filter = ColumnFilter::try_from(("..2", sender.clone()))?;
         let mut line = Line::from("");
-        filter.apply_to_line(&mut line);
+        ColumnFilter::apply_to_line(&filter.range, &mut line);
         assert!(line.content.is_empty());
         Ok(())
     }
 
     #[test]
     fn test_filter() -> anyhow::Result<(), ()> {
-        let (sender, _) = channel::<Event>();
-        let filter = ColumnFilter::try_from(("..2", &sender))?;
+        let (sender, receiver) = channel::<Event>();
+        let filter = ColumnFilter::try_from(("..2", sender.clone()))?;
         let content = "1 delete me\n\
         2 keep me\n\
         \n\
         3 delete me\n\
         4 keep me\n";
-        let mut buffer = Buffer::from(content);
+        let buffer = Buffer::from(content);
         assert_eq!(content.len(), buffer.len());
         assert_eq!(5, buffer.line_count());
-        filter.execute(&mut buffer);
-        assert_eq!(content.len() - 8, buffer.len());
-        Ok(())
+        filter.execute(buffer);
+        receiver.recv().unwrap();
+        if let BufferLoaded(buffer) = receiver.recv().unwrap() {
+            assert_eq!(content.len() - 8, buffer.len());
+            return Ok(());
+        }
+        Err(())
     }
 }

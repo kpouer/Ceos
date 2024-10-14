@@ -85,6 +85,9 @@ mod tests {
     use crate::ceos::buffer::Buffer;
     use crate::ceos::command::filter::linedrop::LineDrop;
     use crate::ceos::command::Command;
+    use crate::event::Event;
+    use crate::event::Event::BufferLoaded;
+    use std::sync::mpsc::channel;
 
     const CONTENT: &str = "1 delete me\n\
         2 keep me\n\
@@ -94,40 +97,54 @@ mod tests {
 
     #[test]
     fn test_filter_prefix() -> anyhow::Result<(), ()> {
-        let mut buffer = Buffer::from(CONTENT);
+        let buffer = Buffer::from(CONTENT);
         assert_eq!(CONTENT.len(), buffer.len());
         assert_eq!(5, buffer.line_count());
-        let filter = LineDrop::try_from("l ..2")?;
-        filter.execute(&mut buffer);
-        assert_eq!(3, buffer.line_count());
-        assert_eq!("3 delete me", buffer.line_text(1));
-        assert!(buffer.dirty);
-        Ok(())
+        let (sender, receiver) = channel::<Event>();
+        let filter = LineDrop::try_from(("l ..2", sender.clone()))?;
+        filter.execute(buffer);
+        if let BufferLoaded(buffer) = receiver.recv().unwrap() {
+            assert_eq!(3, buffer.line_count());
+            assert_eq!("3 delete me", buffer.line_text(1));
+            assert!(buffer.dirty);
+            return Ok(());
+        }
+        Err(())
     }
 
     #[test]
     fn test_filter_range() -> anyhow::Result<(), ()> {
-        let mut buffer = Buffer::from(CONTENT);
+        let buffer = Buffer::from(CONTENT);
         assert_eq!(CONTENT.len(), buffer.len());
         assert_eq!(5, buffer.line_count());
-        let filter = LineDrop::try_from("l 3..")?;
-        filter.execute(&mut buffer);
-        assert_eq!(3, buffer.line_count());
-        assert_eq!("2 keep me", buffer.line_text(1));
-        assert!(buffer.dirty);
-        Ok(())
+        let (sender, receiver) = channel::<Event>();
+        let filter = LineDrop::try_from(("l 3..", sender.clone()))?;
+        filter.execute(buffer);
+        if let BufferLoaded(buffer) = receiver.recv().unwrap() {
+            assert_eq!(3, buffer.line_count());
+            assert_eq!("2 keep me", buffer.line_text(1));
+            assert!(buffer.dirty);
+            return Ok(());
+        }
+
+        Err(())
     }
 
     #[test]
     fn test_filter_suffix() -> anyhow::Result<(), ()> {
-        let mut buffer = Buffer::from(CONTENT);
+        let buffer = Buffer::from(CONTENT);
         assert_eq!(CONTENT.len(), buffer.len());
         assert_eq!(5, buffer.line_count());
-        let filter = LineDrop::try_from("l 2..4")?;
-        filter.execute(&mut buffer);
-        assert_eq!(3, buffer.line_count());
-        assert_eq!("2 keep me", buffer.line_text(1));
-        assert!(buffer.dirty);
-        Ok(())
+        let (sender, receiver) = channel::<Event>();
+
+        let filter = LineDrop::try_from(("l 2..4", sender.clone()))?;
+        filter.execute(buffer);
+        if let BufferLoaded(buffer) = receiver.recv().unwrap() {
+            assert_eq!(3, buffer.line_count());
+            assert_eq!("2 keep me", buffer.line_text(1));
+            assert!(buffer.dirty);
+            return Ok(());
+        }
+        Err(())
     }
 }
