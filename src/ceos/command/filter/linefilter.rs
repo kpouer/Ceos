@@ -1,10 +1,3 @@
-use eframe::emath::{Pos2, Rect};
-use eframe::epaint::Stroke;
-use egui::Ui;
-use log::info;
-use std::fmt::Display;
-use std::sync::mpsc::Sender;
-
 use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::Buffer;
 use crate::ceos::command::Command;
@@ -13,6 +6,13 @@ use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::event::Event;
 use crate::event::Event::BufferLoaded;
+use eframe::emath::{Pos2, Rect};
+use eframe::epaint::Stroke;
+use egui::Ui;
+use log::info;
+use std::fmt::Display;
+use std::sync::mpsc::Sender;
+use std::time::Instant;
 
 pub(crate) struct LineFilter {
     sender: Sender<Event>,
@@ -71,12 +71,14 @@ impl Renderer for LineFilter {
 
 impl Command for LineFilter {
     fn execute(&self, mut buffer: Buffer) {
+        let start = Instant::now();
         let line_count = buffer.line_count();
         let new_length = buffer.retain_line_mut(|line| self.accept(line));
         info!(
-            "Applied filter '{:?}' removed {} lines, new length {new_length}",
+            "Applied filter '{:?}' removed {} lines, new length {new_length} in {} ms",
             self.filters,
-            line_count - buffer.line_count()
+            line_count - buffer.line_count(),
+            start.elapsed().as_millis()
         );
         self.sender.send(BufferLoaded(buffer)).unwrap();
     }

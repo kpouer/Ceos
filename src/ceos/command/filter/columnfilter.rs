@@ -81,6 +81,7 @@ impl Command for ColumnFilter {
                 let index = progress.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
                 if index % refresh_rate == 0 {
                     sender.send(TaskUpdated(task_id.clone(), index)).unwrap();
+                    #[cfg(debug_assertions)]
                     thread::sleep(Duration::from_millis(20));
                 }
                 Self::apply_to_line(&range, line)

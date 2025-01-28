@@ -6,6 +6,7 @@ use log::info;
 use rayon::prelude::*;
 use std::fs::File;
 use std::io::{self, BufRead};
+use std::mem;
 use std::ops::RangeBounds;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
@@ -101,8 +102,22 @@ impl Buffer {
         new_length
     }
 
-    pub(crate) fn retain_line_mut(&mut self, filter: impl FnMut(&Line) -> bool) -> usize {
-        self.content.retain(filter);
+    pub(crate) fn retain_line_mut<OP>(&mut self, filter: OP) -> usize
+    where
+        OP: Fn(&Line) -> bool + Sync + Send,
+    {
+        #[cfg(feature = "parallel")]
+        {
+            info!("retain_line_mut lines in parallel mode");
+            let mut tmp: Vec<Line> = Vec::with_capacity(0);
+            mem::swap(&mut self.content, &mut tmp);
+            self.content = tmp.into_par_iter().filter(|line| filter(line)).collect();
+        }
+        #[cfg(not(feature = "parallel"))]
+        {
+            info!("retain_line_mut lines in sequential mode");
+            self.content.retain(filter);
+        }
         let new_length = self.compute_length();
         self.dirty = true;
         new_length
