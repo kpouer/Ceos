@@ -1,6 +1,9 @@
 use crate::ceos::buffer::line::Line;
 use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
+use log::info;
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::ops::RangeBounds;
@@ -79,8 +82,20 @@ impl Buffer {
         new_length
     }
 
-    pub(crate) fn filter_line_mut(&mut self, filter: impl FnMut((usize, &mut Line))) -> usize {
-        self.content.iter_mut().enumerate().for_each(filter);
+    pub(crate) fn filter_line_mut<OP>(&mut self, filter: OP) -> usize
+    where
+        OP: Fn(&mut Line) + Sync + Send,
+    {
+        #[cfg(feature = "parallel")]
+        {
+            info!("Filtering lines in parallel mode");
+            self.content.par_iter_mut().for_each(filter);
+        }
+        #[cfg(not(feature = "parallel"))]
+        {
+            info!("Filtering lines in non parallel mode");
+            self.content.iter_mut().for_each(filter);
+        }
         let new_length = self.compute_length();
         self.dirty = true;
         new_length

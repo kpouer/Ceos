@@ -11,10 +11,11 @@ use crate::event::Event::{BufferLoaded, TaskEnded, TaskStarted, TaskUpdated};
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::Stroke;
 use egui::Ui;
-use log::debug;
+use log::{debug, info};
 use std::fmt::Display;
+use std::sync::atomic::AtomicUsize;
 use std::sync::mpsc::Sender;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use std::{cmp, thread};
 use uuid::Uuid;
 
@@ -74,13 +75,17 @@ impl Command for ColumnFilter {
         let sender = self.sender.clone();
         let range = self.range.clone();
         thread::spawn(move || {
-            let new_length = buffer.filter_line_mut(|(index, line)| {
+            let start = Instant::now();
+            let progress = AtomicUsize::new(0);
+            let new_length = buffer.filter_line_mut(|line| {
+                let index = progress.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
                 if index % refresh_rate == 0 {
                     sender.send(TaskUpdated(task_id.clone(), index)).unwrap();
                     thread::sleep(Duration::from_millis(20));
                 }
                 Self::apply_to_line(&range, line)
             });
+            info!("Processed in {} ms", start.elapsed().as_millis());
             sender.send(TaskEnded(task_id)).unwrap();
             debug!(
                 "Applied filter removed {} lines, new length {new_length}",
