@@ -674,6 +674,7 @@ dependencies = [
  "humansize",
  "log",
  "logos",
+ "memchr",
  "rayon",
  "rfd",
  "rstest",

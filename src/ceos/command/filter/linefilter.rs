@@ -26,12 +26,24 @@ impl LineFilter {
                 if line.content.contains(prefix) && !line.content.contains(filter) {
                     return false;
                 }
-            } else if !line.content.contains(filter) {
+            } else if !contains(&line.content, filter) {
                 return false;
             }
         }
         true
     }
+}
+
+#[inline]
+#[cfg(not(feature = "simd"))]
+fn contains(line: &str, filter: &str) -> bool {
+    line.contains(filter)
+}
+
+#[inline]
+#[cfg(feature = "simd")]
+fn contains(line: &str, filter: &str) -> bool {
+    memchr::memmem::find(line.as_bytes(), filter.as_bytes()).is_some()
 }
 
 impl TryFrom<(&str, Sender<Event>)> for LineFilter {
