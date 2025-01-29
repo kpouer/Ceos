@@ -22,3 +22,11 @@ uuid = { version = "1.12.1", features = ["v4"] }
 default = []
 parallel = ["rayon"]
 simd = ["memchr"]
+
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["html_reports"] }
+memchr = "2.7.4"
+
+[[bench]]
+name = "bench"
+harness = false
