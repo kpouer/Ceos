@@ -4,6 +4,7 @@ use crate::ceos::command::Command;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
+use crate::ceos::tools::contains;
 use crate::event::Event;
 use crate::event::Event::BufferLoaded;
 use eframe::emath::{Pos2, Rect};
@@ -23,7 +24,9 @@ impl LineFilter {
     pub(crate) fn accept(&self, line: &Line) -> bool {
         for filter in &self.filters {
             if let Some(prefix) = filter.strip_prefix('!') {
-                if line.content.contains(prefix) && !line.content.contains(filter) {
+                // the search is !xxxxx so the line must not contains xxxxx or eventually
+                // contains !xxxxx exacty
+                if contains(&line.content, prefix) && !contains(&line.content, filter) {
                     return false;
                 }
             } else if !contains(&line.content, filter) {
@@ -32,26 +35,6 @@ impl LineFilter {
         }
         true
     }
-}
-
-#[inline]
-fn contains(line: &str, filter: &str) -> bool {
-    #[cfg(not(feature = "simd"))]
-    return contains_std(line, filter);
-    #[cfg(feature = "simd")]
-    contains_simd(line, filter)
-}
-
-#[inline]
-#[cfg(not(feature = "simd"))]
-fn contains_std(line: &str, filter: &str) -> bool {
-    line.contains(filter)
-}
-
-#[inline]
-#[cfg(feature = "simd")]
-fn contains_simd(line: &str, filter: &str) -> bool {
-    memchr::memmem::find(line.as_bytes(), filter.as_bytes()).is_some()
 }
 
 impl TryFrom<(&str, Sender<Event>)> for LineFilter {
@@ -113,8 +96,6 @@ impl Display for LineFilter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use criterion::Bencher;
-    use std::process::Termination;
 
     #[test]
     fn test_filter() -> anyhow::Result<(), String> {
@@ -134,12 +115,5 @@ mod tests {
             return Ok(());
         }
         Err("Missing buffer".to_string())
-    }
-
-    #[test]
-    fn test_contains() {
-        let line = "The plot on the left displays the average time per iteration for this benchmark. The shaded region shows the estimated probability of an iteration taking a";
-        assert!(contains(line, "shaded"));
-        assert!(!contains(line, "hello"));
     }
 }
