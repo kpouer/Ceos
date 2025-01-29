@@ -157,7 +157,7 @@ impl eframe::App for Ceos {
                 ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
                     self.progress_manager
                         .iter()
-                        .map(|(key, progress)| {
+                        .map(|(_key, progress)| {
                             let percent = progress.percent();
                             ProgressBar::new(percent)
                                 .text(format!(
