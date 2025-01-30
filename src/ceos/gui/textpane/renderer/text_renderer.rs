@@ -41,7 +41,7 @@ impl Renderer for TextRenderer {
             painter.text(
                 drawing_pos,
                 egui::Align2::LEFT_TOP,
-                chunk.as_str(),
+                chunk,
                 self.font_id.clone(),
                 color,
             );
