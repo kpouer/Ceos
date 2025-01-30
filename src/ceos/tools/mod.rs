@@ -20,6 +20,26 @@ fn contains_simd(line: &str, filter: &str) -> bool {
     memchr::memmem::find(line.as_bytes(), filter.as_bytes()).is_some()
 }
 
+#[inline]
+pub(crate) fn find(line: &str, filter: &str) -> Option<usize> {
+    #[cfg(not(feature = "simd"))]
+    return find_std(line, filter);
+    #[cfg(feature = "simd")]
+    find_simd(line, filter)
+}
+
+#[inline]
+#[cfg(not(feature = "simd"))]
+fn find_std(line: &str, filter: &str) -> Option<usize> {
+    line.find(filter)
+}
+
+#[inline]
+#[cfg(feature = "simd")]
+fn find_simd(line: &str, filter: &str) -> Option<usize> {
+    memchr::memmem::find(line.as_bytes(), filter.as_bytes())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

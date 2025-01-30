@@ -2,6 +2,7 @@ use crate::ceos::buffer::Buffer;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
+use crate::ceos::tools::find;
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::Stroke;
 use egui::Ui;
@@ -42,7 +43,7 @@ impl Renderer for Search {
         drawing_pos: Pos2,
     ) {
         let line = &textarea.buffer.content[line];
-        if let Some(offset) = line.content.find(&self.pattern) {
+        if let Some(offset) = find(&line.content, &self.pattern) {
             let x1 = offset as f32 * textarea.char_width;
             let x2 = (offset + self.pattern.len()) as f32 * textarea.char_width;
             let top_left = Pos2::new(drawing_pos.x + x1, drawing_pos.y);

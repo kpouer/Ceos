@@ -6,7 +6,6 @@ use log::info;
 use rayon::prelude::*;
 use std::fs::File;
 use std::io::{self, BufRead};
-use std::mem;
 use std::ops::RangeBounds;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
@@ -110,7 +109,7 @@ impl Buffer {
         {
             info!("retain_line_mut lines in parallel mode");
             let mut tmp: Vec<Line> = Vec::with_capacity(0);
-            mem::swap(&mut self.content, &mut tmp);
+            std::mem::swap(&mut self.content, &mut tmp);
             self.content = tmp.into_par_iter().filter(|line| filter(line)).collect();
         }
         #[cfg(not(feature = "parallel"))]
