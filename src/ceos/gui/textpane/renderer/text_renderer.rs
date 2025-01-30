@@ -1,9 +1,9 @@
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
-use crate::ceos::syntax::tokenizer::Tokenizer;
 use eframe::emath::Pos2;
 use egui::{FontId, Ui};
+use syntax::tokenizer::Tokenizer;
 
 pub(crate) struct TextRenderer {
     font_id: FontId,
@@ -32,11 +32,10 @@ impl Renderer for TextRenderer {
         let mut tokenizer = Tokenizer::new(text);
         tokenizer.merge_tokens();
         let initial_offset = drawing_pos.x;
-        tokenizer.tokens.into_iter().for_each(|chunk| {
+        tokenizer.into_iter().for_each(|chunk| {
             drawing_pos.x = initial_offset + chunk.start() as f32 * textarea.char_width;
             let color = chunk
-                .token
-                .as_ref()
+                .token()
                 .map(|token| theme.color(token))
                 .unwrap_or(theme.text);
             painter.text(

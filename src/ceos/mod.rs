@@ -29,7 +29,6 @@ pub(crate) mod buffer;
 pub(crate) mod command;
 pub(crate) mod gui;
 mod progress_manager;
-mod syntax;
 mod tools;
 
 pub(crate) struct Ceos {

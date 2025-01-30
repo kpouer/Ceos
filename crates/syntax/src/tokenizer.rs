@@ -1,15 +1,14 @@
+use crate::chunk::Chunk;
+use crate::token::Token;
 use log::debug;
 use logos::Logos;
 
-use crate::ceos::syntax::chunk::Chunk;
-use crate::ceos::syntax::token::Token;
-
-pub(crate) struct Tokenizer<'a> {
+pub struct Tokenizer<'a> {
     pub(crate) tokens: Vec<Chunk<'a>>,
 }
 
 impl<'a> Tokenizer<'a> {
-    pub(crate) fn new(text: &'a str) -> Self {
+    pub fn new(text: &'a str) -> Self {
         Self {
             tokens: Self::tokenize(text),
         }
@@ -27,7 +26,7 @@ impl<'a> Tokenizer<'a> {
         chunks
     }
 
-    pub(crate) fn merge_tokens(&mut self) {
+    pub fn merge_tokens(&mut self) {
         let len = self.tokens.len();
         if len < 2 {
             return;
@@ -45,6 +44,15 @@ impl<'a> Tokenizer<'a> {
             );
         }
         self.tokens = out
+    }
+}
+
+impl<'a> IntoIterator for Tokenizer<'a> {
+    type Item = Chunk<'a>;
+    type IntoIter = std::vec::IntoIter<Chunk<'a>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.tokens.into_iter()
     }
 }
 

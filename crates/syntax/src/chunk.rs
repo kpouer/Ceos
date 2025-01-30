@@ -1,7 +1,7 @@
-use crate::ceos::syntax::token::Token;
+use crate::token::Token;
 use logos::Span;
 
-pub(crate) struct Chunk<'a> {
+pub struct Chunk<'a> {
     pub(crate) token: Option<Token>,
     pub(crate) span: Span,
     text: &'a str,
@@ -12,11 +12,15 @@ impl<'a> Chunk<'a> {
         Self { token, span, text }
     }
 
-    pub(crate) fn as_str(&self) -> &str {
+    pub fn token(&self) -> Option<&Token> {
+        self.token.as_ref()
+    }
+
+    pub fn as_str(&self) -> &str {
         &self.text[self.span.start..self.span.end]
     }
 
-    pub(crate) fn start(&self) -> usize {
+    pub fn start(&self) -> usize {
         self.span.start
     }
 
