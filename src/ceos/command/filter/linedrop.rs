@@ -1,3 +1,10 @@
+use crate::ceos::buffer::Buffer;
+use crate::ceos::command::Command;
+use crate::ceos::gui::textpane::renderer::Renderer;
+use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
+use crate::ceos::gui::theme::Theme;
+use crate::event::Event;
+use crate::event::Event::BufferLoaded;
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::Stroke;
 use egui::Ui;
@@ -5,15 +12,7 @@ use log::info;
 use std::cmp;
 use std::fmt::Display;
 use std::sync::mpsc::Sender;
-
-use crate::ceos::buffer::Buffer;
-use crate::ceos::command::Command;
-use crate::ceos::gui::textpane::renderer::Renderer;
-use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
-use crate::ceos::gui::theme::Theme;
-use crate::ceos::tools::range::Range;
-use crate::event::Event;
-use crate::event::Event::BufferLoaded;
+use tools::range::Range;
 
 /// LineDrop filter
 ///
@@ -59,10 +58,10 @@ impl Renderer for LineDrop {
 impl Command for LineDrop {
     fn execute(&self, mut buffer: Buffer) {
         let line_count = buffer.line_count();
-        let new_length = if let Some(end) = self.range.end {
-            buffer.drain_line_mut(self.range.start..cmp::min(line_count, end))
+        let new_length = if let Some(end) = self.range.end() {
+            buffer.drain_line_mut(self.range.start()..cmp::min(line_count, end))
         } else {
-            buffer.drain_line_mut(self.range.start..)
+            buffer.drain_line_mut(self.range.start()..)
         };
 
         info!(
@@ -76,7 +75,12 @@ impl Command for LineDrop {
 
 impl Display for LineDrop {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "LineDrop '{}:{:?}'", self.range.start, self.range.end)
+        write!(
+            f,
+            "LineDrop '{}:{:?}'",
+            self.range.start(),
+            self.range.end()
+        )
     }
 }
 

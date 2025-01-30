@@ -4,7 +4,6 @@ use crate::ceos::command::Command;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
-use crate::ceos::tools::contains;
 use crate::event::Event;
 use crate::event::Event::BufferLoaded;
 use eframe::emath::{Pos2, Rect};
@@ -26,10 +25,11 @@ impl LineFilter {
             if let Some(prefix) = filter.strip_prefix('!') {
                 // the search is !xxxxx so the line must not contains xxxxx or eventually
                 // contains !xxxxx exacty
-                if contains(&line.content, prefix) && !contains(&line.content, filter) {
+                if tools::contains(&line.content, prefix) && !tools::contains(&line.content, filter)
+                {
                     return false;
                 }
-            } else if !contains(&line.content, filter) {
+            } else if !tools::contains(&line.content, filter) {
                 return false;
             }
         }

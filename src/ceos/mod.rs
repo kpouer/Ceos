@@ -29,7 +29,6 @@ pub(crate) mod buffer;
 pub(crate) mod command;
 pub(crate) mod gui;
 mod progress_manager;
-mod tools;
 
 pub(crate) struct Ceos {
     textarea_properties: TextAreaProperties,
@@ -184,7 +183,7 @@ impl eframe::App for Ceos {
             .show(ctx, |ui| {
                 if self.textarea_properties.char_width == 0.0 {
                     let char_width =
-                        gui::tools::char_width(self.textarea_properties.font_id.clone(), ui);
+                        gui::ui_tools::char_width(self.textarea_properties.font_id.clone(), ui);
                     self.textarea_properties.char_width = char_width;
                 }
                 self.before_frame();

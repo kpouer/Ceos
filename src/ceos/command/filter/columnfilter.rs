@@ -4,8 +4,7 @@ use crate::ceos::command::Command;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
-use crate::ceos::gui::tools;
-use crate::ceos::tools::range::Range;
+use crate::ceos::gui::ui_tools;
 use crate::event::Event;
 use crate::event::Event::{BufferLoaded, TaskEnded, TaskStarted, TaskUpdated};
 use eframe::emath::{Pos2, Rect};
@@ -17,6 +16,7 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
 use std::{cmp, thread};
+use tools::range::Range;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -43,14 +43,14 @@ impl Renderer for ColumnFilter {
         _: usize,
         drawing_pos: Pos2,
     ) {
-        let char_width = tools::char_width(textarea.font_id.clone(), ui);
-        let end_x = if let Some(end) = self.range.end {
+        let char_width = ui_tools::char_width(textarea.font_id.clone(), ui);
+        let end_x = if let Some(end) = self.range.end() {
             end as f32 * char_width
         } else {
             ui.max_rect().width()
         };
         let top_left = Pos2::new(
-            drawing_pos.x + self.range.start as f32 * char_width,
+            drawing_pos.x + self.range.start() as f32 * char_width,
             drawing_pos.y,
         );
         let bottom_right = Pos2::new(drawing_pos.x + end_x, drawing_pos.y + textarea.line_height);
@@ -99,15 +99,15 @@ impl Command for ColumnFilter {
 
 impl ColumnFilter {
     pub(crate) fn apply_to_line(range: &Range, line: &mut Line) {
-        if range.start >= line.content.len() {
+        if range.start() >= line.content.len() {
             return;
         }
 
-        if let Some(end) = range.end {
+        if let Some(end) = range.end() {
             line.content
-                .drain(range.start..cmp::min(line.content.len(), end));
+                .drain(range.start()..cmp::min(line.content.len(), end));
         } else {
-            line.content.drain(range.start..);
+            line.content.drain(range.start()..);
         }
     }
 }
@@ -117,7 +117,8 @@ impl Display for ColumnFilter {
         write!(
             f,
             "ColumnFilter '{}:{:?}'",
-            self.range.start, self.range.end
+            self.range.start(),
+            self.range.end()
         )
     }
 }
@@ -135,10 +136,10 @@ mod tests {
     }
 
     #[rstest]
-    #[case(3, Some(22), "3..22")]
+    #[case(3, 22, "3..22")]
     fn test_try_from(
         #[case] start: usize,
-        #[case] end: Option<usize>,
+        #[case] end: usize,
         #[case] command: &str,
     ) -> anyhow::Result<(), ()> {
         let (sender, _) = channel::<Event>();
@@ -146,7 +147,7 @@ mod tests {
         assert_eq!(
             ColumnFilter {
                 sender,
-                range: Range { start, end }
+                range: Range::new(start, end)?
             },
             result
         );

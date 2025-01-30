@@ -691,6 +691,7 @@ dependencies = [
  "rfd",
  "rstest",
  "syntax",
+ "tools",
  "uuid",
 ]
 
@@ -3275,6 +3276,15 @@ dependencies = [
  "indexmap",
  "toml_datetime",
  "winnow",
+]
+
+[[package]]
+name = "tools"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "memchr",
+ "rstest",
 ]
 
 [[package]]

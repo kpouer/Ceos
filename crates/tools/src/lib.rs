@@ -1,7 +1,7 @@
-pub(crate) mod range;
+pub mod range;
 
 #[inline]
-pub(crate) fn contains(line: &str, filter: &str) -> bool {
+pub fn contains(line: &str, filter: &str) -> bool {
     #[cfg(not(feature = "simd"))]
     return contains_std(line, filter);
     #[cfg(feature = "simd")]
@@ -21,7 +21,7 @@ fn contains_simd(line: &str, filter: &str) -> bool {
 }
 
 #[inline]
-pub(crate) fn find(line: &str, filter: &str) -> Option<usize> {
+pub fn find(line: &str, filter: &str) -> Option<usize> {
     #[cfg(not(feature = "simd"))]
     return find_std(line, filter);
     #[cfg(feature = "simd")]

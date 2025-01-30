@@ -1,0 +1,12 @@
+[package]
+name = "tools"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+rstest = { workspace = true }
+memchr = { version = "2.7.4", optional = true }
+
+[features]
+simd = ["memchr"]

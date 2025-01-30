@@ -1,9 +1,9 @@
 const SEPARATOR: &str = "..";
 
 #[derive(Debug, PartialEq, Clone)]
-pub(crate) struct Range {
-    pub(crate) start: usize,
-    pub(crate) end: Option<usize>,
+pub struct Range {
+    start: usize,
+    end: Option<usize>,
 }
 
 impl TryFrom<&str> for Range {
@@ -34,7 +34,7 @@ impl TryFrom<&str> for Range {
 }
 
 impl Range {
-    fn new(start: usize, end: usize) -> Result<Range, ()> {
+    pub fn new(start: usize, end: usize) -> Result<Range, ()> {
         if start > end {
             return Err(());
         }
@@ -44,7 +44,7 @@ impl Range {
         })
     }
 
-    pub(crate) fn contains(&self, value: usize) -> bool {
+    pub fn contains(&self, value: usize) -> bool {
         if value < self.start {
             return false;
         }
@@ -52,6 +52,14 @@ impl Range {
             Some(end) => value < end,
             None => true,
         }
+    }
+
+    pub fn start(&self) -> usize {
+        self.start
+    }
+
+    pub fn end(&self) -> Option<usize> {
+        self.end
     }
 }
 
