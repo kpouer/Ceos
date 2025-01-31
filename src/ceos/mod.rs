@@ -8,7 +8,6 @@ use crate::ceos::command::Command;
 use crate::ceos::gui::frame_history::FrameHistory;
 use crate::ceos::gui::searchpanel::SearchPanel;
 use crate::ceos::gui::textpane::TextPane;
-use crate::ceos::progress_manager::{ProgressManager, BUFFER_LOADING};
 use crate::event::Event;
 use crate::event::Event::{BufferClosed, BufferLoaded, GotoLine};
 use eframe::emath::Align;
@@ -23,12 +22,12 @@ use std::io::{LineWriter, Write};
 use std::path::PathBuf;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
+use tools::progress_manager::{ProgressManager, BUFFER_LOADING};
 use Event::NewFont;
 
 pub(crate) mod buffer;
 pub(crate) mod command;
 pub(crate) mod gui;
-mod progress_manager;
 
 pub(crate) struct Ceos {
     textarea_properties: TextAreaProperties,

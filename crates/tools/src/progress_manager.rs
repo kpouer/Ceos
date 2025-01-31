@@ -1,15 +1,15 @@
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 
-pub(crate) const BUFFER_LOADING: &str = "_BufferLoading_";
+pub const BUFFER_LOADING: &str = "_BufferLoading_";
 
 #[derive(Default)]
-pub(crate) struct ProgressManager {
-    pub(crate) progress: HashMap<String, Progress>,
+pub struct ProgressManager {
+    pub progress: HashMap<String, Progress>,
 }
 
 impl ProgressManager {
-    pub(crate) fn add(&mut self, id: String, label: String, max: usize) {
+    pub fn add(&mut self, id: String, label: String, max: usize) {
         self.progress.insert(
             id,
             Progress {
@@ -20,34 +20,34 @@ impl ProgressManager {
         );
     }
 
-    pub(crate) fn update(&mut self, id: &str, current: usize) {
+    pub fn update(&mut self, id: &str, current: usize) {
         if let Some(progress) = self.progress.get_mut(id) {
             progress.current = current;
         }
     }
 
-    pub(crate) fn remove(&mut self, id: &str) {
+    pub fn remove(&mut self, id: &str) {
         self.progress.remove(id);
     }
 
-    pub(crate) fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.progress.is_empty()
     }
 
-    pub(crate) fn iter(&self) -> Iter<'_, String, Progress> {
+    pub fn iter(&self) -> Iter<'_, String, Progress> {
         // todo : maybe not very efficient
         self.progress.iter()
     }
 }
 
-pub(crate) struct Progress {
-    pub(crate) label: String,
-    pub(crate) current: usize,
-    pub(crate) max: usize,
+pub struct Progress {
+    pub label: String,
+    pub current: usize,
+    pub max: usize,
 }
 
 impl Progress {
-    pub(crate) fn percent(&self) -> f32 {
+    pub fn percent(&self) -> f32 {
         self.current as f32 / self.max as f32
     }
 }

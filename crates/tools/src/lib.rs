@@ -1,3 +1,4 @@
+pub mod progress_manager;
 pub mod range;
 
 #[inline]
