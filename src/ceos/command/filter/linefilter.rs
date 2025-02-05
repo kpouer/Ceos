@@ -8,7 +8,7 @@ use crate::event::Event;
 use crate::event::Event::BufferLoaded;
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::Stroke;
-use egui::Ui;
+use egui::{StrokeKind, Ui};
 use log::info;
 use std::fmt::Display;
 use std::sync::mpsc::Sender;
@@ -67,7 +67,13 @@ impl Renderer for LineFilter {
             let bottom_right = Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea.line_height);
             let line_rect = Rect::from_min_max(drawing_pos, bottom_right);
             let painter = ui.painter();
-            painter.rect(line_rect, 0.0, theme.deleting, Stroke::default());
+            painter.rect(
+                line_rect,
+                0.0,
+                theme.deleting,
+                Stroke::default(),
+                StrokeKind::Inside,
+            );
         }
     }
 }

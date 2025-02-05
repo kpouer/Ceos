@@ -22,7 +22,7 @@ fn contains_simd(line: &str, filter: &str) -> bool {
 }
 
 #[inline]
-pub fn find(line: &str, filter: &str) -> Option<usize> {
+pub fn find<T: AsRef<str>>(line: &str, filter: T) -> Option<usize> {
     #[cfg(not(feature = "simd"))]
     return find_std(line, filter);
     #[cfg(feature = "simd")]
@@ -37,7 +37,8 @@ fn find_std(line: &str, filter: &str) -> Option<usize> {
 
 #[inline]
 #[cfg(feature = "simd")]
-fn find_simd(line: &str, filter: &str) -> Option<usize> {
+fn find_simd<T: AsRef<str>>(line: &str, filter: T) -> Option<usize> {
+    let filter = filter.as_ref();
     memchr::memmem::find(line.as_bytes(), filter.as_bytes())
 }
 

@@ -2,14 +2,15 @@ use crate::ceos::buffer::Buffer;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
+use crate::ceos::model::highlight::Highlight;
 use eframe::emath::{Pos2, Rect};
-use eframe::epaint::Stroke;
+use eframe::epaint::{Stroke, StrokeKind};
 use egui::Ui;
 
 /// Search filter
 #[derive(Default)]
 pub(crate) struct Search {
-    pattern: String,
+    pattern: Highlight,
     // the lines containing the search value
     lines: Vec<usize>,
     index: usize,
@@ -20,7 +21,7 @@ impl TryFrom<&str> for Search {
 
     fn try_from(command: &str) -> Result<Self, Self::Error> {
         if command.starts_with("s ") && command.len() > 2 {
-            let pattern = command[2..].to_string();
+            let pattern = command[2..].into();
             Ok(Self {
                 pattern,
                 lines: Vec::new(),
@@ -44,12 +45,18 @@ impl Renderer for Search {
         let line = &textarea.buffer.content[line];
         if let Some(offset) = tools::find(&line.content, &self.pattern) {
             let x1 = offset as f32 * textarea.char_width;
-            let x2 = (offset + self.pattern.len()) as f32 * textarea.char_width;
+            let x2 = (offset + self.pattern.pattern().len()) as f32 * textarea.char_width;
             let top_left = Pos2::new(drawing_pos.x + x1, drawing_pos.y);
             let bottom_right = Pos2::new(drawing_pos.x + x2, drawing_pos.y + textarea.line_height);
             let line_rect = Rect::from_min_max(top_left, bottom_right);
             let painter = ui.painter();
-            painter.rect(line_rect, 0.0, theme.deleting, Stroke::default());
+            painter.rect(
+                line_rect,
+                0.0,
+                theme.deleting,
+                Stroke::default(),
+                StrokeKind::Inside,
+            );
         }
     }
 }
@@ -57,7 +64,7 @@ impl Renderer for Search {
 impl Search {
     pub(crate) fn init(&mut self, buffer: &Buffer) {
         buffer.content.iter().enumerate().for_each(|(i, line)| {
-            if line.content.contains(&self.pattern) {
+            if line.content.contains(self.pattern.pattern()) {
                 self.lines.push(i);
             }
         })

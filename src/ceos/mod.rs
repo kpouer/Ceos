@@ -28,6 +28,7 @@ use Event::NewFont;
 pub(crate) mod buffer;
 pub(crate) mod command;
 pub(crate) mod gui;
+mod model;
 
 pub(crate) struct Ceos {
     textarea_properties: TextAreaProperties,
@@ -162,7 +163,7 @@ impl eframe::App for Ceos {
                                     progress.label,
                                     (percent * 100.0) as usize
                                 ))
-                                .rounding(10.0)
+                                .corner_radius(10.0)
                                 .desired_width(600.0)
                         })
                         .for_each(|progress_bar| {
@@ -178,7 +179,7 @@ impl eframe::App for Ceos {
         self.build_bottom_panel(ctx);
 
         egui::CentralPanel::default()
-            .frame(egui::containers::Frame::none())
+            .frame(egui::containers::Frame::NONE)
             .show(ctx, |ui| {
                 if self.textarea_properties.char_width == 0.0 {
                     let char_width =

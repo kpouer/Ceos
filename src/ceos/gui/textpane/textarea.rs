@@ -1,7 +1,7 @@
 use std::sync::mpsc::Sender;
 
 use eframe::emath::{Pos2, Rect, Vec2};
-use eframe::epaint::{FontId, Stroke};
+use eframe::epaint::{FontId, Stroke, StrokeKind};
 use egui::Event::{MouseWheel, Zoom};
 use egui::{Context, InputState, Response, Widget};
 use log::info;
@@ -81,8 +81,13 @@ impl Widget for &mut TextArea<'_> {
         }
 
         if ui.is_rect_visible(rect) {
-            ui.painter()
-                .rect(self.drawing_rect, 0.0, self.theme.background, Stroke::NONE);
+            ui.painter().rect(
+                self.drawing_rect,
+                0.0,
+                self.theme.background,
+                Stroke::NONE,
+                StrokeKind::Inside,
+            );
             ui.set_height(self.textarea_properties.text_height());
             let mut drawing_pos = Pos2::new(ui.max_rect().left(), ui.clip_rect().top());
             self.handle_input(ui.ctx(), self.drawing_rect.left_top());

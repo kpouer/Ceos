@@ -2,6 +2,7 @@ use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use eframe::emath::Pos2;
+use eframe::epaint::StrokeKind;
 use egui::Rect;
 
 pub(crate) struct SelectionRenderer;
@@ -30,6 +31,7 @@ impl Renderer for SelectionRenderer {
                     0.0,
                     ui.style().visuals.selection.bg_fill,
                     ui.style().visuals.selection.stroke,
+                    StrokeKind::Inside,
                 );
             }
         }

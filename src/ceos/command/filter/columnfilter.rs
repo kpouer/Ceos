@@ -8,7 +8,7 @@ use crate::ceos::gui::ui_tools;
 use crate::event::Event;
 use crate::event::Event::{BufferLoaded, TaskEnded, TaskStarted, TaskUpdated};
 use eframe::emath::{Pos2, Rect};
-use eframe::epaint::Stroke;
+use eframe::epaint::{Stroke, StrokeKind};
 use egui::Ui;
 use log::{debug, info};
 use std::fmt::Display;
@@ -56,7 +56,13 @@ impl Renderer for ColumnFilter {
         let bottom_right = Pos2::new(drawing_pos.x + end_x, drawing_pos.y + textarea.line_height);
         let line_rect = Rect::from_min_max(top_left, bottom_right);
         let painter = ui.painter();
-        painter.rect(line_rect, 0.0, theme.deleting, Stroke::default());
+        painter.rect(
+            line_rect,
+            0.0,
+            theme.deleting,
+            Stroke::default(),
+            StrokeKind::Inside,
+        );
     }
 }
 
