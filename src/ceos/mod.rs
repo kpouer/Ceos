@@ -268,15 +268,7 @@ impl Ceos {
         bottom.show(ctx, |ui| {
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
-                    ui.label("Command: ");
-                    let response = ui.add_sized(
-                        ui.available_size(),
-                        egui::TextEdit::singleline(&mut self.command_buffer),
-                    );
-                    ui.memory_mut(|memory| {
-                        memory.request_focus(response.id);
-                    });
-                    if response.changed() {
+                    if gui::command::Command::show(&mut self.command_buffer, ui).changed() {
                         if self.try_search() {
                             self.sender
                                 .send(GotoLine(Goto::new(self.search_panel.search.line())))
