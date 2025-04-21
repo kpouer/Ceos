@@ -1,5 +1,5 @@
-use crate::ceos::command::search::Search;
 use crate::ceos::command::Command;
+use crate::ceos::command::search::Search;
 use crate::ceos::gui::theme::Theme;
 use crate::event::Event;
 use eframe::epaint::Vec2;

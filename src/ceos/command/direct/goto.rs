@@ -3,8 +3,8 @@ use std::cmp;
 use eframe::emath::Vec2;
 use egui::Context;
 
-use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::textpane::TextPaneState;
+use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 
 pub(crate) struct Goto {
     line: usize,

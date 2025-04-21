@@ -3,7 +3,7 @@ use std::fmt::Display;
 
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::Stroke;
-use egui::Ui;
+use egui::{StrokeKind, Ui};
 use log::info;
 
 use crate::ceos::buffer::Buffer;
@@ -47,7 +47,13 @@ impl Renderer for LineDrop {
             let bottom_right = Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea.line_height);
             let line_rect = Rect::from_min_max(drawing_pos, bottom_right);
             let painter = ui.painter();
-            painter.rect(line_rect, 0.0, theme.deleting, Stroke::default());
+            painter.rect(
+                line_rect,
+                0.0,
+                theme.deleting,
+                Stroke::default(),
+                StrokeKind::Inside,
+            );
         }
     }
 }
@@ -78,8 +84,8 @@ impl Display for LineDrop {
 #[cfg(test)]
 mod tests {
     use crate::ceos::buffer::Buffer;
-    use crate::ceos::command::filter::linedrop::LineDrop;
     use crate::ceos::command::Command;
+    use crate::ceos::command::filter::linedrop::LineDrop;
 
     const CONTENT: &str = "1 delete me\n\
         2 keep me\n\

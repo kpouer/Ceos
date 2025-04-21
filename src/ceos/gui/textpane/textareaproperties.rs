@@ -3,7 +3,7 @@ use crate::ceos::gui::textpane::gutter;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::renderer::caret_renderer::CaretRenderer;
 use crate::ceos::gui::textpane::renderer::renderer_manager::{
-    RendererManager, CARET_LAYER, SELECTION_LAYER, TEXT_LAYER,
+    CARET_LAYER, RendererManager, SELECTION_LAYER, TEXT_LAYER,
 };
 use crate::ceos::gui::textpane::renderer::selection_renderer::SelectionRenderer;
 use crate::ceos::gui::textpane::renderer::text_renderer::TextRenderer;

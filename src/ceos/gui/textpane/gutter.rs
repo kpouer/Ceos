@@ -1,5 +1,5 @@
 use eframe::emath::{Rect, Vec2};
-use eframe::epaint::Stroke;
+use eframe::epaint::{Stroke, StrokeKind};
 use egui::{Response, Ui, Widget};
 
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
@@ -33,6 +33,7 @@ impl Widget for Gutter<'_> {
             0.0,
             ui.visuals().faint_bg_color,
             Stroke::NONE,
+            StrokeKind::Inside,
         );
         let mut pos = self.drawing_rect.right_top();
         pos.x -= self.textarea_properties.char_width;

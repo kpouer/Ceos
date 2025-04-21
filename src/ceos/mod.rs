@@ -1,26 +1,26 @@
 use crate::ceos::buffer::Buffer;
+use crate::ceos::command::Command;
 use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::command::search::Search;
-use crate::ceos::command::Command;
 use crate::ceos::gui::frame_history::FrameHistory;
 use crate::ceos::gui::searchpanel::SearchPanel;
 use crate::ceos::gui::textpane::TextPane;
-use crate::ceos::progress_manager::{ProgressManager, BUFFER_LOADING};
+use crate::ceos::progress_manager::{BUFFER_LOADING, ProgressManager};
 use crate::event::Event;
 use crate::event::Event::{BufferClosed, BufferLoaded, GotoLine};
-use eframe::emath::Align;
+use Event::NewFont;
 use eframe::Frame;
+use eframe::emath::Align;
 use egui::{Context, Key, Layout, ProgressBar, Ui, Visuals, Widget};
 use gui::textpane::textareaproperties::TextAreaProperties;
 use gui::theme::Theme;
-use humansize::{format_size_i, DECIMAL};
+use humansize::{DECIMAL, format_size_i};
 use log::{debug, error, info, warn};
 use std::fs::File;
 use std::io::{LineWriter, Write};
 use std::path::PathBuf;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
-use Event::NewFont;
 
 pub(crate) mod buffer;
 pub(crate) mod command;
@@ -160,7 +160,7 @@ impl eframe::App for Ceos {
                                     progress.label,
                                     (percent * 100.0) as usize
                                 ))
-                                .rounding(10.0)
+                                .corner_radius(10.0)
                                 .desired_width(600.0)
                         })
                         .for_each(|progress_bar| {
@@ -176,7 +176,7 @@ impl eframe::App for Ceos {
         self.build_bottom_panel(ctx);
 
         egui::CentralPanel::default()
-            .frame(egui::containers::Frame::none())
+            .frame(egui::containers::Frame::NONE)
             .show(ctx, |ui| {
                 if self.textarea_properties.char_width == 0.0 {
                     let char_width =

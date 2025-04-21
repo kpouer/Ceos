@@ -3,7 +3,7 @@ use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use eframe::emath::{Pos2, Rect};
-use eframe::epaint::Stroke;
+use eframe::epaint::{Stroke, StrokeKind};
 use egui::Ui;
 
 /// Search filter
@@ -49,7 +49,13 @@ impl Renderer for Search {
             let bottom_right = Pos2::new(drawing_pos.x + x2, drawing_pos.y + textarea.line_height);
             let line_rect = Rect::from_min_max(top_left, bottom_right);
             let painter = ui.painter();
-            painter.rect(line_rect, 0.0, theme.deleting, Stroke::default());
+            painter.rect(
+                line_rect,
+                0.0,
+                theme.deleting,
+                Stroke::default(),
+                StrokeKind::Inside,
+            );
         }
     }
 }

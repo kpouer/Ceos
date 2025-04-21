@@ -2,8 +2,8 @@ use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use eframe::emath::Pos2;
-use egui::text_selection::visuals::paint_text_cursor;
 use egui::Rect;
+use egui::text_selection::visuals::paint_text_cursor;
 
 pub(crate) struct CaretRenderer {
     last_change: f64,
