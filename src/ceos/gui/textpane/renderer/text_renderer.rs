@@ -5,6 +5,7 @@ use crate::ceos::syntax::tokenizer::Tokenizer;
 use eframe::emath::Pos2;
 use egui::{FontId, Ui};
 
+#[derive(Debug)]
 pub(crate) struct TextRenderer {
     font_id: FontId,
 }

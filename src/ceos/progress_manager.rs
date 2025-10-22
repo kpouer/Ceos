@@ -3,7 +3,7 @@ use std::collections::hash_map::Iter;
 
 pub(crate) const BUFFER_LOADING: &str = "_BufferLoading_";
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct ProgressManager {
     pub(crate) progress: HashMap<String, Progress>,
 }
@@ -40,6 +40,7 @@ impl ProgressManager {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct Progress {
     pub(crate) label: String,
     pub(crate) current: usize,

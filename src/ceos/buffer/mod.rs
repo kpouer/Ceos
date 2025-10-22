@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 
 pub(crate) mod line;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct Buffer {
     pub(crate) path: Option<PathBuf>,
     pub(crate) content: Vec<Line>,

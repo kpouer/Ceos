@@ -11,7 +11,7 @@ pub(crate) const HIGHLIGHT_LAYER: u8 = 50;
 pub(crate) const TEXT_LAYER: u8 = 100;
 pub(crate) const CARET_LAYER: u8 = 150;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct RendererManager {
     pub(crate) renderers: Vec<RendererEntry>,
 }
@@ -56,6 +56,7 @@ impl RendererManager {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct RendererEntry {
     layer: u8,
     pub(crate) renderer: Box<dyn Renderer>,

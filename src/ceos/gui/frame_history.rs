@@ -1,5 +1,6 @@
 use egui::util::History;
 
+#[derive(Debug)]
 pub struct FrameHistory {
     frame_times: History<f32>,
 }

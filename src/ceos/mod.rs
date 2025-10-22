@@ -29,6 +29,7 @@ mod progress_manager;
 mod syntax;
 mod tools;
 
+#[derive(Debug)]
 pub(crate) struct Ceos {
     textarea_properties: TextAreaProperties,
     sender: Sender<Event>,

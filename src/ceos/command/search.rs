@@ -7,7 +7,7 @@ use eframe::epaint::{Stroke, StrokeKind};
 use egui::Ui;
 
 /// Search filter
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct Search {
     pattern: String,
     // the lines containing the search value

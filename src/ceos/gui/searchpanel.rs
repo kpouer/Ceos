@@ -7,6 +7,7 @@ use egui::{Label, ScrollArea, Sense, TextWrapMode};
 use egui_extras::{Column, TableBuilder, TableRow};
 use std::sync::mpsc::Sender;
 
+#[derive(Debug)]
 pub(crate) struct SearchPanel {
     pub(crate) search: Search,
     sender: Sender<Event>,

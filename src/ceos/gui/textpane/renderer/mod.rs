@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use eframe::emath::Pos2;
 use eframe::epaint::FontId;
 use egui::Ui;
@@ -10,7 +11,7 @@ pub(crate) mod renderer_manager;
 pub(crate) mod selection_renderer;
 pub(crate) mod text_renderer;
 
-pub(crate) trait Renderer {
+pub(crate) trait Renderer: Debug {
     fn before_frame(&mut self) {}
 
     fn paint_line(

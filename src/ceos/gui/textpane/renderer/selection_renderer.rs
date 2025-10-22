@@ -5,6 +5,7 @@ use eframe::emath::Pos2;
 use eframe::epaint::StrokeKind;
 use egui::Rect;
 
+#[derive(Debug)]
 pub(crate) struct SelectionRenderer;
 
 impl Renderer for SelectionRenderer {

@@ -12,6 +12,7 @@ use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 
+#[derive(Debug)]
 pub(crate) struct LineFilter {
     filters: Vec<String>,
 }

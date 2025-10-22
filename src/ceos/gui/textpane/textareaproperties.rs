@@ -16,6 +16,7 @@ use std::ops::Range;
 
 pub(crate) const DEFAULT_LINE_HEIGHT: f32 = 16.0;
 
+#[derive(Debug)]
 pub(crate) struct TextAreaProperties {
     pub(crate) buffer: Buffer,
     pub(crate) line_height: f32,
