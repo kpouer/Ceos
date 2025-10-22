@@ -15,7 +15,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    fn tokenize(text: &str) -> Vec<Chunk> {
+    fn tokenize(text: &str) -> Vec<Chunk<'_>> {
         debug!("start tokenizing");
         let lex = Token::lexer(text);
         let mut chunks = Vec::new();
