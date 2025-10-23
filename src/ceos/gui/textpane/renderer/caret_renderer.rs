@@ -5,15 +5,9 @@ use eframe::emath::Pos2;
 use egui::Rect;
 use egui::text_selection::visuals::paint_text_cursor;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(crate) struct CaretRenderer {
     last_change: f64,
-}
-
-impl Default for CaretRenderer {
-    fn default() -> Self {
-        Self { last_change: 0.0 }
-    }
 }
 
 impl Renderer for CaretRenderer {
