@@ -6,6 +6,7 @@ use egui::Context;
 use crate::ceos::gui::textpane::TextPaneState;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 
+#[derive(Debug)]
 pub(crate) struct Goto {
     line: usize,
 }
@@ -20,10 +21,10 @@ impl TryFrom<&str> for Goto {
     type Error = ();
 
     fn try_from(command: &str) -> Result<Self, Self::Error> {
-        if let Some(stripped) = command.strip_prefix(':') {
-            if let Ok(line) = stripped.parse::<usize>() {
-                return Ok(Goto { line });
-            }
+        if let Some(stripped) = command.strip_prefix(':')
+            && let Ok(line) = stripped.parse::<usize>()
+        {
+            return Ok(Goto { line });
         }
         Err(())
     }

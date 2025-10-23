@@ -17,6 +17,7 @@ mod selection;
 mod textarea;
 pub(crate) mod textareaproperties;
 
+#[derive(Debug)]
 pub(crate) struct TextPane<'a> {
     textarea_properties: &'a mut TextAreaProperties,
     current_command: &'a Option<Box<dyn Command>>,

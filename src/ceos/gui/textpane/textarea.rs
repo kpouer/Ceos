@@ -15,6 +15,7 @@ use crate::ceos::gui::theme::Theme;
 use crate::event::Event;
 use crate::event::Event::{ClearCommand, NewFont, OpenFile, SetCommand};
 
+#[derive(Debug)]
 pub(crate) struct TextArea<'a> {
     textarea_properties: &'a mut TextAreaProperties,
     current_command: &'a Option<Box<dyn Command>>,

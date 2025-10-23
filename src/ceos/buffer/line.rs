@@ -3,16 +3,10 @@ pub(crate) struct Line {
     pub(crate) content: String,
 }
 
-impl From<String> for Line {
-    fn from(content: String) -> Self {
-        Self { content }
-    }
-}
-
-impl From<&str> for Line {
-    fn from(content: &str) -> Self {
+impl<T: Into<String>> From<T> for Line {
+    fn from(content: T) -> Self {
         Self {
-            content: content.to_string(),
+            content: content.into(),
         }
     }
 }

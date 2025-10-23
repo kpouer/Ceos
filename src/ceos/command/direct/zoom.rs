@@ -21,10 +21,10 @@ impl TryFrom<&str> for Zoom {
         if command.trim() == "zoom reset" {
             return Ok(Default::default());
         }
-        if let Some(stripped) = command.strip_prefix("zoom ") {
-            if let Ok(size) = stripped.parse::<f32>() {
-                return Ok(Zoom { size });
-            }
+        if let Some(stripped) = command.strip_prefix("zoom ")
+            && let Ok(size) = stripped.parse::<f32>()
+        {
+            return Ok(Zoom { size });
         }
         Err(())
     }

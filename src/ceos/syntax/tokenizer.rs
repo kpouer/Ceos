@@ -4,6 +4,7 @@ use logos::Logos;
 use crate::ceos::syntax::chunk::Chunk;
 use crate::ceos::syntax::token::Token;
 
+#[derive(Debug)]
 pub(crate) struct Tokenizer<'a> {
     pub(crate) tokens: Vec<Chunk<'a>>,
 }

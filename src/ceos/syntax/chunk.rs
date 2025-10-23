@@ -1,6 +1,7 @@
 use crate::ceos::syntax::token::Token;
 use logos::Span;
 
+#[derive(Debug)]
 pub(crate) struct Chunk<'a> {
     pub(crate) token: Option<Token>,
     pub(crate) span: Span,
