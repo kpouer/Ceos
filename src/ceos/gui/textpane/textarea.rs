@@ -62,23 +62,23 @@ impl Widget for &mut TextArea<'_> {
             self.sender.send(ClearCommand).unwrap();
             self.update_caret_position(rect, &response);
             response.mark_changed();
-        } else if response.dragged() || response.drag_stopped() {
-            if let Some(pointer_pos) = response.interact_pointer_pos() {
-                let column = self
-                    .textarea_properties
-                    .x_to_column(pointer_pos.x - rect.left());
-                let caret_column = self.textarea_properties.caret_position.column;
-                if caret_column > column {
-                    self.sender
-                        .send(SetCommand(format!("{column}..{caret_column}")))
-                        .unwrap();
-                } else {
-                    self.sender
-                        .send(SetCommand(format!("{caret_column}..{column}")))
-                        .unwrap();
-                }
-                response.mark_changed();
+        } else if (response.dragged() || response.drag_stopped())
+            && let Some(pointer_pos) = response.interact_pointer_pos()
+        {
+            let column = self
+                .textarea_properties
+                .x_to_column(pointer_pos.x - rect.left());
+            let caret_column = self.textarea_properties.caret_position.column;
+            if caret_column > column {
+                self.sender
+                    .send(SetCommand(format!("{column}..{caret_column}")))
+                    .unwrap();
+            } else {
+                self.sender
+                    .send(SetCommand(format!("{caret_column}..{column}")))
+                    .unwrap();
             }
+            response.mark_changed();
         }
 
         if ui.is_rect_visible(rect) {
@@ -146,14 +146,14 @@ impl TextArea<'_> {
         ctx.input(|i| {
             self.handle_dropped_file(i);
             let textarea_properties = &self.textarea_properties;
-            if i.pointer.primary_clicked() {
-                if let Some(mut pos) = i.pointer.latest_pos() {
-                    pos.x -= top_left.x;
-                    pos.y -= top_left.y;
-                    let (column, line) = textarea_properties.point_to_text_position(pos);
-                    info!("point to column:{column} line:{line},  topleft {top_left}, pos {pos}");
-                    // textarea_properties.caret_position = Position { column, line };
-                }
+            if i.pointer.primary_clicked()
+                && let Some(mut pos) = i.pointer.latest_pos()
+            {
+                pos.x -= top_left.x;
+                pos.y -= top_left.y;
+                let (column, line) = textarea_properties.point_to_text_position(pos);
+                info!("point to column:{column} line:{line},  topleft {top_left}, pos {pos}");
+                // textarea_properties.caret_position = Position { column, line };
             }
 
             i.events.iter().for_each(|event| match event {
@@ -169,10 +169,10 @@ impl TextArea<'_> {
     }
 
     fn handle_dropped_file(&self, i: &InputState) {
-        if let Some(file) = i.raw.dropped_files.first() {
-            if let Some(path) = &file.path {
-                self.sender.send(OpenFile(path.to_owned())).unwrap();
-            }
+        if let Some(file) = i.raw.dropped_files.first()
+            && let Some(path) = &file.path
+        {
+            self.sender.send(OpenFile(path.to_owned())).unwrap();
         }
     }
 

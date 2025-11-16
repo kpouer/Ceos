@@ -356,24 +356,24 @@ impl Ceos {
 
     fn save_file(&mut self) {
         info!("save_file");
-        if self.textarea_properties.buffer.dirty {
-            if let Some(path) = &self.textarea_properties.buffer.path {
-                match File::create(path) {
-                    Ok(file) => {
-                        let mut file = LineWriter::new(file);
-                        self.textarea_properties
-                            .buffer
-                            .content
-                            .iter()
-                            .map(|line| &line.content)
-                            .for_each(|line| {
-                                Self::write(&mut file, line.as_bytes());
-                                Self::write(&mut file, b"\n");
-                            });
-                        self.textarea_properties.buffer.dirty = false;
-                    }
-                    Err(err) => error!("Unable to save file {path:?} becaues {err}"),
+        if self.textarea_properties.buffer.dirty
+            && let Some(path) = &self.textarea_properties.buffer.path
+        {
+            match File::create(path) {
+                Ok(file) => {
+                    let mut file = LineWriter::new(file);
+                    self.textarea_properties
+                        .buffer
+                        .content
+                        .iter()
+                        .map(|line| &line.content)
+                        .for_each(|line| {
+                            Self::write(&mut file, line.as_bytes());
+                            Self::write(&mut file, b"\n");
+                        });
+                    self.textarea_properties.buffer.dirty = false;
                 }
+                Err(err) => error!("Unable to save file {path:?} becaues {err}"),
             }
         }
     }

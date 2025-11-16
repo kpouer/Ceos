@@ -1,7 +1,7 @@
-use std::fmt::Debug;
 use eframe::emath::Pos2;
 use eframe::epaint::FontId;
 use egui::Ui;
+use std::fmt::Debug;
 
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;

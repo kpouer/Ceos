@@ -21,12 +21,11 @@ impl TryFrom<&str> for Range {
             }
         } else {
             let tokens: Vec<&str> = command.split(SEPARATOR).collect();
-            if tokens.len() == 2 {
-                if let Ok(start) = tokens.first().unwrap().parse::<usize>() {
-                    if let Ok(end) = tokens.get(1).unwrap().parse::<usize>() {
-                        return Range::new(start, end);
-                    }
-                }
+            if tokens.len() == 2
+                && let Ok(start) = tokens.first().unwrap().parse::<usize>()
+                && let Ok(end) = tokens.get(1).unwrap().parse::<usize>()
+            {
+                return Range::new(start, end);
             }
         }
         Err(())

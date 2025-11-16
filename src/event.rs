@@ -29,10 +29,10 @@ impl TryFrom<&str> for Event {
             }
         } else if command == "close" {
             return Ok(BufferClosed);
-        } else if command.starts_with("zoom ") {
-            if let Ok(zoom) = Zoom::try_from(command) {
-                return Ok(NewFont(zoom.get_font_id()));
-            }
+        } else if command.starts_with("zoom ")
+            && let Ok(zoom) = Zoom::try_from(command)
+        {
+            return Ok(NewFont(zoom.get_font_id()));
         }
         Err(())
     }
