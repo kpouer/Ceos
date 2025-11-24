@@ -300,7 +300,7 @@ impl Ceos {
             self.execute_command();
             self.command_buffer.clear();
         } else if ui.input(|i| i.key_pressed(Key::W) && i.modifiers.ctrl) {
-            self.sender.send(BufferClosed).unwrap();
+            let _ = self.sender.send(BufferClosed);
         } else if ui.input(|i| i.key_pressed(Key::O) && i.modifiers.ctrl) {
             self.browse_open_file();
         } else if ui.input(|i| i.key_pressed(Key::S) && i.modifiers.ctrl) {
@@ -308,16 +308,14 @@ impl Ceos {
         } else if ui.input(|i| i.key_pressed(Key::F3)) {
             if self.search_panel.search.has_results() {
                 self.search_panel.search.next();
-                self.sender
-                    .send(GotoLine(Goto::from(self.search_panel.search.line())))
-                    .unwrap();
+                let _ = self.sender
+                    .send(GotoLine(Goto::from(self.search_panel.search.line())));
             }
         } else if ui.input(|i| i.key_pressed(Key::F3) && i.modifiers.shift) {
             if self.search_panel.search.has_results() {
                 self.search_panel.search.prev();
-                self.sender
-                    .send(GotoLine(Goto::from(self.search_panel.search.line())))
-                    .unwrap();
+                let _ = self.sender
+                    .send(GotoLine(Goto::from(self.search_panel.search.line())));
             }
         }
     }
