@@ -38,9 +38,9 @@ impl From<&str> for Buffer {
 }
 
 impl Buffer {
-    pub(crate) fn new_from_file(path: PathBuf, sender: &Sender<Event>) -> anyhow::Result<Self> {
+    pub(crate) fn new_from_file(path: PathBuf, sender: &Sender<Event>) -> Result<Self, std::io::Error> {
         let file_size = std::fs::metadata(&path)?.len() as usize;
-        sender.send(BufferLoadingStarted(path.clone(), file_size))?;
+        let _ = sender.send(BufferLoadingStarted(path.clone(), file_size));
         let file = File::open(&path)?;
         let mut line_text = String::with_capacity(500);
         let mut buffer = io::BufReader::new(file);
@@ -56,7 +56,7 @@ impl Buffer {
             content.push(Line::from(line_text.as_str()));
             line_text.clear();
             if start.elapsed() > Duration::from_millis(50) {
-                sender.send(BufferLoading(path.clone(), length, file_size))?;
+                let _ = sender.send(BufferLoading(path.clone(), length, file_size));
                 start = Instant::now();
             }
         }

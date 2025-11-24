@@ -106,7 +106,7 @@ impl Search {
 //     use super::*;
 //
 //     #[test]
-//     fn test_filter() -> anyhow::Result<(), String> {
+//     fn test_filter() -> Result<(), String> {
 //         let filter = LineFilter::try_from("filter delete")?;
 //         let content = "1 delete me\n\
 //         2 keep me\n\

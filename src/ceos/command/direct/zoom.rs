@@ -44,7 +44,7 @@ mod tests {
     #[rstest]
     #[case(3.0, "zoom 3")]
     #[case(DEFAULT_LINE_HEIGHT, "zoom reset")]
-    fn test_try_from(#[case] expected: f32, #[case] command: &str) -> anyhow::Result<(), ()> {
+    fn test_try_from(#[case] expected: f32, #[case] command: &str) -> Result<(), ()> {
         let result = Zoom::try_from(command)?;
         assert_eq!(Zoom { size: expected }, result);
         Ok(())
@@ -54,7 +54,7 @@ mod tests {
     #[case("zoo m 20")]
     #[case("zoom")]
     #[case("zoom a")]
-    fn test_try_from_invalid(#[case] command: &str) -> anyhow::Result<(), ()> {
+    fn test_try_from_invalid(#[case] command: &str) -> Result<(), ()> {
         assert!(Zoom::try_from(command).is_err());
         Ok(())
     }

@@ -7,7 +7,7 @@ mod event;
 const INITIAL_WIDTH: f32 = 1024.0;
 const INITIAL_HEIGHT: f32 = 768.0;
 
-fn main() -> anyhow::Result<()> {
+fn main() {
     env_logger::init();
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -20,6 +20,4 @@ fn main() -> anyhow::Result<()> {
         native_options,
         Box::new(|_cc| Ok(Box::<Ceos>::default())),
     );
-
-    Ok(())
 }

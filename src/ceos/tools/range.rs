@@ -67,7 +67,7 @@ mod tests {
         #[case] start: usize,
         #[case] end: Option<usize>,
         #[case] command: &str,
-    ) -> anyhow::Result<(), ()> {
+    ) -> Result<(), ()> {
         let result = Range::try_from(command)?;
         assert_eq!(Range { start, end }, result);
         Ok(())
@@ -81,7 +81,7 @@ mod tests {
     #[case("..-22")]
     #[case("-3..")]
     #[case("-3..-4")]
-    fn test_try_from_invalid(#[case] command: &str) -> anyhow::Result<(), ()> {
+    fn test_try_from_invalid(#[case] command: &str) -> Result<(), ()> {
         assert!(Range::try_from(command).is_err());
         Ok(())
     }

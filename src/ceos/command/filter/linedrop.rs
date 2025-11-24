@@ -94,7 +94,7 @@ mod tests {
         4 keep me\n";
 
     #[test]
-    fn test_filter_prefix() -> anyhow::Result<(), ()> {
+    fn test_filter_prefix() -> Result<(), ()> {
         let mut buffer = Buffer::from(CONTENT);
         assert_eq!(CONTENT.len(), buffer.len());
         assert_eq!(5, buffer.line_count());
@@ -107,7 +107,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filter_range() -> anyhow::Result<(), ()> {
+    fn test_filter_range() -> Result<(), ()> {
         let mut buffer = Buffer::from(CONTENT);
         assert_eq!(CONTENT.len(), buffer.len());
         assert_eq!(5, buffer.line_count());
@@ -120,7 +120,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filter_suffix() -> anyhow::Result<(), ()> {
+    fn test_filter_suffix() -> Result<(), ()> {
         let mut buffer = Buffer::from(CONTENT);
         assert_eq!(CONTENT.len(), buffer.len());
         assert_eq!(5, buffer.line_count());

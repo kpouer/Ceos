@@ -109,7 +109,7 @@ mod tests {
         #[case] start: usize,
         #[case] end: Option<usize>,
         #[case] command: &str,
-    ) -> anyhow::Result<(), ()> {
+    ) -> Result<(), ()> {
         let result = ColumnFilter::try_from(command)?;
         assert_eq!(
             ColumnFilter {
@@ -121,7 +121,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filter_line_prefix() -> anyhow::Result<(), ()> {
+    fn test_filter_line_prefix() -> Result<(), ()> {
         let filter = ColumnFilter::try_from("..2")?;
         let mut line = Line::from("1 delete me");
         filter.apply_to_line(&mut line);
@@ -130,7 +130,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filter_line_prefix_short() -> anyhow::Result<(), ()> {
+    fn test_filter_line_prefix_short() -> Result<(), ()> {
         let filter = ColumnFilter::try_from("..2")?;
         let mut line = Line::from("1");
         filter.apply_to_line(&mut line);
@@ -139,7 +139,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filter_line_prefix_empty() -> anyhow::Result<(), ()> {
+    fn test_filter_line_prefix_empty() -> Result<(), ()> {
         let filter = ColumnFilter::try_from("..2")?;
         let mut line = Line::from("");
         filter.apply_to_line(&mut line);
@@ -148,7 +148,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filter() -> anyhow::Result<(), ()> {
+    fn test_filter() -> Result<(), ()> {
         let filter = ColumnFilter::try_from("..2")?;
         let content = "1 delete me\n\
         2 keep me\n\
