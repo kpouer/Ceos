@@ -6,7 +6,7 @@ use eframe::epaint::{Stroke, StrokeKind};
 use egui::Ui;
 use log::debug;
 
-use crate::ceos::buffer::Buffer;
+use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::line::Line;
 use crate::ceos::command::Command;
 use crate::ceos::gui::textpane::renderer::Renderer;

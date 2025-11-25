@@ -1,4 +1,4 @@
-use crate::ceos::buffer::Buffer;
+use buffer::buffer::Buffer;
 use crate::ceos::options::Options;
 use crate::ceos::command::Command;
 use crate::ceos::command::direct::goto::Goto;
@@ -367,6 +367,8 @@ impl Ceos {
         ui.horizontal(|ui| {
             let size = format_size_i(self.textarea_properties.buffer.len(), DECIMAL);
             ui.label(format!("Length: {size}"));
+            let mem = format_size_i(self.textarea_properties.buffer.mem(), DECIMAL);
+            ui.label(format!("Mem: {mem}"));
             ui.label(format!(
                 "{} lines",
                 self.textarea_properties.buffer.line_count()

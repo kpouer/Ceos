@@ -1,4 +1,4 @@
-use crate::ceos::buffer::Buffer;
+use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::command::search::Search;
 use crate::event::Event;

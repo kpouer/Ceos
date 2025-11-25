@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use crate::ceos::buffer::Buffer;
+use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::gui::textpane::renderer::Renderer;
 
 pub(crate) mod direct;

@@ -6,7 +6,7 @@ use eframe::epaint::Stroke;
 use egui::{StrokeKind, Ui};
 use log::info;
 
-use crate::ceos::buffer::Buffer;
+use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::command::Command;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
@@ -83,7 +83,7 @@ impl Display for LineDrop {
 
 #[cfg(test)]
 mod tests {
-    use crate::ceos::buffer::Buffer;
+    use crate::ceos::buffer::buffer::Buffer;
     use crate::ceos::command::Command;
     use crate::ceos::command::filter::linedrop::LineDrop;
 
