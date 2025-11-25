@@ -124,7 +124,7 @@ impl Buffer {
         let strings_mem: usize = self
             .content
             .iter()
-            .map(|line| line.content.capacity())
+            .map(|line| line.mem())
             .sum();
         vec_overhead + array_mem + strings_mem
     }
