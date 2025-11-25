@@ -1,4 +1,5 @@
 use crate::ceos::buffer::Buffer;
+use crate::ceos::options::Options;
 use crate::ceos::command::Command;
 use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::command::search::Search;
@@ -25,6 +26,7 @@ use std::thread;
 pub(crate) mod buffer;
 pub(crate) mod command;
 pub(crate) mod gui;
+mod options;
 mod progress_manager;
 mod syntax;
 mod tools;
@@ -41,6 +43,8 @@ pub(crate) struct Ceos {
     theme: Theme,
     initialized: bool,
     progress_manager: ProgressManager,
+    show_options: bool,
+    options: Options,
 }
 
 impl Default for Ceos {
@@ -58,6 +62,8 @@ impl Default for Ceos {
             theme: Theme::default(),
             initialized: false,
             progress_manager: Default::default(),
+            show_options: false,
+            options: Options::load(),
         }
     }
 }
@@ -174,6 +180,7 @@ impl eframe::App for Ceos {
         }
 
         self.build_menu_panel(ctx);
+        self.build_options_window(ctx);
         self.build_bottom_panel(ctx);
 
         egui::CentralPanel::default()
@@ -213,6 +220,7 @@ impl Ceos {
                 // NOTE: no File->Quit on web pages!
                 self.file_menu(ui);
                 self.view_menu(ui);
+                self.options_menu(ui);
             });
         });
     }
@@ -247,6 +255,41 @@ impl Ceos {
                 self.set_theme(Theme::jEdit(), ui.ctx());
             }
         });
+    }
+
+    fn options_menu(&mut self, ui: &mut Ui) {
+        ui.menu_button("Options", |ui| {
+            if ui.button("Options…").clicked() {
+                self.show_options = true;
+            }
+            // Quick toggle directly in the menu as well (optional convenience)
+            ui.separator();
+            let response = ui.checkbox(&mut self.options.compression, "Compression");
+            if response.changed() {
+                if let Err(e) = self.options.save() {
+                    warn!("Impossible d'enregistrer ceos.toml: {}", e);
+                }
+            }
+        });
+    }
+
+    fn build_options_window(&mut self, ctx: &Context) {
+        let mut open = self.show_options;
+        egui::Window::new("Options")
+            .open(&mut open)
+            .resizable(true)
+            .show(ctx, |ui| {
+                ui.vertical(|ui| {
+                    ui.heading("Paramètres");
+                    let response = ui.checkbox(&mut self.options.compression, "Compression");
+                    if response.changed() {
+                        if let Err(e) = self.options.save() {
+                            warn!("Impossible d'enregistrer ceos.toml: {}", e);
+                        }
+                    }
+                });
+            });
+        self.show_options = open;
     }
 
     fn set_theme(&mut self, theme: Theme, ctx: &Context) {
