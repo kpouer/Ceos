@@ -409,7 +409,7 @@ impl Ceos {
                         .buffer
                         .content
                         .iter()
-                        .map(|line| &line.content)
+                        .map(|line| line.content())
                         .for_each(|line| {
                             Self::write(&mut file, line.as_bytes());
                             Self::write(&mut file, b"\n");

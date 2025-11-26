@@ -21,10 +21,10 @@ impl LineFilter {
     pub(crate) fn accept(&self, line: &Line) -> bool {
         for filter in &self.filters {
             if let Some(prefix) = filter.strip_prefix('!') {
-                if line.content.contains(prefix) && !line.content.contains(filter) {
+                if line.content().contains(prefix) && !line.content().contains(filter) {
                     return false;
                 }
-            } else if !line.content.contains(filter) {
+            } else if !line.content().contains(filter) {
                 return false;
             }
         }

@@ -42,7 +42,7 @@ impl Renderer for Search {
         drawing_pos: Pos2,
     ) {
         let line = &textarea.buffer.content[line];
-        if let Some(offset) = line.content.find(&self.pattern) {
+        if let Some(offset) = line.content().find(&self.pattern) {
             let x1 = offset as f32 * textarea.char_width;
             let x2 = (offset + self.pattern.len()) as f32 * textarea.char_width;
             let top_left = Pos2::new(drawing_pos.x + x1, drawing_pos.y);
@@ -63,7 +63,7 @@ impl Renderer for Search {
 impl Search {
     pub(crate) fn init(&mut self, buffer: &Buffer) {
         buffer.content.iter().enumerate().for_each(|(i, line)| {
-            if line.content.contains(&self.pattern) {
+            if line.content().contains(&self.pattern) {
                 self.lines.push(i);
             }
         })

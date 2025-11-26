@@ -93,7 +93,7 @@ impl Buffer {
     }
 
     pub(crate) fn line_text(&self, line: usize) -> &str {
-        &self.content[line].content
+        &self.content[line].content()
     }
 
     pub(crate) fn line_count(&self) -> usize {

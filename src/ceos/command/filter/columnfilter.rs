@@ -75,15 +75,14 @@ impl Command for ColumnFilter {
 
 impl ColumnFilter {
     pub(crate) fn apply_to_line(&self, line: &mut Line) {
-        if self.range.start >= line.content.len() {
+        if self.range.start >= line.len() {
             return;
         }
 
         if let Some(end) = self.range.end {
-            line.content
-                .drain(self.range.start..cmp::min(line.content.len(), end));
+            line.drain(self.range.start..cmp::min(line.len(), end));
         } else {
-            line.content.drain(self.range.start..);
+            line.drain(self.range.start..);
         }
     }
 }
@@ -125,7 +124,7 @@ mod tests {
         let filter = ColumnFilter::try_from("..2")?;
         let mut line = Line::from("1 delete me");
         filter.apply_to_line(&mut line);
-        assert_eq!("delete me", line.content);
+        assert_eq!("delete me", line.content());
         Ok(())
     }
 
@@ -134,7 +133,7 @@ mod tests {
         let filter = ColumnFilter::try_from("..2")?;
         let mut line = Line::from("1");
         filter.apply_to_line(&mut line);
-        assert!(line.content.is_empty());
+        assert!(line.is_empty());
         Ok(())
     }
 
@@ -143,7 +142,7 @@ mod tests {
         let filter = ColumnFilter::try_from("..2")?;
         let mut line = Line::from("");
         filter.apply_to_line(&mut line);
-        assert!(line.content.is_empty());
+        assert!(line.is_empty());
         Ok(())
     }
 
