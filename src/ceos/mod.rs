@@ -407,7 +407,6 @@ impl Ceos {
                     let mut file = LineWriter::new(file);
                     self.textarea_properties
                         .buffer
-                        .content
                         .iter()
                         .map(|line| line.content())
                         .for_each(|line| {

@@ -1,18 +1,19 @@
-use std::fs::File;
-use std::io;
-use std::io::BufRead;
-use std::ops::RangeBounds;
-use std::path::PathBuf;
-use std::sync::mpsc::Sender;
-use std::time::{Duration, Instant};
 use crate::ceos::buffer::line::Line;
 use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
+use std::fs::File;
+use std::io;
+use std::io::BufRead;
+use std::ops::{Index, RangeBounds};
+use std::path::PathBuf;
+use std::slice::Iter;
+use std::sync::mpsc::Sender;
+use std::time::{Duration, Instant};
 
 #[derive(Default, Debug)]
 pub(crate) struct Buffer {
     pub(crate) path: Option<PathBuf>,
-    pub(crate) content: Vec<Line>,
+    content: Vec<Line>,
     length: usize,
     pub(crate) dirty: bool,
 }
@@ -66,6 +67,10 @@ impl Buffer {
             length,
             dirty: false,
         })
+    }
+
+    pub(crate) fn iter(&self) -> Iter<'_, Line> {
+        self.content.iter()
     }
 
     pub(crate) fn drain_line_mut<R>(&mut self, range: R) -> usize
@@ -127,6 +132,14 @@ impl Buffer {
             .map(|line| line.mem())
             .sum();
         vec_overhead + array_mem + strings_mem
+    }
+}
+
+impl Index<usize> for Buffer {
+    type Output = Line;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.content[index]
     }
 }
 

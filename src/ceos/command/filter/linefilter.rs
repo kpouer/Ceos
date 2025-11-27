@@ -54,7 +54,7 @@ impl Renderer for LineFilter {
         line: usize,
         drawing_pos: Pos2,
     ) {
-        let line = &textarea.buffer.content[line];
+        let line = &textarea.buffer[line];
         if !self.accept(line) {
             let bottom_right = Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea.line_height);
             let line_rect = Rect::from_min_max(drawing_pos, bottom_right);
