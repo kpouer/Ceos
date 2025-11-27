@@ -18,28 +18,6 @@ pub(crate) struct Buffer {
     pub(crate) dirty: bool,
 }
 
-impl From<&str> for Buffer {
-    fn from(text: &str) -> Self {
-        let lines_iterator = text.lines();
-        let mut content = Vec::with_capacity(lines_iterator.size_hint().0);
-        lines_iterator
-            .into_iter()
-            .map(Line::from)
-            .for_each(|line| {
-            content.push(line);
-        });
-
-        let mut buffer = Self {
-            path: None,
-            content,
-            length: 0,
-            dirty: false,
-        };
-        buffer.compute_length();
-        buffer
-    }
-}
-
 impl Buffer {
     pub(crate) fn new_from_file(path: PathBuf, sender: &Sender<Event>) -> Result<Self, std::io::Error> {
         let file_size = std::fs::metadata(&path)?.len() as usize;
@@ -138,16 +116,5 @@ impl Index<usize> for Buffer {
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.content[index]
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::ceos::buffer::buffer::Buffer;
-    #[test]
-    fn test_buffer_new_from_text() {
-        let buffer = Buffer::from("Hello\nWorld 22\nHow are you");
-        assert_eq!(buffer.line_count(), 3);
-        assert_eq!(buffer.max_line_length(), 11);
     }
 }
