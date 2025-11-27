@@ -22,8 +22,11 @@ impl From<&str> for Buffer {
     fn from(text: &str) -> Self {
         let lines_iterator = text.lines();
         let mut content = Vec::with_capacity(lines_iterator.size_hint().0);
-        lines_iterator.into_iter().for_each(|line| {
-            content.push(Line::from(line));
+        lines_iterator
+            .into_iter()
+            .map(Line::from)
+            .for_each(|line| {
+            content.push(line);
         });
 
         let mut buffer = Self {
@@ -42,19 +45,14 @@ impl Buffer {
         let file_size = std::fs::metadata(&path)?.len() as usize;
         let _ = sender.send(BufferLoadingStarted(path.clone(), file_size));
         let file = File::open(&path)?;
-        let mut line_text = String::with_capacity(500);
-        let mut buffer = io::BufReader::new(file);
+        let buffer = io::BufReader::new(file);
         let mut content = Vec::with_capacity(file_size / 100);
         let mut length = 0;
         let mut start = Instant::now();
-        loop {
-            let bytes = buffer.read_line(&mut line_text)?;
-            if bytes == 0 {
-                break;
-            }
+        for line_text in buffer.lines().flatten() {
+            // keep same semantics as previous loop: add only the line content length
             length += line_text.len();
             content.push(Line::from(line_text.as_str()));
-            line_text.clear();
             if start.elapsed() > Duration::from_millis(50) {
                 let _ = sender.send(BufferLoading(path.clone(), length, file_size));
                 start = Instant::now();
