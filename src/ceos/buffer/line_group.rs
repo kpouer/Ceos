@@ -1,17 +1,32 @@
 use crate::ceos::buffer::line::Line;
 use std::ops::RangeBounds;
 use std::ops::Index;
+use log::warn;
 
 pub(crate) const DEFAULT_GROUP_SIZE: usize = 1000;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub(crate) struct LineGroup {
     lines: Vec<Line>,
+}
+
+impl Default for LineGroup {
+    fn default() -> Self {
+        Self::with_capacity(DEFAULT_GROUP_SIZE)
+    }
 }
 
 impl LineGroup {
     pub(crate) fn with_capacity(cap: usize) -> Self {
         Self { lines: Vec::with_capacity(cap) }
+    }
+
+    pub(crate) fn is_full(&self) -> bool { 
+        self.lines.len() >= DEFAULT_GROUP_SIZE
+    }
+
+    pub(crate) fn compress(&self) {
+        warn!("Not yet implemented: compressing line group")
     }
 
     pub(crate) fn push(&mut self, line: Line) {
