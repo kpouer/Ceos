@@ -2,12 +2,14 @@ use crate::ceos::buffer::line::Line;
 use std::ops::RangeBounds;
 use std::ops::Index;
 use log::warn;
+use lz4::block;
 
 pub(crate) const DEFAULT_GROUP_SIZE: usize = 1000;
 
 #[derive(Debug)]
 pub(crate) struct LineGroup {
     lines: Vec<Line>,
+    compressed: Option<Vec<u8>>,
 }
 
 impl Default for LineGroup {
@@ -18,22 +20,53 @@ impl Default for LineGroup {
 
 impl LineGroup {
     pub(crate) fn with_capacity(cap: usize) -> Self {
-        Self { lines: Vec::with_capacity(cap) }
+        Self { lines: Vec::with_capacity(cap), compressed: None }
     }
 
-    pub(crate) fn is_full(&self) -> bool { 
+    pub(crate) fn is_full(&self) -> bool {
         self.lines.len() >= DEFAULT_GROUP_SIZE
     }
 
-    pub(crate) fn compress(&self) {
-        warn!("Not yet implemented: compressing line group")
+    pub(crate) fn compress(&mut self) {
+        if self.lines.is_empty() {
+            return;
+        }
+
+        let mut concatenated = String::with_capacity(self.len());
+        for (i, line) in self.lines.iter().enumerate() {
+            concatenated.push_str(line.content());
+            if i + 1 < self.lines.len() {
+                concatenated.push('\n');
+            }
+        }
+
+        match block::compress(concatenated.as_bytes(), None, false) {
+            Ok(data) => {
+                self.compressed = Some(data);
+                self.lines.clear();
+            }
+            Err(e) => {
+                warn!("Failed to compress line group with LZ4: {}", e);
+            }
+        }
+    }
+
+    pub(crate) fn decompress(&mut self) {
+
     }
 
     pub(crate) fn push(&mut self, line: Line) {
-        self.lines.push(line)
+        self.lines.push(line);
+        self.compressed = None;
     }
 
-    pub(crate) fn len(&self) -> usize { self.lines.len() }
+    pub(crate) fn line_count(&self) -> usize { self.lines.len() }
+
+    pub(crate) fn len(&self) -> usize {
+        let text_size:usize = self.lines.iter().map(|l| l.len()).sum();
+        let separators = self.lines.len().saturating_sub(1);
+        text_size + separators
+    }
 
     pub(crate) fn is_empty(&self) -> bool { self.lines.is_empty() }
 
