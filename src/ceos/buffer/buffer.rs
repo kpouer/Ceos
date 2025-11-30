@@ -45,7 +45,10 @@ impl From<&str> for Buffer {
 }
 
 impl Buffer {
-    pub(crate) fn new_from_file(path: PathBuf, sender: &Sender<Event>) -> Result<Self, std::io::Error> {
+    pub(crate) fn new_from_file(
+        path: PathBuf,
+        sender: &Sender<Event>,
+    ) -> Result<Self, std::io::Error> {
         let file_size = std::fs::metadata(&path)?.len() as usize;
         let _ = sender.send(BufferLoadingStarted(path.clone(), file_size));
         let file = File::open(&path)?;
@@ -77,7 +80,9 @@ impl Buffer {
         }
     }
 
-    pub(crate) fn iter(&self) -> BufferIter<'_> { BufferIter::new(&self.content) }
+    pub(crate) fn iter(&self) -> BufferIter<'_> {
+        BufferIter::new(&self.content)
+    }
 
     pub(crate) fn drain_line_mut<R>(&mut self, range: R) -> usize
     where
@@ -85,7 +90,9 @@ impl Buffer {
     {
         // Convert RangeBounds to concrete start..end
         let (start, end) = self.normalize_range(range);
-        if start >= end { return self.length; }
+        if start >= end {
+            return self.length;
+        }
 
         let mut to_remove = end - start;
         let global_index = start;
@@ -111,19 +118,77 @@ impl Buffer {
     }
 
     pub(crate) fn filter_line_mut(&mut self, mut filter: impl FnMut(&mut Line)) -> usize {
-        self.content.iter_mut().for_each(|g| g.iter_mut().for_each(|l| filter(l)));
+        self.content
+            .iter_mut()
+            .for_each(|g| g.iter_mut().for_each(|l| filter(l)));
         let new_length = self.compute_length();
         self.dirty = true;
         new_length
     }
 
     pub(crate) fn retain_line_mut(&mut self, mut filter: impl FnMut(&Line) -> bool) -> usize {
-        self.content.iter_mut().for_each(|g| g.retain(|l| filter(l)));
+        self.content
+            .iter_mut()
+            .for_each(|g| g.retain(|l| filter(l)));
         // remove empty groups
         self.content.retain(|g| !g.is_empty());
         let new_length = self.compute_length();
         self.dirty = true;
         new_length
+    }
+
+    /// Decompress only the line groups that intersect with the provided line range.
+    /// This is a preparatory pass to ensure subsequent read operations on that
+    /// span won't trigger on-demand decompression.
+    ///
+    /// The range is expressed in line indices (0-based, end-exclusive when Excluded/Unbounded).
+    pub(crate) fn prepare_range_for_read<R: RangeBounds<usize>>(&mut self, range: R) {
+        use std::ops::Bound;
+
+        let total_lines = self.line_count();
+
+        // Normalize start
+        let mut start = match range.start_bound() {
+            Bound::Included(&s) => s,
+            Bound::Excluded(&s) => s.saturating_add(1),
+            Bound::Unbounded => 0,
+        };
+
+        // Normalize end
+        let mut end = match range.end_bound() {
+            Bound::Included(&e) => e.saturating_add(1),
+            Bound::Excluded(&e) => e,
+            Bound::Unbounded => total_lines,
+        };
+
+        // Clamp to valid bounds
+        if start > total_lines {
+            start = total_lines;
+        }
+        if end > total_lines {
+            end = total_lines;
+        }
+        if start >= end {
+            return;
+        }
+
+        // Walk groups and decompress those intersecting [start, end)
+        let mut acc: usize = 0; // cumulative line count before current group
+        for g in &mut self.content {
+            let g_lines = g.line_count();
+            let g_start = acc;
+            let g_end = acc + g_lines;
+
+            // check interval intersection
+            if g_end > start && g_start < end {
+                g.decompress();
+            }
+
+            acc = g_end;
+            if acc >= end {
+                break;
+            }
+        }
     }
 
     pub(crate) fn line_text(&self, line: usize) -> &str {
@@ -134,7 +199,7 @@ impl Buffer {
     }
 
     pub(crate) fn line_count(&self) -> usize {
-        self.content.iter().map(|g| g.len()).sum()
+        self.content.iter().map(|g| g.line_count()).sum()
     }
 
     pub(crate) fn len(&self) -> usize {
@@ -142,7 +207,11 @@ impl Buffer {
     }
 
     pub(crate) fn max_line_length(&self) -> usize {
-        self.content.iter().map(|g| g.max_line_length()).max().unwrap_or(0)
+        self.content
+            .iter()
+            .map(|g| g.max_line_length())
+            .max()
+            .unwrap_or(0)
     }
 
     pub(crate) fn compute_length(&mut self) -> usize {
@@ -176,12 +245,12 @@ impl Index<usize> for Buffer {
 }
 
 impl Buffer {
-    fn find_group_index(&self, mut index: usize) -> Option<(usize, usize)> {
+    fn find_group_index(&self, mut line: usize) -> Option<(usize, usize)> {
         for (gi, g) in self.content.iter().enumerate() {
-            if index < g.len() {
-                return Some((gi, index));
+            if line < g.line_count() {
+                return Some((gi, line));
             }
-            index -= g.len();
+            line -= g.line_count();
         }
         None
     }
@@ -209,7 +278,11 @@ pub(crate) struct BufferIter<'a> {
 
 impl<'a> BufferIter<'a> {
     fn new(groups: &'a [LineGroup]) -> Self {
-        Self { groups, gi: 0, li: 0 }
+        Self {
+            groups,
+            gi: 0,
+            li: 0,
+        }
     }
 }
 

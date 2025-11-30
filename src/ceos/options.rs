@@ -20,7 +20,8 @@ impl Default for Options {
 impl Options {
     fn config_path() -> PathBuf {
         // Par défaut, on lit/écrit dans le répertoire courant
-        std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+        std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
             .join(CONFIG_FILE)
     }
 

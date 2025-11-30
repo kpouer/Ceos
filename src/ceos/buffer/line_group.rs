@@ -1,8 +1,8 @@
 use crate::ceos::buffer::line::Line;
-use std::ops::RangeBounds;
-use std::ops::Index;
 use log::warn;
 use lz4::block;
+use std::ops::Index;
+use std::ops::RangeBounds;
 
 pub(crate) const DEFAULT_GROUP_SIZE: usize = 1000;
 
@@ -10,6 +10,11 @@ pub(crate) const DEFAULT_GROUP_SIZE: usize = 1000;
 pub(crate) struct LineGroup {
     lines: Vec<Line>,
     compressed: Option<Vec<u8>>,
+    // number of lines stored in this group (stable even when compressed)
+    line_count: usize,
+    // total UTF-8 text length of the group with one '\n' separator between lines
+    length: usize,
+    max_line_length: usize,
 }
 
 impl Default for LineGroup {
@@ -20,11 +25,17 @@ impl Default for LineGroup {
 
 impl LineGroup {
     pub(crate) fn with_capacity(cap: usize) -> Self {
-        Self { lines: Vec::with_capacity(cap), compressed: None }
+        Self {
+            lines: Vec::with_capacity(cap),
+            compressed: None,
+            line_count: 0,
+            length: 0,
+            max_line_length: 0,
+        }
     }
 
     pub(crate) fn is_full(&self) -> bool {
-        self.lines.len() >= DEFAULT_GROUP_SIZE
+        self.line_count >= DEFAULT_GROUP_SIZE
     }
 
     pub(crate) fn compress(&mut self) {
@@ -44,6 +55,7 @@ impl LineGroup {
         match block::compress(concatenated.as_bytes(), None, true) {
             Ok(data) => {
                 self.compressed = Some(data);
+                // keep counters consistent even if we drop in-memory lines
                 self.lines.clear();
             }
             Err(e) => {
@@ -63,9 +75,18 @@ impl LineGroup {
                 match String::from_utf8(bytes) {
                     Ok(text) => {
                         if text.is_empty() {
+                            #[cfg(debug_assertions)]
+                            warn!("Decompressed empty line group");
                             self.lines.clear();
+                            self.line_count = 0;
+                            self.length = 0;
+                            self.max_line_length = 0;
                         } else {
                             self.lines = text.split('\n').map(Line::from).collect();
+                            #[cfg(debug_assertions)]
+                            if self.line_count != self.lines.len() {
+                                warn!("Decompressed line group with inconsistent line count");
+                            }
                         }
                     }
                     Err(e) => {
@@ -84,33 +105,63 @@ impl LineGroup {
     }
 
     pub(crate) fn push(&mut self, line: Line) {
+        // update counters first
+        if self.line_count > 0 {
+            // add one separator for the new line
+            self.length += 1;
+        }
+        self.length += line.len();
+        self.line_count += 1;
+        if line.len() > self.max_line_length {
+            self.max_line_length = line.len();
+        }
         self.lines.push(line);
         self.compressed = None;
     }
 
-    pub(crate) fn line_count(&self) -> usize { self.lines.len() }
-
-    pub(crate) fn len(&self) -> usize {
-        let text_size:usize = self.lines.iter().map(|l| l.len()).sum();
-        let separators = self.lines.len().saturating_sub(1);
-        text_size + separators
+    pub(crate) fn line_count(&self) -> usize {
+        self.line_count
     }
 
-    pub(crate) fn is_empty(&self) -> bool { self.lines.is_empty() }
+    pub(crate) fn len(&self) -> usize {
+        self.length
+    }
 
-    pub(crate) fn iter(&self) -> std::slice::Iter<'_, Line> { self.lines.iter() }
+    pub(crate) fn is_empty(&self) -> bool {
+        self.line_count == 0
+    }
 
-    pub(crate) fn iter_mut(&mut self) -> std::slice::IterMut<'_, Line> { self.lines.iter_mut() }
+    pub(crate) fn iter(&self) -> std::slice::Iter<'_, Line> {
+        self.lines.iter()
+    }
 
-    pub(crate) fn retain<F: FnMut(&Line) -> bool>(&mut self, f: F) { self.lines.retain(f) }
+    pub(crate) fn iter_mut(&mut self) -> std::slice::IterMut<'_, Line> {
+        self.lines.iter_mut()
+    }
+
+    pub(crate) fn retain<F: FnMut(&Line) -> bool>(&mut self, f: F) {
+        self.lines.retain(f);
+        // recompute counters after retention
+        self.line_count = self.lines.len();
+        let text_size: usize = self.lines.iter().map(|l| l.len()).sum();
+        let separators = self.line_count.saturating_sub(1);
+        self.length = text_size + separators;
+    }
 
     pub(crate) fn drain<R>(&mut self, range: R)
     where
         R: RangeBounds<usize>,
-    { self.lines.drain(range); }
+    {
+        self.lines.drain(range);
+        // recompute counters after drain
+        self.line_count = self.lines.len();
+        let text_size: usize = self.lines.iter().map(|l| l.len()).sum();
+        let separators = self.line_count.saturating_sub(1);
+        self.length = text_size + separators;
+    }
 
     pub(crate) fn max_line_length(&self) -> usize {
-        self.lines.iter().map(|l| l.len()).max().unwrap_or(0)
+        self.max_line_length
     }
 
     pub(crate) fn mem(&self) -> usize {

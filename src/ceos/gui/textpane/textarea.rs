@@ -93,6 +93,10 @@ impl Widget for &mut TextArea<'_> {
             let mut drawing_pos = Pos2::new(ui.max_rect().left(), ui.clip_rect().top());
             self.handle_input(ui.ctx(), self.drawing_rect.left_top());
             let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
+            // Ensure the buffer has decompressed the groups needed for the visible range
+            self.textarea_properties
+                .buffer
+                .prepare_range_for_read(row_range.clone());
             row_range.into_iter().for_each(|line| {
                 if self.search.has_results() {
                     self.search.paint_line(

@@ -1,15 +1,15 @@
-use buffer::buffer::Buffer;
-use crate::ceos::options::Options;
 use crate::ceos::command::Command;
 use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::command::search::Search;
 use crate::ceos::gui::frame_history::FrameHistory;
 use crate::ceos::gui::searchpanel::SearchPanel;
 use crate::ceos::gui::textpane::TextPane;
+use crate::ceos::options::Options;
 use crate::ceos::progress_manager::{BUFFER_LOADING, ProgressManager};
 use crate::event::Event;
 use crate::event::Event::{BufferClosed, BufferLoaded, GotoLine};
 use Event::NewFont;
+use buffer::buffer::Buffer;
 use eframe::Frame;
 use eframe::emath::Align;
 use egui::{Context, Key, Layout, ProgressBar, Ui, Visuals, Widget};
@@ -351,13 +351,15 @@ impl Ceos {
         } else if ui.input(|i| i.key_pressed(Key::F3)) {
             if self.search_panel.search.has_results() {
                 self.search_panel.search.next();
-                let _ = self.sender
+                let _ = self
+                    .sender
                     .send(GotoLine(Goto::from(self.search_panel.search.line())));
             }
         } else if ui.input(|i| i.key_pressed(Key::F3) && i.modifiers.shift) {
             if self.search_panel.search.has_results() {
                 self.search_panel.search.prev();
-                let _ = self.sender
+                let _ = self
+                    .sender
                     .send(GotoLine(Goto::from(self.search_panel.search.line())));
             }
         }
