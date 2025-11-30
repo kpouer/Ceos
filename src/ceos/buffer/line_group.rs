@@ -40,7 +40,8 @@ impl LineGroup {
             }
         }
 
-        match block::compress(concatenated.as_bytes(), None, false) {
+        // include_size=true so that decompression doesn't need the original size
+        match block::compress(concatenated.as_bytes(), None, true) {
             Ok(data) => {
                 self.compressed = Some(data);
                 self.lines.clear();
@@ -52,7 +53,34 @@ impl LineGroup {
     }
 
     pub(crate) fn decompress(&mut self) {
+        if self.compressed.is_none() || !self.lines.is_empty() {
+            return;
+        }
 
+        let data = self.compressed.take().unwrap();
+        match block::decompress(&data, None) {
+            Ok(bytes) => {
+                match String::from_utf8(bytes) {
+                    Ok(text) => {
+                        if text.is_empty() {
+                            self.lines.clear();
+                        } else {
+                            self.lines = text.split('\n').map(Line::from).collect();
+                        }
+                    }
+                    Err(e) => {
+                        warn!("Failed to decode UTF-8 after LZ4 decompress: {}", e);
+                        // restore compressed data to avoid data loss
+                        self.compressed = Some(data);
+                    }
+                }
+            }
+            Err(e) => {
+                warn!("Failed to decompress line group with LZ4: {}", e);
+                // restore compressed data to avoid data loss
+                self.compressed = Some(data);
+            }
+        }
     }
 
     pub(crate) fn push(&mut self, line: Line) {
