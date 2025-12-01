@@ -1,5 +1,6 @@
 use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::line_group::LineGroup;
+use crate::ceos::buffer::line_group::DEFAULT_GROUP_SIZE;
 use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use std::fs::File;
@@ -172,22 +173,28 @@ impl Buffer {
             return;
         }
 
-        // Walk groups and decompress those intersecting [start, end)
+        // Define a window to keep around the requested range to avoid thrashing.
+        // Groups entirely outside this window will be recompressed.
+        let window_start = start.saturating_sub(DEFAULT_GROUP_SIZE);
+        let window_end = (end + DEFAULT_GROUP_SIZE).min(total_lines);
+
+        // Walk groups and decompress those intersecting [start, end),
+        // recompress those fully outside [window_start, window_end).
         let mut acc: usize = 0; // cumulative line count before current group
         for g in &mut self.content {
             let g_lines = g.line_count();
             let g_start = acc;
             let g_end = acc + g_lines;
 
-            // check interval intersection
+            // check interval intersection with the exact read range
             if g_end > start && g_start < end {
                 g.decompress();
+            } else if g_end <= window_start || g_start >= window_end {
+                g.compress();
             }
 
             acc = g_end;
-            if acc >= end {
-                break;
-            }
+            // do not early-break; we may need to compress groups after the end
         }
     }
 
