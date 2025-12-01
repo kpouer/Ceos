@@ -39,7 +39,10 @@ impl LineGroup {
     }
 
     pub(crate) fn compress(&mut self) {
-        if self.lines.is_empty() {
+        if self.compressed.is_some() {
+            if !self.lines.is_empty() {
+                self.lines.clear();
+            }
             return;
         }
 
