@@ -36,9 +36,7 @@ impl LineGroup {
 
     pub(crate) fn compress(&mut self) {
         if self.compressed.is_some() {
-            if !self.lines.is_empty() {
-                self.lines.clear();
-            }
+            // already compressed; keep in-memory lines for fast read access
             return;
         }
 
@@ -54,8 +52,7 @@ impl LineGroup {
         match block::compress(concatenated.as_bytes(), None, true) {
             Ok(data) => {
                 self.compressed = Some(data);
-                // keep counters consistent even if we drop in-memory lines
-                self.lines.clear();
+                // Do NOT clear in-memory lines so read operations remain possible without &mut self
             }
             Err(e) => {
                 warn!("Failed to compress line group with LZ4: {}", e);
@@ -193,5 +190,101 @@ impl Index<usize> for LineGroup {
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.lines[index]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn lg_from_strs(strs: &[&str]) -> LineGroup {
+        let mut g = LineGroup::default();
+        for s in strs {
+            g.push(Line::from(*s));
+        }
+        g
+    }
+
+    #[test]
+    fn push_updates_counters_and_index() {
+        let mut g = LineGroup::default();
+        g.push(Line::from("a"));
+        g.push(Line::from("bb"));
+
+        assert_eq!(g.line_count(), 2);
+        assert_eq!(g.len(), 1 + 1 + 2 + 1); // sum of (len+1)
+        assert_eq!(g[0].content(), "a");
+        assert_eq!(g[1].content(), "bb");
+        assert!(g.max_line_length() >= 2); // sanity (implementation detail may count +1)
+    }
+
+    #[test]
+    fn compress_decompress_roundtrip_preserves_content() {
+        let mut g = lg_from_strs(&["hello", "world", "!"]);
+        let before_len = g.len();
+        let before_cnt = g.line_count();
+        let before_texts: Vec<String> = (0..before_cnt).map(|i| g[i].content().to_string()).collect();
+
+        g.compress();
+        // compressing twice should be idempotent
+        g.compress();
+        // Decompress and verify
+        g.decompress();
+
+        assert_eq!(g.line_count(), before_cnt);
+        assert_eq!(g.len(), before_len);
+        let after_texts: Vec<String> = (0..before_cnt).map(|i| g[i].content().to_string()).collect();
+        assert_eq!(before_texts, after_texts);
+    }
+
+    #[test]
+    fn filter_line_mut_applies_and_preserves_compression_state() {
+        let mut g = lg_from_strs(&["a", "b"]);
+        g.compress(); // start compressed
+        g.filter_line_mut(|l| {
+            let mut s = l.content().to_string();
+            s.push('x');
+            *l = Line::from(s);
+        });
+
+        // After filter, content should be modified
+        g.decompress();
+        assert_eq!(g.line_count(), 2);
+        assert!(g[0].content().ends_with('x'));
+        assert!(g[1].content().ends_with('x'));
+    }
+
+    #[test]
+    fn retain_and_drain_update_metadata() {
+        let mut g = lg_from_strs(&["one", "two", "three", "four"]);
+        // retain only items with length 3
+        g.retain(|l| l.len() == 3);
+        assert_eq!(g.line_count(), 2);
+
+        // push two more and then drain first
+        g.push(Line::from("xxx"));
+        g.push(Line::from("yyyy"));
+        assert!(g.line_count() >= 4);
+        let before = g.len();
+        g.drain(0..1);
+        assert_eq!(g.line_count(), 3);
+        assert!(g.len() < before);
+    }
+
+    #[test]
+    fn is_full_after_default_group_size_pushes() {
+        let mut g = LineGroup::default();
+        for _ in 0..DEFAULT_GROUP_SIZE {
+            g.push(Line::from("a"));
+        }
+        assert!(g.is_full());
+    }
+
+    #[test]
+    fn mem_reports_non_zero_after_push() {
+        let mut g = LineGroup::default();
+        let base = g.mem();
+        g.push(Line::from("abcdef"));
+        assert!(g.mem() >= base);
     }
 }

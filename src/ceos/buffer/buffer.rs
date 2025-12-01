@@ -303,7 +303,7 @@ impl<'a> Iterator for BufferIter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         while self.gi < self.groups.len() {
             let g = &self.groups[self.gi];
-            if self.li < g.len() {
+            if self.li < g.line_count() {
                 let item = &g[self.li];
                 self.li += 1;
                 return Some(item);
@@ -313,5 +313,102 @@ impl<'a> Iterator for BufferIter<'a> {
             }
         }
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn from_str_builds_lines_and_lengths() {
+        let b = Buffer::from("a\nbb\nccc");
+        assert_eq!(b.line_count(), 3);
+        // Each line counted as len+1 in our model
+        assert_eq!(b.len(), (1 + 1) + (2 + 1) + (3 + 1));
+        assert_eq!(b.max_line_length(), 3);
+        assert_eq!(b.line_text(0), "a");
+        assert_eq!(b[1].content(), "bb");
+    }
+
+    #[test]
+    fn iter_yields_all_lines_in_order() {
+        let b = Buffer::from("l1\nl2\nl3");
+        let collected: Vec<&str> = b.iter().map(|l| l.content()).collect();
+        assert_eq!(collected, vec!["l1", "l2", "l3"]);
+    }
+
+    #[test]
+    fn group_boundary_and_compression_path() {
+        // Push exactly DEFAULT_GROUP_SIZE lines to trigger compression of first group
+        let mut b = Buffer::default();
+        for i in 0..DEFAULT_GROUP_SIZE {
+            b.push_line(format!("{:03}", i));
+        }
+        // We should still report correct counts and access
+        assert_eq!(b.line_count(), DEFAULT_GROUP_SIZE);
+        assert_eq!(b.max_line_length(), 3);
+        // Access a few positions
+        assert_eq!(b.line_text(0), "000");
+        assert_eq!(b.line_text(DEFAULT_GROUP_SIZE - 1), format!("{:03}", DEFAULT_GROUP_SIZE - 1));
+    }
+
+    #[test]
+    fn filter_line_mut_updates_all_lines() {
+        let mut b = Buffer::from("a\nbb");
+        let new_len = b.filter_line_mut(|l| {
+            let mut s = l.content().to_string();
+            s.push('x');
+            *l = Line::from(s);
+        });
+        assert!(new_len >= b.len());
+        assert!(b.line_text(0).ends_with('x'));
+        assert!(b.line_text(1).ends_with('x'));
+        assert!(b.dirty);
+    }
+
+    #[test]
+    fn retain_line_mut_keeps_predicate_matches() {
+        let mut b = Buffer::from("a\nbb\nccc\ndddd");
+        let _ = b.retain_line_mut(|l| l.len() % 2 == 0); // keep even lengths: 2 and 4
+        assert_eq!(b.line_count(), 2);
+        assert_eq!(b.line_text(0), "bb");
+        assert_eq!(b.line_text(1), "dddd");
+        assert!(b.dirty);
+    }
+
+    #[test]
+    fn drain_line_mut_various_ranges() {
+        let mut b = Buffer::from("l0\nl1\nl2\nl3\nl4");
+        let len1 = b.drain_line_mut(1..3); // remove l1,l2
+        assert_eq!(b.line_count(), 3);
+        assert_eq!(b.line_text(0), "l0");
+        assert_eq!(b.line_text(1), "l3");
+        assert_eq!(b.line_text(2), "l4");
+        assert_eq!(len1, b.len());
+
+        // Remove last element with inclusive range
+        let _ = b.drain_line_mut(2..=2);
+        assert_eq!(b.line_count(), 2);
+        assert_eq!(b.line_text(1), "l3");
+    }
+
+    #[test]
+    fn prepare_range_for_read_safe_and_accessible() {
+        let mut b = Buffer::default();
+        for i in 0..(DEFAULT_GROUP_SIZE * 2 + 10) {
+            b.push_line(format!("line{}", i));
+        }
+        // Should not panic and should allow access to middle range
+        b.prepare_range_for_read(DEFAULT_GROUP_SIZE - 5..DEFAULT_GROUP_SIZE + 5);
+        assert_eq!(b.line_text(DEFAULT_GROUP_SIZE), format!("line{}", DEFAULT_GROUP_SIZE));
+    }
+
+    #[test]
+    fn mem_non_decreasing_after_growth() {
+        let mut b = Buffer::default();
+        let base = b.mem();
+        b.push_line("abc");
+        assert!(b.mem() >= base);
     }
 }
