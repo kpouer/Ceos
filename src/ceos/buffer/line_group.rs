@@ -34,10 +34,6 @@ impl LineGroup {
         }
     }
 
-    pub(crate) fn is_full(&self) -> bool {
-        self.line_count >= DEFAULT_GROUP_SIZE
-    }
-
     pub(crate) fn compress(&mut self) {
         if self.compressed.is_some() {
             if !self.lines.is_empty() {
@@ -88,7 +84,7 @@ impl LineGroup {
                             self.lines = text.split('\n').map(Line::from).collect();
                             #[cfg(debug_assertions)]
                             if self.line_count != self.lines.len() {
-                                warn!("Decompressed line group with inconsistent line count");
+                                warn!("Decompressed line group with inconsistent line count {} != {}", self.line_count, self.lines.len());
                             }
                         }
                     }
@@ -108,12 +104,7 @@ impl LineGroup {
     }
 
     pub(crate) fn push(&mut self, line: Line) {
-        // update counters first
-        if self.line_count > 0 {
-            // add one separator for the new line
-            self.length += 1;
-        }
-        self.length += line.len();
+        self.length += line.len() + 1;
         self.line_count += 1;
         if line.len() > self.max_line_length {
             self.max_line_length = line.len();
@@ -130,12 +121,40 @@ impl LineGroup {
         self.length
     }
 
+    pub(crate) fn is_full(&self) -> bool {
+        self.line_count >= DEFAULT_GROUP_SIZE
+    }
+
     pub(crate) fn is_empty(&self) -> bool {
         self.line_count == 0
     }
 
-    pub(crate) fn iter(&self) -> std::slice::Iter<'_, Line> {
-        self.lines.iter()
+    pub(crate) fn filter_line_mut(&mut self, mut filter: impl FnMut(&mut Line)) {
+        let compressed = self.lines.is_empty();
+        if compressed {
+            self.decompress();
+            self.compressed = None;
+        }
+        self.lines
+            .iter_mut()
+            .for_each(|line|filter(line));
+
+        self.compute_metadata();
+        if compressed {
+            self.compress();
+        }
+    }
+
+    fn compute_metadata(&mut self) {
+        let (length, max_line_length) = self.lines
+            .iter()
+            .fold((0, 0), |(sum, max), line| {
+            let len = line.len() + 1;
+            (sum + len, max.max(len))
+        });
+        self.line_count = self.lines.len();
+        self.length = length;
+        self.max_line_length = max_line_length;
     }
 
     pub(crate) fn iter_mut(&mut self) -> std::slice::IterMut<'_, Line> {
@@ -144,11 +163,7 @@ impl LineGroup {
 
     pub(crate) fn retain<F: FnMut(&Line) -> bool>(&mut self, f: F) {
         self.lines.retain(f);
-        // recompute counters after retention
-        self.line_count = self.lines.len();
-        let text_size: usize = self.lines.iter().map(|l| l.len()).sum();
-        let separators = self.line_count.saturating_sub(1);
-        self.length = text_size + separators;
+        self.compute_metadata();
     }
 
     pub(crate) fn drain<R>(&mut self, range: R)
@@ -158,9 +173,7 @@ impl LineGroup {
         self.lines.drain(range);
         // recompute counters after drain
         self.line_count = self.lines.len();
-        let text_size: usize = self.lines.iter().map(|l| l.len()).sum();
-        let separators = self.line_count.saturating_sub(1);
-        self.length = text_size + separators;
+        self.compute_metadata();
     }
 
     pub(crate) fn max_line_length(&self) -> usize {

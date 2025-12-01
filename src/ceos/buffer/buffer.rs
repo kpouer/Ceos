@@ -1,8 +1,9 @@
 use crate::ceos::buffer::line::Line;
-use crate::ceos::buffer::line_group::LineGroup;
 use crate::ceos::buffer::line_group::DEFAULT_GROUP_SIZE;
+use crate::ceos::buffer::line_group::LineGroup;
 use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
+use rayon::prelude::*;
 use std::fs::File;
 use std::io;
 use std::io::BufRead;
@@ -118,10 +119,13 @@ impl Buffer {
         new_length
     }
 
-    pub(crate) fn filter_line_mut(&mut self, mut filter: impl FnMut(&mut Line)) -> usize {
+    pub(crate) fn filter_line_mut<F>(&mut self, filter: F) -> usize
+    where
+        F: FnMut(&mut Line) + Clone + Sync,
+    {
         self.content
-            .iter_mut()
-            .for_each(|g| g.iter_mut().for_each(|l| filter(l)));
+            .par_iter_mut()
+            .for_each(|line_group| line_group.filter_line_mut(filter.clone()));
         let new_length = self.compute_length();
         self.dirty = true;
         new_length
@@ -225,10 +229,10 @@ impl Buffer {
         self.length = self
             .content
             .iter()
-            .flat_map(|g| g.iter())
-            .map(|line| line.len())
+            .map(|line_group| line_group.len())
             .sum::<usize>()
-            + self.line_count();
+            + self.content.len()
+            - 1;
         self.length
     }
 
