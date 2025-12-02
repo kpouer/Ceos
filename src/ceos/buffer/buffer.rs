@@ -78,6 +78,7 @@ impl Buffer {
         last_group.push(line);
         if last_group.is_full() {
             last_group.compress();
+            last_group.free();
             self.content.push(LineGroup::default());
         }
     }
@@ -195,6 +196,7 @@ impl Buffer {
                 g.decompress();
             } else if g_end <= window_start || g_start >= window_end {
                 g.compress();
+                g.free();
             }
 
             acc = g_end;

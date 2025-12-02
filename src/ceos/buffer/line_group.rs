@@ -34,6 +34,10 @@ impl LineGroup {
         }
     }
 
+    pub(crate) fn free(&mut self) {
+        self.lines.clear();
+    }
+
     pub(crate) fn compress(&mut self) {
         if self.compressed.is_some() {
             // already compressed; keep in-memory lines for fast read access
@@ -139,6 +143,7 @@ impl LineGroup {
         self.compute_metadata();
         if compressed {
             self.compress();
+            self.free();
         }
     }
 
