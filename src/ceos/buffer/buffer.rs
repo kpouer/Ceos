@@ -351,7 +351,9 @@ mod tests {
         assert_eq!(b.line_count(), DEFAULT_GROUP_SIZE);
         assert_eq!(b.max_line_length(), 3);
         // Access a few positions
+        b.prepare_range_for_read(0..10);
         assert_eq!(b.line_text(0), "000");
+        b.prepare_range_for_read(DEFAULT_GROUP_SIZE - 10..DEFAULT_GROUP_SIZE  + 100);
         assert_eq!(b.line_text(DEFAULT_GROUP_SIZE - 1), format!("{:03}", DEFAULT_GROUP_SIZE - 1));
     }
 
