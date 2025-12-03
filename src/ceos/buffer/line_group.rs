@@ -3,12 +3,15 @@ use log::warn;
 use lz4::block;
 use std::ops::Index;
 use std::ops::RangeBounds;
+use rfd::MessageDialogResult::No;
 
 pub(crate) const DEFAULT_GROUP_SIZE: usize = 1000;
 
 #[derive(Debug)]
 pub(crate) struct LineGroup {
+    /// Contains the uncompressed data. Might be there even if the compressed data is present.
     lines: Vec<Line>,
+    /// Contains the compressed data if the group is compressed, None otherwise.
     compressed: Option<Vec<u8>>,
     // number of lines stored in this group (stable even when compressed)
     line_count: usize,
@@ -34,8 +37,10 @@ impl LineGroup {
         }
     }
 
+    /// Free memory occupied by the lines.
     pub(crate) fn free(&mut self) {
         self.lines.clear();
+        debug_assert!(self.compressed.is_some());
     }
 
     pub(crate) fn compress(&mut self) {
@@ -44,24 +49,30 @@ impl LineGroup {
             return;
         }
 
-        let mut concatenated = String::with_capacity(self.len());
-        for (i, line) in self.lines.iter().enumerate() {
-            concatenated.push_str(line.content());
-            if i + 1 < self.lines.len() {
-                concatenated.push('\n');
-            }
-        }
+        debug_assert!(!self.lines.is_empty());
+        let concatenated = self.to_string();
 
-        // include_size=true so that decompression doesn't need the original size
         match block::compress(concatenated.as_bytes(), None, true) {
-            Ok(data) => {
-                self.compressed = Some(data);
-                // Do NOT clear in-memory lines so read operations remain possible without &mut self
-            }
-            Err(e) => {
-                warn!("Failed to compress line group with LZ4: {}", e);
-            }
+            Ok(data) => self.compressed = Some(data),
+            Err(e) => warn!("Failed to compress line group with LZ4: {e}"),
         }
+    }
+
+    fn to_string(&self) -> String {
+        self.lines
+            .iter()
+            .enumerate()
+            .map(|(index, line)| (index, line.content()))
+            .fold(
+                String::with_capacity(self.len()),
+                |mut buffer, (index, line)| {
+                    buffer.push_str(line);
+                    if index != self.line_count - 1 {
+                        buffer.push('\n');
+                    }
+                    buffer
+                },
+            )
     }
 
     pub(crate) fn decompress(&mut self) {
@@ -85,7 +96,11 @@ impl LineGroup {
                             self.lines = text.split('\n').map(Line::from).collect();
                             #[cfg(debug_assertions)]
                             if self.line_count != self.lines.len() {
-                                warn!("Decompressed line group with inconsistent line count {} != {}", self.line_count, self.lines.len());
+                                warn!(
+                                    "Decompressed line group with inconsistent line count {} != {}",
+                                    self.line_count,
+                                    self.lines.len()
+                                );
                             }
                         }
                     }
@@ -105,12 +120,13 @@ impl LineGroup {
     }
 
     pub(crate) fn push(&mut self, line: Line) {
-        self.length += line.len() + 1;
+        let line_length = line.len();
+
+        self.length += line_length + 1;
         self.line_count += 1;
-        if line.len() > self.max_line_length {
-            self.max_line_length = line.len();
-        }
+        self.max_line_length = line_length.max(self.max_line_length);
         self.lines.push(line);
+        // remove compressed as we just modified the lines array
         self.compressed = None;
     }
 
@@ -130,27 +146,31 @@ impl LineGroup {
         self.line_count == 0
     }
 
+    pub(crate) fn max_line_length(&self) -> usize {
+        self.max_line_length
+    }
+
     pub(crate) fn filter_line_mut(&mut self, mut filter: impl FnMut(&mut Line)) {
-        let compressed = self.lines.is_empty();
-        if compressed {
+        let should_decompress = self.lines.is_empty();
+        if should_decompress {
             self.decompress();
+            // free compresed data as we will modify the lines array
             self.compressed = None;
         }
-        self.lines
-            .iter_mut()
-            .for_each(|line|filter(line));
+        debug_assert!(!self.lines.is_empty());
+        self.lines.iter_mut().for_each(|line| filter(line));
 
         self.compute_metadata();
-        if compressed {
+        if should_decompress {
             self.compress();
             self.free();
+            debug_assert!(self.compressed.is_some());
+            debug_assert!(self.lines.is_empty());
         }
     }
 
     fn compute_metadata(&mut self) {
-        let (length, max_line_length) = self.lines
-            .iter()
-            .fold((0, 0), |(sum, max), line| {
+        let (length, max_line_length) = self.lines.iter().fold((0, 0), |(sum, max), line| {
             let len = line.len() + 1;
             (sum + len, max.max(len))
         });
@@ -159,27 +179,23 @@ impl LineGroup {
         self.max_line_length = max_line_length;
     }
 
-    pub(crate) fn iter_mut(&mut self) -> std::slice::IterMut<'_, Line> {
-        self.lines.iter_mut()
-    }
-
     pub(crate) fn retain<F: FnMut(&Line) -> bool>(&mut self, f: F) {
+        debug_assert!(!self.lines.is_empty());
         self.lines.retain(f);
-        self.compute_metadata();
+        if self.lines.len() != self.line_count {
+            self.compressed = None;
+            self.compute_metadata();
+        }
     }
 
-    pub(crate) fn drain<R>(&mut self, range: R)
+    pub(crate) fn drain_lines<R>(&mut self, range: R)
     where
         R: RangeBounds<usize>,
     {
+        debug_assert!(!self.lines.is_empty());
+        self.compressed = None;
         self.lines.drain(range);
-        // recompute counters after drain
-        self.line_count = self.lines.len();
         self.compute_metadata();
-    }
-
-    pub(crate) fn max_line_length(&self) -> usize {
-        self.max_line_length
     }
 
     pub(crate) fn mem(&self) -> usize {
@@ -228,7 +244,9 @@ mod tests {
         let mut g = lg_from_strs(&["hello", "world", "!"]);
         let before_len = g.len();
         let before_cnt = g.line_count();
-        let before_texts: Vec<String> = (0..before_cnt).map(|i| g[i].content().to_string()).collect();
+        let before_texts: Vec<String> = (0..before_cnt)
+            .map(|i| g[i].content().to_string())
+            .collect();
 
         g.compress();
         // compressing twice should be idempotent
@@ -238,7 +256,9 @@ mod tests {
 
         assert_eq!(g.line_count(), before_cnt);
         assert_eq!(g.len(), before_len);
-        let after_texts: Vec<String> = (0..before_cnt).map(|i| g[i].content().to_string()).collect();
+        let after_texts: Vec<String> = (0..before_cnt)
+            .map(|i| g[i].content().to_string())
+            .collect();
         assert_eq!(before_texts, after_texts);
     }
 
@@ -271,7 +291,7 @@ mod tests {
         g.push(Line::from("yyyy"));
         assert!(g.line_count() >= 4);
         let before = g.len();
-        g.drain(0..1);
+        g.drain_lines(0..1);
         assert_eq!(g.line_count(), 3);
         assert!(g.len() < before);
     }

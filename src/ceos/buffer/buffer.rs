@@ -104,7 +104,7 @@ impl Buffer {
                 let group_len = self.content[gi].len();
                 let max_in_group = group_len - li;
                 let take = to_remove.min(max_in_group);
-                self.content[gi].drain(li..li + take);
+                self.content[gi].drain_lines(li..li + take);
                 // If group is now empty, remove it to keep structure compact
                 if self.content[gi].is_empty() {
                     self.content.remove(gi);
@@ -353,8 +353,11 @@ mod tests {
         // Access a few positions
         b.prepare_range_for_read(0..10);
         assert_eq!(b.line_text(0), "000");
-        b.prepare_range_for_read(DEFAULT_GROUP_SIZE - 10..DEFAULT_GROUP_SIZE  + 100);
-        assert_eq!(b.line_text(DEFAULT_GROUP_SIZE - 1), format!("{:03}", DEFAULT_GROUP_SIZE - 1));
+        b.prepare_range_for_read(DEFAULT_GROUP_SIZE - 10..DEFAULT_GROUP_SIZE + 100);
+        assert_eq!(
+            b.line_text(DEFAULT_GROUP_SIZE - 1),
+            format!("{:03}", DEFAULT_GROUP_SIZE - 1)
+        );
     }
 
     #[test]
@@ -405,7 +408,10 @@ mod tests {
         }
         // Should not panic and should allow access to middle range
         b.prepare_range_for_read(DEFAULT_GROUP_SIZE - 5..DEFAULT_GROUP_SIZE + 5);
-        assert_eq!(b.line_text(DEFAULT_GROUP_SIZE), format!("line{}", DEFAULT_GROUP_SIZE));
+        assert_eq!(
+            b.line_text(DEFAULT_GROUP_SIZE),
+            format!("line{}", DEFAULT_GROUP_SIZE)
+        );
     }
 
     #[test]
