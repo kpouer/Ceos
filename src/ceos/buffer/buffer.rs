@@ -47,6 +47,22 @@ impl From<&str> for Buffer {
 }
 
 impl Buffer {
+    /// Compress all line groups and free their in-memory lines to reclaim memory.
+    /// This is primarily intended for debug/maintenance actions.
+    pub(crate) fn compress_all_groups(&mut self) {
+        for g in &mut self.content {
+            if g.is_empty() {
+                // Nothing to compress in an empty group
+                continue;
+            }
+            if g.is_decompressed() {
+                g.compress();
+            }
+            // Free lines if present; debug_assert in free() ensures it's compressed
+            g.free();
+        }
+    }
+
     pub(crate) fn new_from_file(
         path: PathBuf,
         sender: &Sender<Event>,
@@ -225,6 +241,18 @@ impl Buffer {
             .map(|g| g.max_line_length())
             .max()
             .unwrap_or(0)
+    }
+
+    pub(crate) fn group_count(&self) -> usize {
+        self.content.len()
+    }
+
+    pub(crate) fn compressed_group_count(&self) -> usize {
+        self.content.iter().filter(|g| g.is_compressed()).count()
+    }
+
+    pub(crate) fn decompressed_group_count(&self) -> usize {
+        self.content.iter().filter(|g| g.is_decompressed()).count()
     }
 
     pub(crate) fn compute_length(&mut self) -> usize {

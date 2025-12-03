@@ -221,6 +221,7 @@ impl Ceos {
                 self.file_menu(ui);
                 self.view_menu(ui);
                 self.options_menu(ui);
+                self.debug_menu(ui);
             });
         });
     }
@@ -269,6 +270,30 @@ impl Ceos {
                 if let Err(e) = self.options.save() {
                     warn!("Impossible d'enregistrer ceos.toml: {}", e);
                 }
+            }
+        });
+    }
+
+    fn debug_menu(&mut self, ui: &mut Ui) {
+        ui.menu_button("Debug", |ui| {
+            let (line_count, group_count, compressed, decompressed) = {
+                let buffer = &self.textarea_properties.buffer;
+                (
+                    buffer.line_count(),
+                    buffer.group_count(),
+                    buffer.compressed_group_count(),
+                    buffer.decompressed_group_count(),
+                )
+            };
+
+            ui.label(format!("Lignes du buffer: {}", line_count));
+            ui.label(format!("Nombre de groupes: {}", group_count));
+            ui.label(format!("Groupes compressés: {}", compressed));
+            ui.label(format!("Groupes décompressés: {}", decompressed));
+
+            ui.separator();
+            if ui.button("Compress").clicked() {
+                self.textarea_properties.buffer.compress_all_groups();
             }
         });
     }

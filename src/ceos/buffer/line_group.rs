@@ -3,7 +3,6 @@ use log::warn;
 use lz4::block;
 use std::ops::Index;
 use std::ops::RangeBounds;
-use rfd::MessageDialogResult::No;
 
 pub(crate) const DEFAULT_GROUP_SIZE: usize = 1000;
 
@@ -148,6 +147,15 @@ impl LineGroup {
 
     pub(crate) fn max_line_length(&self) -> usize {
         self.max_line_length
+    }
+
+    /// Returns true if this group currently holds compressed data
+    pub(crate) fn is_compressed(&self) -> bool {
+        self.compressed.is_some()
+    }
+
+    pub(crate) fn is_decompressed(&self) -> bool {
+        !self.lines.is_empty()
     }
 
     pub(crate) fn filter_line_mut(&mut self, mut filter: impl FnMut(&mut Line)) {
