@@ -1,5 +1,4 @@
 use std::ops::RangeBounds;
-use std::string::Drain;
 
 #[derive(Default, Debug)]
 pub(crate) struct Line {
@@ -8,9 +7,9 @@ pub(crate) struct Line {
 
 impl<T: Into<String>> From<T> for Line {
     fn from(content: T) -> Self {
-        Self {
-            content: content.into(),
-        }
+        let mut content = content.into();
+        content.shrink_to_fit();
+        Self { content }
     }
 }
 
@@ -30,10 +29,11 @@ impl Line {
         self.content.capacity()
     }
 
-    pub(crate) fn drain<R>(&mut self, range: R) -> Drain<'_>
+    pub(crate) fn drain<R>(&mut self, range: R)
     where
         R: RangeBounds<usize>,
     {
-        self.content.drain(range)
+        self.content.drain(range);
+        self.content.shrink_to_fit();
     }
 }
