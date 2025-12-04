@@ -39,16 +39,20 @@ impl LineGroup {
     /// Free memory occupied by the lines.
     pub(crate) fn free(&mut self) {
         self.lines.clear();
-        debug_assert!(self.compressed.is_some());
+        // It's valid to free an empty group (no compressed data expected),
+        // but for non-empty groups we expect compressed data to be present.
+        debug_assert!(
+            self.compressed.is_some() || self.line_count == 0,
+            "free called on non-empty group without compressed data"
+        );
     }
 
     pub(crate) fn compress(&mut self) {
-        if self.compressed.is_some() {
+        if self.compressed.is_some() || self.line_count == 0 || self.lines.is_empty() {
             // already compressed; keep in-memory lines for fast read access
             return;
         }
 
-        debug_assert!(!self.lines.is_empty());
         let concatenated = self.to_string();
 
         match block::compress(concatenated.as_bytes(), None, true) {
@@ -79,41 +83,61 @@ impl LineGroup {
             return;
         }
 
-        let data = self.compressed.take().unwrap();
-        match block::decompress(&data, None) {
-            Ok(bytes) => {
-                match String::from_utf8(bytes) {
-                    Ok(text) => {
-                        if text.is_empty() {
-                            #[cfg(debug_assertions)]
-                            warn!("Decompressed empty line group");
-                            self.lines.clear();
-                            self.line_count = 0;
-                            self.length = 0;
-                            self.max_line_length = 0;
-                        } else {
-                            self.lines = text.split('\n').map(Line::from).collect();
-                            #[cfg(debug_assertions)]
-                            if self.line_count != self.lines.len() {
-                                warn!(
-                                    "Decompressed line group with inconsistent line count {} != {}",
-                                    self.line_count,
-                                    self.lines.len()
-                                );
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        warn!("Failed to decode UTF-8 after LZ4 decompress: {}", e);
-                        // restore compressed data to avoid data loss
-                        self.compressed = Some(data);
+        let lines = self.decompress_lines();
+        if lines.is_empty() {
+            #[cfg(debug_assertions)]
+            warn!("Decompressed empty line group");
+            // If we expected an empty group (line_count == 0), treat as successful
+            // decompression of empty content and drop the compressed data.
+            if self.line_count == 0 {
+                self.lines.clear();
+                self.line_count = 0;
+                self.length = 0;
+                self.max_line_length = 0;
+                self.compressed = None;
+            } else {
+                // Otherwise, consider this as a decompression failure and keep compressed data
+                return;
+            }
+        } else {
+            self.lines = lines;
+            // successful decompression; drop compressed data
+            self.compressed = None;
+            #[cfg(debug_assertions)]
+            if self.line_count != self.lines.len() {
+                warn!(
+                    "Decompressed line group with inconsistent line count {} != {}",
+                    self.line_count,
+                    self.lines.len()
+                );
+            }
+        }
+    }
+
+    /// Decompresses the group's compressed data and returns the resulting Vec<Line>.
+    /// On failure, returns an empty Vec.
+    pub(crate) fn decompress_lines(&self) -> Vec<Line> {
+        let Some(data) = self.compressed.as_deref() else {
+            return Vec::new();
+        };
+
+        match block::decompress(data, None) {
+            Ok(bytes) => match String::from_utf8(bytes) {
+                Ok(text) => {
+                    if text.is_empty() {
+                        Vec::new()
+                    } else {
+                        text.split('\n').map(Line::from).collect()
                     }
                 }
-            }
+                Err(e) => {
+                    warn!("Failed to decode UTF-8 after LZ4 decompress: {}", e);
+                    Vec::new()
+                }
+            },
             Err(e) => {
                 warn!("Failed to decompress line group with LZ4: {}", e);
-                // restore compressed data to avoid data loss
-                self.compressed = Some(data);
+                Vec::new()
             }
         }
     }
