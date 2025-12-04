@@ -332,11 +332,11 @@ impl<'a> Iterator for BufferIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         while self.gi < self.groups.len() {
-            let g = &self.groups[self.gi];
-            if self.li < g.line_count() {
-                let item = &g[self.li];
+            let line_group = &self.groups[self.gi];
+            if self.li < line_group.line_count() {
+                let line = &line_group[self.li];
                 self.li += 1;
-                return Some(item);
+                return Some(line);
             } else {
                 self.gi += 1;
                 self.li = 0;
