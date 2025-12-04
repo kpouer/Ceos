@@ -10,7 +10,7 @@ use egui::Ui;
 #[derive(Default, Debug)]
 pub(crate) struct Search {
     pattern: String,
-    // the lines containing the search value
+    // the line indexes containing the search value
     lines: Vec<usize>,
     index: usize,
 }
