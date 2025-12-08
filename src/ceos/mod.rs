@@ -276,7 +276,7 @@ impl Ceos {
 
     fn debug_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("Debug", |ui| {
-            let (line_count, group_count, compressed, decompressed, decomressed_line_count) = {
+            let (line_count, group_count, compressed, decompressed, decomressed_line_count, compressed_size) = {
                 let buffer = &self.textarea_properties.buffer;
                 (
                     buffer.line_count(),
@@ -284,6 +284,7 @@ impl Ceos {
                     buffer.compressed_group_count(),
                     buffer.decompressed_group_count(),
                     buffer.decompressed_line_count(),
+                    buffer.compressed_size(),
                 )
             };
 
@@ -292,6 +293,7 @@ impl Ceos {
             ui.label(format!("Groupes compressés: {}", compressed));
             ui.label(format!("Groupes décompressés: {}", decompressed));
             ui.label(format!("Lignes décompressées: {}", decomressed_line_count));
+            ui.label(format!("Compressed size: {}", format_size_i(compressed_size, DECIMAL)));
 
             ui.separator();
             if ui.button("Compress").clicked() {

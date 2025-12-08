@@ -237,8 +237,15 @@ impl LineGroup {
     pub(crate) fn mem(&self) -> usize {
         let vec_overhead = std::mem::size_of::<Vec<Line>>();
         let array_mem = self.lines.capacity() * std::mem::size_of::<Line>();
-        let strings_mem: usize = self.lines.iter().map(|l| l.mem()).sum();
-        vec_overhead + array_mem + strings_mem
+        let strings_mem: usize = self.lines.iter().map(|line| line.mem()).sum();
+        vec_overhead + array_mem + strings_mem + self.compressed_size()
+    }
+
+    pub fn compressed_size(&self) -> usize {
+        self.compressed
+            .as_ref()
+            .map(|data| data.len())
+            .unwrap_or_default()
     }
 }
 

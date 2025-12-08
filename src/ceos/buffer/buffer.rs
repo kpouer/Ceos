@@ -276,8 +276,18 @@ impl Buffer {
     pub(crate) fn mem(&self) -> usize {
         let vec_overhead = std::mem::size_of::<Vec<LineGroup>>();
         let array_mem = self.content.capacity() * std::mem::size_of::<LineGroup>();
-        let groups_mem: usize = self.content.iter().map(|g| g.mem()).sum();
+        let groups_mem: usize = self
+            .content
+            .iter()
+            .map(|line_group| line_group.mem())
+            .sum();
         vec_overhead + array_mem + groups_mem
+    }
+}
+
+impl Buffer {
+    pub fn compressed_size(&self) -> usize {
+        self.content.iter().map(|data| data.compressed_size()).sum()
     }
 }
 
