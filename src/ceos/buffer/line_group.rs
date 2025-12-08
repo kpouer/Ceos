@@ -38,7 +38,7 @@ impl LineGroup {
 
     /// Free memory occupied by the lines.
     pub(crate) fn free(&mut self) {
-        self.lines.clear();
+        self.lines = Vec::new();
         // It's valid to free an empty group (no compressed data expected),
         // but for non-empty groups we expect compressed data to be present.
         debug_assert!(
@@ -90,7 +90,7 @@ impl LineGroup {
             // If we expected an empty group (line_count == 0), treat as successful
             // decompression of empty content and drop the compressed data.
             if self.line_count == 0 {
-                self.lines.clear();
+                self.lines = Vec::new();
                 self.line_count = 0;
                 self.length = 0;
                 self.max_line_length = 0;
@@ -180,6 +180,10 @@ impl LineGroup {
 
     pub(crate) fn is_decompressed(&self) -> bool {
         !self.lines.is_empty()
+    }
+
+    pub(crate) fn decompressed_line_count(&self) -> usize {
+        self.lines.len()
     }
 
     pub(crate) fn filter_line_mut(&mut self, mut filter: impl FnMut(&mut Line)) {

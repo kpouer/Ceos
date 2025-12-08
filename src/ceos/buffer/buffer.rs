@@ -255,6 +255,13 @@ impl Buffer {
         self.content.iter().filter(|g| g.is_decompressed()).count()
     }
 
+    pub(crate) fn decompressed_line_count(&self) -> usize {
+        self.content
+            .iter()
+            .map(|g| g.decompressed_line_count())
+            .sum()
+    }
+
     pub(crate) fn compute_length(&mut self) -> usize {
         self.length = self
             .content
