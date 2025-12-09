@@ -1,6 +1,6 @@
 use crate::ceos::buffer::line::Line;
 use log::warn;
-use lz4::block;
+use std::io::{Read, Write};
 use std::ops::Index;
 use std::ops::RangeBounds;
 
@@ -53,11 +53,30 @@ impl LineGroup {
             return;
         }
 
-        let concatenated = self.to_string();
+        // Stream (frame) compression to avoid building a large intermediate buffer
+        let out: Vec<u8> = Vec::new();
+        match lz4::EncoderBuilder::new().build(out) {
+            Ok(mut encoder) => {
+                for (i, line) in self.lines.iter().enumerate() {
+                    if let Err(e) = encoder.write_all(line.content().as_bytes()) {
+                        warn!("Failed to write to LZ4 encoder: {}", e);
+                        return;
+                    }
+                    if i != self.line_count - 1 {
+                        if let Err(e) = encoder.write_all(b"\n") {
+                            warn!("Failed to write newline to LZ4 encoder: {}", e);
+                            return;
+                        }
+                    }
+                }
 
-        match block::compress(concatenated.as_bytes(), None, true) {
-            Ok(data) => self.compressed = Some(data),
-            Err(e) => warn!("Failed to compress line group with LZ4: {e}"),
+                let (data, res) = encoder.finish();
+                match res {
+                    Ok(()) => self.compressed = Some(data),
+                    Err(e) => warn!("Failed to finalize LZ4 encoder: {}", e),
+                }
+            }
+            Err(e) => warn!("Failed to build LZ4 encoder: {}", e),
         }
     }
 
@@ -121,22 +140,32 @@ impl LineGroup {
             return Vec::new();
         };
 
-        match block::decompress(data, None) {
-            Ok(bytes) => match String::from_utf8(bytes) {
-                Ok(text) => {
-                    if text.is_empty() {
+        let cursor = std::io::Cursor::new(data);
+        match lz4::Decoder::new(cursor) {
+            Ok(mut decoder) => {
+                let mut bytes = Vec::new();
+                match decoder.read_to_end(&mut bytes) {
+                    Ok(_) => match String::from_utf8(bytes) {
+                        Ok(text) => {
+                            if text.is_empty() {
+                                Vec::new()
+                            } else {
+                                text.split('\n').map(Line::from).collect()
+                            }
+                        }
+                        Err(e) => {
+                            warn!("Failed to decode UTF-8 after LZ4 stream decompress: {}", e);
+                            Vec::new()
+                        }
+                    },
+                    Err(e) => {
+                        warn!("Failed to read from LZ4 decoder: {}", e);
                         Vec::new()
-                    } else {
-                        text.split('\n').map(Line::from).collect()
                     }
                 }
-                Err(e) => {
-                    warn!("Failed to decode UTF-8 after LZ4 decompress: {}", e);
-                    Vec::new()
-                }
-            },
+            }
             Err(e) => {
-                warn!("Failed to decompress line group with LZ4: {}", e);
+                warn!("Failed to create LZ4 decoder: {}", e);
                 Vec::new()
             }
         }
@@ -354,5 +383,30 @@ mod tests {
         let base = g.mem();
         g.push(Line::from("abcdef"));
         assert!(g.mem() >= base);
+    }
+
+    #[test]
+    fn compress_decompress_empty_lines() {
+        let mut g = lg_from_strs(&["abc", "def", "ghi"]);
+        g.compress();
+        g.free();
+        g.decompress();
+        assert_eq!(g.line_count(), 3);
+        assert_eq!(g[0].content(), "abc");
+        assert_eq!(g[1].content(), "def");
+        assert_eq!(g[2].content(), "ghi");
+    }
+
+    #[test]
+    fn compress_free_preserves_metadata() {
+        let mut g = lg_from_strs(&["test1", "test2"]);
+        let count = g.line_count();
+        let len = g.len();
+        g.compress();
+        g.free();
+        assert_eq!(g.line_count(), count);
+        assert_eq!(g.len(), len);
+        assert!(g.is_compressed());
+        assert!(!g.is_decompressed());
     }
 }
