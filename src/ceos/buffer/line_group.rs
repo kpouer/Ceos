@@ -38,6 +38,9 @@ impl LineGroup {
 
     /// Free memory occupied by the lines.
     pub(crate) fn free(&mut self) {
+        if self.compressed.is_none() {
+            warn!("free called on a decompressed group");
+        }
         self.lines = None;
         // It's valid to free an empty group (no compressed data expected),
         // but for non-empty groups we expect compressed data to be present.
@@ -49,23 +52,24 @@ impl LineGroup {
 
     pub(crate) fn compress(&mut self) {
         if self.compressed.is_some() || self.line_count == 0 {
+            warn!("compress called on a compressed or empty group");
             // already compressed; keep in-memory lines for fast read access
             return;
         }
 
         let Some(lines) = &self.lines else { panic!("compress called on empty group");};
         // Stream (frame) compression to avoid building a large intermediate buffer
-        let out: Vec<u8> = Vec::new();
+        let out = Vec::new();
         match lz4::EncoderBuilder::new().build(out) {
             Ok(mut encoder) => {
                 for (i, line) in lines.iter().enumerate() {
                     if let Err(e) = encoder.write_all(line.content().as_bytes()) {
-                        warn!("Failed to write to LZ4 encoder: {}", e);
+                        warn!("Failed to write to LZ4 encoder: {e}");
                         return;
                     }
                     if i != self.line_count - 1 {
                         if let Err(e) = encoder.write_all(b"\n") {
-                            warn!("Failed to write newline to LZ4 encoder: {}", e);
+                            warn!("Failed to write newline to LZ4 encoder: {e}");
                             return;
                         }
                     }
@@ -74,10 +78,10 @@ impl LineGroup {
                 let (data, res) = encoder.finish();
                 match res {
                     Ok(()) => self.compressed = Some(data),
-                    Err(e) => warn!("Failed to finalize LZ4 encoder: {}", e),
+                    Err(e) => warn!("Failed to finalize LZ4 encoder: {e}"),
                 }
             }
-            Err(e) => warn!("Failed to build LZ4 encoder: {}", e),
+            Err(e) => warn!("Failed to build LZ4 encoder: {e}"),
         }
     }
 
