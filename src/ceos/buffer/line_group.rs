@@ -291,6 +291,8 @@ impl Index<usize> for LineGroup {
     type Output = Line;
 
     fn index(&self, index: usize) -> &Self::Output {
+        debug_assert!(self.lines.is_some());
+        debug_assert!(index < self.line_count);
         let lines = self.lines.as_deref().unwrap_or_else(|| panic!("index called on empty group"));
         &lines[index]
     }
