@@ -50,16 +50,17 @@ impl Buffer {
     /// Compress all line groups and free their in-memory lines to reclaim memory.
     /// This is primarily intended for debug/maintenance actions.
     pub(crate) fn compress_all_groups(&mut self) {
-        for g in &mut self.content {
-            if g.is_empty() {
+        for line_group in &mut self.content {
+            if line_group.is_empty() {
                 // Nothing to compress in an empty group
                 continue;
             }
-            if g.is_decompressed() {
-                g.compress();
+
+            if line_group.is_decompressed() {
+                line_group.eventually_compress();
             }
             // Free lines if present; debug_assert in free() ensures it's compressed
-            g.free();
+            line_group.free();
         }
     }
 
@@ -93,7 +94,7 @@ impl Buffer {
         self.length += line.len() + 1;
         last_group.push(line);
         if last_group.is_full() {
-            last_group.compress();
+            last_group.eventually_compress();
             last_group.free();
             self.content.push(LineGroup::default());
         }
@@ -209,9 +210,9 @@ impl Buffer {
 
             // check interval intersection with the exact read range
             if g_end > start && g_start < end {
-                g.decompress();
+                g.eventually_decompress();
             } else if g_end <= window_start || g_start >= window_end {
-                g.compress();
+                g.eventually_compress();
                 g.free();
             }
 

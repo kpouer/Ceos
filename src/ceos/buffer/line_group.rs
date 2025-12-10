@@ -1,5 +1,5 @@
 use crate::ceos::buffer::line::Line;
-use log::{error, warn};
+use log::{debug, error, warn};
 use std::io::{Read, Write};
 use std::ops::Index;
 use std::ops::RangeBounds;
@@ -39,7 +39,7 @@ impl LineGroup {
     /// Free memory occupied by the lines.
     pub(crate) fn free(&mut self) {
         if self.compressed.is_none() {
-            warn!("free called on a decompressed group");
+            error!("free called on a decompressed group");
         }
         self.lines = None;
         // It's valid to free an empty group (no compressed data expected),
@@ -50,13 +50,20 @@ impl LineGroup {
         );
     }
 
-    pub(crate) fn compress(&mut self) {
-        if self.compressed.is_some() || self.line_count == 0 {
-            warn!("compress called on a compressed or empty group");
-            // already compressed; keep in-memory lines for fast read access
+    pub(crate) fn eventually_compress(&mut self) {
+        if self.line_count == 0 {
+            debug!("eventually_compress called on empty group");
             return;
         }
+        if !self.is_compressed() {
+            self.compress();
+        } else {
+            debug!("eventually_compress called on already compressed group");
+        }
+    }
 
+    fn compress(&mut self) {
+        debug_assert!(self.lines.is_some());
         let Some(lines) = &self.lines else { panic!("compress called on empty group");};
         // Stream (frame) compression to avoid building a large intermediate buffer
         let out = Vec::new();
@@ -85,10 +92,21 @@ impl LineGroup {
         }
     }
 
-    pub(crate) fn decompress(&mut self) {
-        if self.compressed.is_none() || self.lines.is_some() {
+    pub(crate) fn eventually_decompress(&mut self) {
+        if self.lines.is_some() {
+            debug!("eventually_decompress called on a decompressed group");
             return;
         }
+        if self.compressed.is_none() {
+            error!("eventually_decompress called on a non compressed group");
+            return;
+        }
+        self.decompress();
+    }
+
+    fn decompress(&mut self) {
+        debug_assert!(self.lines.is_none());
+        debug_assert!(self.compressed.is_some());
 
         let lines = self.decompress_lines();
         debug_assert!(!lines.is_empty());
