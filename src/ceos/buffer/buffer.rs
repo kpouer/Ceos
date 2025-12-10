@@ -331,16 +331,16 @@ impl Buffer {
 
 pub(crate) struct BufferIter<'a> {
     groups: &'a [LineGroup],
-    gi: usize,
-    li: usize,
+    group_index: usize,
+    line_index: usize,
 }
 
 impl<'a> BufferIter<'a> {
     fn new(groups: &'a [LineGroup]) -> Self {
         Self {
             groups,
-            gi: 0,
-            li: 0,
+            group_index: 0,
+            line_index: 0,
         }
     }
 }
@@ -349,15 +349,15 @@ impl<'a> Iterator for BufferIter<'a> {
     type Item = &'a Line;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while self.gi < self.groups.len() {
-            let line_group = &self.groups[self.gi];
-            if self.li < line_group.line_count() {
-                let line = &line_group[self.li];
-                self.li += 1;
+        while self.group_index < self.groups.len() {
+            let line_group = &self.groups[self.group_index];
+            if self.line_index < line_group.line_count() {
+                let line = &line_group[self.line_index];
+                self.line_index += 1;
                 return Some(line);
             } else {
-                self.gi += 1;
-                self.li = 0;
+                self.group_index += 1;
+                self.line_index = 0;
             }
         }
         None
