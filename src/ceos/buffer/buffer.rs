@@ -296,20 +296,20 @@ impl Index<usize> for Buffer {
     type Output = Line;
 
     fn index(&self, index: usize) -> &Self::Output {
-        let (gi, li) = self
+        let (group_index, line_index) = self
             .find_group_index(index)
             .expect("line index out of bounds");
-        &self.content[gi][li]
+        &self.content[group_index][line_index]
     }
 }
 
 impl Buffer {
     fn find_group_index(&self, mut line: usize) -> Option<(usize, usize)> {
-        for (gi, g) in self.content.iter().enumerate() {
-            if line < g.line_count() {
-                return Some((gi, line));
+        for (group_index, line_group) in self.content.iter().enumerate() {
+            if line < line_group.line_count() {
+                return Some((group_index, line));
             }
-            line -= g.line_count();
+            line -= line_group.line_count();
         }
         None
     }
