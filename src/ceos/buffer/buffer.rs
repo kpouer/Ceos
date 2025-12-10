@@ -100,8 +100,8 @@ impl Buffer {
         }
     }
 
-    pub(crate) fn iter(&self) -> BufferIter<'_> {
-        BufferIter::new(&self.content)
+    pub(crate) fn line_groups(&self) -> &[LineGroup] {
+        &self.content
     }
 
     pub(crate) fn drain_line_mut<R>(&mut self, range: R) -> usize
@@ -277,11 +277,7 @@ impl Buffer {
     pub(crate) fn mem(&self) -> usize {
         let vec_overhead = std::mem::size_of::<Vec<LineGroup>>();
         let array_mem = self.content.capacity() * std::mem::size_of::<LineGroup>();
-        let groups_mem: usize = self
-            .content
-            .iter()
-            .map(|line_group| line_group.mem())
-            .sum();
+        let groups_mem: usize = self.content.iter().map(|line_group| line_group.mem()).sum();
         vec_overhead + array_mem + groups_mem
     }
 }
@@ -326,41 +322,6 @@ impl Buffer {
             Bound::Unbounded => self.line_count(),
         };
         (start.min(self.line_count()), end.min(self.line_count()))
-    }
-}
-
-pub(crate) struct BufferIter<'a> {
-    groups: &'a [LineGroup],
-    group_index: usize,
-    line_index: usize,
-}
-
-impl<'a> BufferIter<'a> {
-    fn new(groups: &'a [LineGroup]) -> Self {
-        Self {
-            groups,
-            group_index: 0,
-            line_index: 0,
-        }
-    }
-}
-
-impl<'a> Iterator for BufferIter<'a> {
-    type Item = &'a Line;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while self.group_index < self.groups.len() {
-            let line_group = &self.groups[self.group_index];
-            if self.line_index < line_group.line_count() {
-                let line = &line_group[self.line_index];
-                self.line_index += 1;
-                return Some(line);
-            } else {
-                self.group_index += 1;
-                self.line_index = 0;
-            }
-        }
-        None
     }
 }
 

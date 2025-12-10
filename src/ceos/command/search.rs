@@ -62,11 +62,17 @@ impl Renderer for Search {
 
 impl Search {
     pub(crate) fn init(&mut self, buffer: &Buffer) {
-        buffer.iter().enumerate().for_each(|(i, line)| {
-            if line.content().contains(&self.pattern) {
-                self.lines.push(i);
-            }
-        })
+        buffer
+            .line_groups()
+            .iter()
+            .map(|line_group| line_group.lines())
+            .for_each(|lines| {
+                lines
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, line)| line.content().contains(&self.pattern))
+                    .for_each(|(i, _)| self.lines.push(i));
+            });
     }
 
     pub(crate) fn has_results(&self) -> bool {

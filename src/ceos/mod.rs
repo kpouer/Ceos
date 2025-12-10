@@ -276,7 +276,14 @@ impl Ceos {
 
     fn debug_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("Debug", |ui| {
-            let (line_count, group_count, compressed, decompressed, decomressed_line_count, compressed_size) = {
+            let (
+                line_count,
+                group_count,
+                compressed,
+                decompressed,
+                decomressed_line_count,
+                compressed_size,
+            ) = {
                 let buffer = &self.textarea_properties.buffer;
                 (
                     buffer.line_count(),
@@ -293,7 +300,10 @@ impl Ceos {
             ui.label(format!("Groupes compressés: {}", compressed));
             ui.label(format!("Groupes décompressés: {}", decompressed));
             ui.label(format!("Lignes décompressées: {}", decomressed_line_count));
-            ui.label(format!("Compressed size: {}", format_size_i(compressed_size, DECIMAL)));
+            ui.label(format!(
+                "Compressed size: {}",
+                format_size_i(compressed_size, DECIMAL)
+            ));
 
             ui.separator();
             if ui.button("Compress").clicked() {
@@ -438,12 +448,16 @@ impl Ceos {
                     let mut file = LineWriter::new(file);
                     self.textarea_properties
                         .buffer
+                        .line_groups()
                         .iter()
-                        .map(|line| line.content())
-                        .for_each(|line| {
-                            Self::write(&mut file, line.as_bytes());
-                            Self::write(&mut file, b"\n");
+                        .map(|line_group| line_group.lines())
+                        .for_each(|lines| {
+                            lines.iter().map(|line| line.content()).for_each(|line| {
+                                Self::write(&mut file, line.as_bytes());
+                                Self::write(&mut file, b"\n");
+                            });
                         });
+
                     self.textarea_properties.buffer.dirty = false;
                 }
                 Err(err) => error!("Unable to save file {path:?} becaues {err}"),

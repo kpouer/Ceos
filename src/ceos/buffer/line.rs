@@ -1,6 +1,6 @@
 use std::ops::RangeBounds;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub(crate) struct Line {
     content: String,
 }
