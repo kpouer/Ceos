@@ -210,7 +210,7 @@ impl LineGroup {
     }
 
     pub(crate) fn is_decompressed(&self) -> bool {
-        !self.lines.is_some()
+        self.lines.is_some()
     }
 
     pub(crate) fn decompressed_line_count(&self) -> usize {
@@ -348,6 +348,7 @@ mod tests {
         g.compress();
         // compressing twice should be idempotent
         g.compress();
+        g.free();
         // Decompress and verify
         g.decompress();
 
@@ -363,6 +364,7 @@ mod tests {
     fn filter_line_mut_applies_and_preserves_compression_state() {
         let mut g = lg_from_strs(&["a", "b"]);
         g.compress(); // start compressed
+        g.free();
         g.filter_line_mut(|l| {
             let mut s = l.content().to_string();
             s.push('x');
