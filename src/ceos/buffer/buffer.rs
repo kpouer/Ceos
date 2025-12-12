@@ -225,7 +225,7 @@ impl Buffer {
         let (gi, li) = self
             .find_group_index(line)
             .expect("line index out of bounds");
-        &self.content[gi][li].content()
+        self.content[gi][li].content()
     }
 
     pub(crate) fn line_count(&self) -> usize {

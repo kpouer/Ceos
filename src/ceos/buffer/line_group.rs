@@ -77,11 +77,9 @@ impl LineGroup {
                         warn!("Failed to write to LZ4 encoder: {e}");
                         return;
                     }
-                    if i != self.line_count - 1 {
-                        if let Err(e) = encoder.write_all(b"\n") {
-                            warn!("Failed to write newline to LZ4 encoder: {e}");
-                            return;
-                        }
+                    if i != self.line_count - 1 && let Err(e) = encoder.write_all(b"\n") {
+                        warn!("Failed to write newline to LZ4 encoder: {e}");
+                        return;
                     }
                 }
 
@@ -177,7 +175,7 @@ impl LineGroup {
         self.compressed = None;
     }
 
-    pub(crate) fn lines(&self) -> Cow<Vec<Line>> {
+    pub(crate) fn lines(&self) -> Cow<'_, [Line]> {
         if let Some(lines) = &self.lines {
             return Cow::Borrowed(lines);
         }
@@ -230,7 +228,7 @@ impl LineGroup {
         }
         debug_assert!(self.lines.is_some());
         if let Some(lines) = &mut self.lines {
-            lines.iter_mut().for_each(|line| filter(line));
+            lines.iter_mut().for_each(filter);
         }
 
         self.compute_metadata();

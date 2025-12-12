@@ -266,10 +266,8 @@ impl Ceos {
             // Quick toggle directly in the menu as well (optional convenience)
             ui.separator();
             let response = ui.checkbox(&mut self.options.compression, "Compression");
-            if response.changed() {
-                if let Err(e) = self.options.save() {
-                    warn!("Impossible d'enregistrer ceos.toml: {}", e);
-                }
+            if response.changed() && let Err(e) = self.options.save() {
+                warn!("Impossible d'enregistrer ceos.toml: {e}");
             }
         });
     }
@@ -321,10 +319,8 @@ impl Ceos {
                 ui.vertical(|ui| {
                     ui.heading("Paramètres");
                     let response = ui.checkbox(&mut self.options.compression, "Compression");
-                    if response.changed() {
-                        if let Err(e) = self.options.save() {
-                            warn!("Impossible d'enregistrer ceos.toml: {}", e);
-                        }
+                    if response.changed() && let Err(e) = self.options.save() {
+                        warn!("Impossible d'enregistrer ceos.toml: {e}");
                     }
                 });
             });

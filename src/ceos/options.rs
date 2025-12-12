@@ -6,15 +6,9 @@ use std::path::PathBuf;
 
 const CONFIG_FILE: &str = "ceos.toml";
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct Options {
     pub(crate) compression: bool,
-}
-
-impl Default for Options {
-    fn default() -> Self {
-        Self { compression: false }
-    }
 }
 
 impl Options {
@@ -67,7 +61,7 @@ impl Options {
             fs::create_dir_all(parent)?;
         }
         let toml_text = toml::to_string_pretty(self)
-            .map_err(|e| Error::new(ErrorKind::Other, format!("{}", e)))?;
+            .map_err(|e| Error::other(format!("{}", e)))?;
         fs::write(&path, toml_text)?;
         info!("Options enregistrées dans {:?}", path);
         Ok(())
