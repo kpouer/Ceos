@@ -343,7 +343,14 @@ mod tests {
     #[test]
     fn iter_yields_all_lines_in_order() {
         let b = Buffer::from("l1\nl2\nl3");
-        let collected: Vec<&str> = b.iter().map(|l| l.content()).collect();
+        let mut collected = Vec::new();
+        b.line_groups().iter().for_each(|line_group| {
+            line_group
+                .lines()
+                .iter()
+                .map(|l| l.content().to_string())
+                .for_each(|l| collected.push(l))
+        });
         assert_eq!(collected, vec!["l1", "l2", "l3"]);
     }
 
