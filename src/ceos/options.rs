@@ -1,7 +1,7 @@
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::{Error, ErrorKind};
+use std::io::Error;
 use std::path::PathBuf;
 
 const CONFIG_FILE: &str = "ceos.toml";
