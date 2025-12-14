@@ -42,7 +42,7 @@ impl Renderer for ColumnFilter {
         let char_width = tools::char_width(textarea.font_id.clone(), ui);
         let end_x = match self.range.end {
             Some(end) => end as f32 * char_width,
-            None => ui.max_rect().width()
+            None => ui.max_rect().width(),
         };
         let top_left = Pos2::new(
             drawing_pos.x + self.range.start as f32 * char_width,
@@ -66,8 +66,9 @@ impl Command for ColumnFilter {
         let line_count = buffer.line_count();
         let new_length = buffer.filter_line_mut(|line| self.apply_to_line(line));
         debug!(
-            "Applied filter removed {} lines, new length {new_length}",
-            line_count - buffer.line_count()
+            "Applied filter removed {} lines, new length {}",
+            line_count - buffer.line_count(),
+            new_length
         );
     }
 }
