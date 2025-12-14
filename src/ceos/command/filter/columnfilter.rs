@@ -40,10 +40,9 @@ impl Renderer for ColumnFilter {
         drawing_pos: Pos2,
     ) {
         let char_width = tools::char_width(textarea.font_id.clone(), ui);
-        let end_x = if self.range.end.is_some() {
-            self.range.end.unwrap() as f32 * char_width
-        } else {
-            ui.max_rect().width()
+        let end_x = match self.range.end {
+            Some(end) => end as f32 * char_width,
+            None => ui.max_rect().width()
         };
         let top_left = Pos2::new(
             drawing_pos.x + self.range.start as f32 * char_width,
