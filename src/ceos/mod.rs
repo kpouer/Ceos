@@ -5,7 +5,7 @@ use crate::ceos::gui::frame_history::FrameHistory;
 use crate::ceos::gui::searchpanel::SearchPanel;
 use crate::ceos::gui::textpane::TextPane;
 use crate::ceos::options::Options;
-use crate::ceos::progress_manager::{BUFFER_LOADING, ProgressManager};
+use crate::ceos::progress_manager::{BUFFER_LOADING, BUFFER_SAVING, ProgressManager};
 use crate::event::Event;
 use crate::event::Event::{BufferClosed, BufferLoaded, GotoLine};
 use Event::NewFont;
@@ -86,6 +86,26 @@ impl Ceos {
             }
             Event::BufferLoading(_, current, _) => {
                 self.progress_manager.update(BUFFER_LOADING, current)
+            }
+            Event::BufferSavingStarted(path, size) => {
+                self.progress_manager
+                    .add(BUFFER_SAVING.into(), format!("Saving {path:?}"), size)
+            }
+            Event::BufferSaving(_, current, _) => {
+                self.progress_manager.update(BUFFER_SAVING, current)
+            }
+            Event::BufferSaved(path) => {
+                self.progress_manager.remove(BUFFER_SAVING);
+                // Marquer le buffer comme non-dirty si c'est le même fichier
+                if let Some(current_path) = &self.textarea_properties.buffer.path {
+                    if current_path == &path {
+                        self.textarea_properties.buffer.dirty = false;
+                    }
+                }
+            }
+            Event::BufferSaveFailed(_) => {
+                // Retirer la progression en cas d'échec
+                self.progress_manager.remove(BUFFER_SAVING);
             }
             BufferLoaded(buffer) => {
                 self.progress_manager.remove(BUFFER_LOADING);
@@ -439,25 +459,50 @@ impl Ceos {
         if self.textarea_properties.buffer.dirty
             && let Some(path) = &self.textarea_properties.buffer.path
         {
-            match File::create(path) {
-                Ok(file) => {
-                    let mut file = LineWriter::new(file);
-                    self.textarea_properties
-                        .buffer
-                        .line_groups()
-                        .iter()
-                        .map(|line_group| line_group.lines())
-                        .for_each(|lines| {
-                            lines.iter().map(|line| line.content()).for_each(|line| {
-                                Self::write(&mut file, line.as_bytes());
-                                Self::write(&mut file, b"\n");
-                            });
-                        });
-
-                    self.textarea_properties.buffer.dirty = false;
+            let path = path.clone();
+            // Préparer un snapshot des lignes à écrire pour l'écriture en thread
+            let mut total_size: usize = 0;
+            let mut lines: Vec<Vec<u8>> = Vec::new();
+            for group in self.textarea_properties.buffer.line_groups() {
+                let cow = group.lines();
+                for line in cow.as_ref().iter() {
+                    let bytes: Vec<u8> = line.content().as_bytes().to_vec();
+                    total_size += bytes.len() + 1; // +1 pour le saut de ligne
+                    lines.push(bytes);
                 }
-                Err(err) => error!("Unable to save file {path:?} becaues {err}"),
             }
+
+            let sender = self.sender.clone();
+            thread::spawn(move || {
+                // Démarrer la progression
+                let _ = sender.send(Event::BufferSavingStarted(path.clone(), total_size));
+                match File::create(&path) {
+                    Ok(file) => {
+                        let mut file = LineWriter::new(file);
+                        let mut current: usize = 0;
+                        for bytes in lines.iter() {
+                            if let Err(err) = file.write_all(bytes) {
+                                error!("{err}");
+                                let _ = sender.send(Event::BufferSaveFailed(path.clone()));
+                                return;
+                            }
+                            if let Err(err) = file.write_all(b"\n") {
+                                error!("{err}");
+                                let _ = sender.send(Event::BufferSaveFailed(path.clone()));
+                                return;
+                            }
+                            current += bytes.len() + 1;
+                            let _ = sender.send(Event::BufferSaving(path.clone(), current, total_size));
+                        }
+                        // Fin de progression
+                        let _ = sender.send(Event::BufferSaved(path.clone()));
+                    }
+                    Err(err) => {
+                        error!("Unable to save file {path:?} becaues {err}");
+                        let _ = sender.send(Event::BufferSaveFailed(path.clone()));
+                    }
+                }
+            });
         }
     }
 

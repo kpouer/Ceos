@@ -11,6 +11,11 @@ pub(crate) enum Event {
     OpenFile(PathBuf),
     BufferLoadingStarted(PathBuf, usize),
     BufferLoading(PathBuf, usize, usize),
+    // Saving progression events
+    BufferSavingStarted(PathBuf, usize),
+    BufferSaving(PathBuf, usize, usize),
+    BufferSaved(PathBuf),
+    BufferSaveFailed(PathBuf),
     BufferLoaded(Buffer),
     BufferClosed,
     GotoLine(Goto),

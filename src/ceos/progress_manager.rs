@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Iter;
 
 pub(crate) const BUFFER_LOADING: &str = "_BufferLoading_";
+pub(crate) const BUFFER_SAVING: &str = "_BufferSaving_";
 
 #[derive(Default, Debug)]
 pub(crate) struct ProgressManager {
