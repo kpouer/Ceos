@@ -5,7 +5,7 @@ use std::io::{Read, Write};
 use std::ops::Index;
 use std::ops::RangeBounds;
 
-pub(crate) const DEFAULT_GROUP_SIZE: usize = 1000;
+pub(super) const DEFAULT_GROUP_SIZE: usize = 1000;
 
 #[derive(Debug)]
 pub(crate) struct LineGroup {
