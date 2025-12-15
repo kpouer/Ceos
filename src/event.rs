@@ -22,6 +22,14 @@ pub(crate) enum Event {
     NewFont(FontId),
     SetCommand(String),
     ClearCommand,
+    /// An operation started (label, total size)
+    OperationStarted(String, usize),
+    /// An operation is progressing (label, current status)
+    OperationProgress(String, usize),
+    /// An operation progress increment (label, amount)
+    OperationIncrement(String, usize),
+    /// An operation finished (label)
+    OperationFinished(String),
 }
 
 impl TryFrom<&str> for Event {

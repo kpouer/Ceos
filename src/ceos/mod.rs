@@ -114,6 +114,10 @@ impl Ceos {
             BufferClosed => self.textarea_properties.set_buffer(Buffer::default()),
             GotoLine(goto) => goto.execute(ctx, &mut self.textarea_properties),
             NewFont(font_id) => self.textarea_properties.set_font_id(font_id),
+            Event::OperationStarted(label, length) => self.progress_manager.add(label.clone(), label, length),
+            Event::OperationProgress(label, value) => self.progress_manager.update(&label, value),
+            Event::OperationIncrement(label, amount) => self.progress_manager.increment(&label, amount),
+            Event::OperationFinished(label) => self.progress_manager.remove(&label),
         }
     }
 }
