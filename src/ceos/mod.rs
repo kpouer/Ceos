@@ -111,7 +111,7 @@ impl Ceos {
                 self.progress_manager.remove(BUFFER_LOADING);
                 self.textarea_properties.set_buffer(buffer);
             }
-            BufferClosed => self.textarea_properties.set_buffer(Default::default()),
+            BufferClosed => self.textarea_properties.set_buffer(Buffer::default()),
             GotoLine(goto) => goto.execute(ctx, &mut self.textarea_properties),
             NewFont(font_id) => self.textarea_properties.set_font_id(font_id),
         }
