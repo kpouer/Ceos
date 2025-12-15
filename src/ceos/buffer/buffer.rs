@@ -20,7 +20,7 @@ pub(crate) struct Buffer {
     content: Vec<LineGroup>,
     length: usize,
     pub(crate) dirty: bool,
-    sender: Sender<Event>,
+    pub(crate) sender: Sender<Event>,
 }
 
 const FILTERING: &str = "Filtering...";
@@ -141,7 +141,7 @@ impl Buffer {
     where
         F: FnMut(&mut Line) + Clone + Sync,
     {
-        let _ = self.sender.send(Event::OperationProgress(FILTERING.to_owned(), self.line_count()));
+        let _ = self.sender.send(Event::OperationStarted(FILTERING.to_owned(), self.content.len()));
         self.content
             .par_iter_mut()
             .for_each(|line_group| {
@@ -155,13 +155,18 @@ impl Buffer {
     }
 
     pub(crate) fn retain_line_mut(&mut self, mut filter: impl FnMut(&Line) -> bool) -> usize {
+        let _ = self.sender.send(Event::OperationStarted(FILTERING.to_owned(), self.content.len()));
         self.content
             .iter_mut()
-            .for_each(|g| g.retain(|l| filter(l)));
+            .for_each(|g| {
+                let _ = self.sender.send(Event::OperationIncrement(FILTERING.to_owned(), 1));
+                g.retain(|l| filter(l));
+            });
         // remove empty groups
         self.content.retain(|g| !g.is_empty());
         let new_length = self.compute_length();
         self.dirty = true;
+        let _ = self.sender.send(Event::OperationFinished(FILTERING.to_owned()));
         new_length
     }
 

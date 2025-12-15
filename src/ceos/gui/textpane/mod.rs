@@ -20,7 +20,7 @@ pub(crate) mod textareaproperties;
 #[derive(Debug)]
 pub(crate) struct TextPane<'a> {
     textarea_properties: &'a mut TextAreaProperties,
-    current_command: &'a Option<Box<dyn Command>>,
+    current_command: &'a Option<Box<dyn Command + Send + Sync + 'static>>,
     search: &'a Search,
     theme: &'a Theme,
     sender: &'a Sender<Event>,
@@ -29,7 +29,7 @@ pub(crate) struct TextPane<'a> {
 impl<'a> TextPane<'a> {
     pub(crate) fn new(
         textarea_properties: &'a mut TextAreaProperties,
-        current_command: &'a Option<Box<dyn Command>>,
+        current_command: &'a Option<Box<dyn Command + Send + Sync + 'static>>,
         theme: &'a Theme,
         sender: &'a Sender<Event>,
         search: &'a Search,

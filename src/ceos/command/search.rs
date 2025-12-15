@@ -1,3 +1,4 @@
+use std::time::Instant;
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
@@ -5,6 +6,9 @@ use crate::ceos::gui::theme::Theme;
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::{Stroke, StrokeKind};
 use egui::Ui;
+use log::info;
+use rayon::prelude::*;
+use crate::event::Event;
 
 /// Search filter
 #[derive(Default, Debug)]
@@ -62,6 +66,8 @@ impl Renderer for Search {
 
 impl Search {
     pub(crate) fn init(&mut self, buffer: &Buffer) {
+        let start = Instant::now();
+        let _ = buffer.sender.send(Event::OperationStarted("Searching...".to_owned(), buffer.line_groups().len()));
         buffer
             .line_groups()
             .iter()
@@ -72,7 +78,10 @@ impl Search {
                     .enumerate()
                     .filter(|(_, line)| line.content().contains(&self.pattern))
                     .for_each(|(i, _)| self.lines.push(i));
+                let _ = buffer.sender.send(Event::OperationIncrement("Searching...".to_owned(), 1));
             });
+        let _ = buffer.sender.send(Event::OperationFinished("Searching...".to_owned()));
+        info!("Search took {}ms", start.elapsed().as_millis());
     }
 
     pub(crate) fn has_results(&self) -> bool {

@@ -18,7 +18,7 @@ use crate::event::Event::{ClearCommand, NewFont, OpenFile, SetCommand};
 #[derive(Debug)]
 pub(crate) struct TextArea<'a> {
     textarea_properties: &'a mut TextAreaProperties,
-    current_command: &'a Option<Box<dyn Command>>,
+    current_command: &'a Option<Box<dyn Command + Send + Sync + 'static>>,
     drawing_rect: Rect,
     rect: Rect,
     theme: &'a Theme,
@@ -29,7 +29,7 @@ pub(crate) struct TextArea<'a> {
 impl<'a> TextArea<'a> {
     pub(crate) fn new(
         textarea_properties: &'a mut TextAreaProperties,
-        current_command: &'a Option<Box<dyn Command>>,
+        current_command: &'a Option<Box<dyn Command + Send + Sync + 'static>>,
         drawing_rect: Rect,
         rect: Rect,
         theme: &'a Theme,

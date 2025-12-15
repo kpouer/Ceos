@@ -37,7 +37,7 @@ pub(crate) struct Ceos {
     sender: Sender<Event>,
     receiver: Receiver<Event>,
     command_buffer: String,
-    current_command: Option<Box<dyn Command>>,
+    current_command: Option<Box<dyn Command + Send + Sync + 'static>>,
     frame_history: FrameHistory,
     search_panel: SearchPanel,
     theme: Theme,
@@ -158,7 +158,14 @@ impl Ceos {
     pub(crate) fn execute_command(&mut self) {
         if let Some(command) = self.current_command.take() {
             info!("Execute command {}", command);
-            command.execute(&mut self.textarea_properties.buffer);
+            let mut tmp_buffer = Buffer::new(self.sender.clone());
+            std::mem::swap(&mut tmp_buffer, &mut self.textarea_properties.buffer);
+            let sender = self.sender.clone();
+            std::thread::spawn(move || {
+                command.execute(&mut tmp_buffer);
+                sender.send(Event::BufferLoaded(tmp_buffer)).unwrap();
+            });
+
         } else if let Ok(command) = Event::try_from(self.command_buffer.as_str()) {
             self.sender.send(command).unwrap();
         }
