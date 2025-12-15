@@ -154,7 +154,8 @@ mod tests {
         \n\
         3 delete me\n\
         4 keep me\n";
-        let mut buffer = Buffer::from(content);
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, content);
         assert_eq!(content.len(), buffer.len());
         assert_eq!(5, buffer.line_count());
         filter.execute(&mut buffer);

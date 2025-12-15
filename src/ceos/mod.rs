@@ -52,9 +52,9 @@ impl Default for Ceos {
         let (user_input_sender, user_input_receiver) = channel::<Event>();
         let search_panel = SearchPanel::new(user_input_sender.clone());
         Self {
-            sender: user_input_sender,
+            sender: user_input_sender.clone(),
             receiver: user_input_receiver,
-            textarea_properties: Default::default(),
+            textarea_properties: TextAreaProperties::new(user_input_sender),
             command_buffer: String::new(),
             current_command: None,
             frame_history: Default::default(),
@@ -111,7 +111,7 @@ impl Ceos {
                 self.progress_manager.remove(BUFFER_LOADING);
                 self.textarea_properties.set_buffer(buffer);
             }
-            BufferClosed => self.textarea_properties.set_buffer(Buffer::default()),
+            BufferClosed => self.textarea_properties.set_buffer(Buffer::new(self.sender.clone())),
             GotoLine(goto) => goto.execute(ctx, &mut self.textarea_properties),
             NewFont(font_id) => self.textarea_properties.set_font_id(font_id),
             Event::OperationStarted(label, length) => self.progress_manager.add(label.clone(), label, length),
@@ -183,7 +183,7 @@ impl eframe::App for Ceos {
                 ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
                     self.progress_manager
                         .iter()
-                        .map(|(key, progress)| {
+                        .map(|(_key, progress)| {
                             let percent = progress.percent();
                             ProgressBar::new(percent)
                                 .text(format!(
@@ -451,7 +451,7 @@ impl Ceos {
         let sender = self.sender.clone();
         thread::spawn(move || {
             sender.send(BufferClosed).unwrap();
-            match Buffer::new_from_file(path, &sender) {
+            match Buffer::new_from_file(path, sender.clone()) {
                 Ok(buffer) => sender.send(BufferLoaded(buffer)).unwrap(),
                 Err(e) => warn!("{:?}", e),
             }

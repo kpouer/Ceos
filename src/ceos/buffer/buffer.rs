@@ -20,22 +20,24 @@ pub(crate) struct Buffer {
     content: Vec<LineGroup>,
     length: usize,
     pub(crate) dirty: bool,
+    sender: Sender<Event>,
 }
 
-impl Default for Buffer {
-    fn default() -> Self {
+const FILTERING: &str = "Filtering...";
+
+impl Buffer {
+    pub(crate) fn new(sender: Sender<Event>) -> Self {
         Self {
             path: None,
             content: vec![LineGroup::default()],
             length: 0,
             dirty: false,
+            sender,
         }
     }
-}
 
-impl From<&str> for Buffer {
-    fn from(text: &str) -> Self {
-        let mut buffer = Self::default();
+    pub(crate) fn new_from_string(sender: Sender<Event>, text: &str) -> Self {
+        let mut buffer = Self::new(sender);
 
         let lines_iterator = text.lines();
         lines_iterator.into_iter().for_each(|line| {
@@ -44,9 +46,31 @@ impl From<&str> for Buffer {
 
         buffer
     }
-}
 
-impl Buffer {
+    pub(crate) fn new_from_file(
+        path: PathBuf,
+        sender: Sender<Event>,
+    ) -> Result<Self, std::io::Error> {
+        let file_size = std::fs::metadata(&path)?.len() as usize;
+        let _ = sender.send(BufferLoadingStarted(path.clone(), file_size));
+        let file = File::open(&path)?;
+        let buffer_reader = io::BufReader::new(file);
+        let mut start = Instant::now();
+        let mut buffer = Self {
+            path: Some(path.clone()),
+            ..Self::new(sender)
+        };
+        for line_text in buffer_reader.lines().flatten() {
+            buffer.push_line(line_text);
+            if start.elapsed() > Duration::from_millis(50) {
+                let _ = buffer.sender.send(BufferLoading(path.clone(), buffer.length, file_size));
+                start = Instant::now();
+            }
+        }
+
+        Ok(buffer)
+    }
+
     /// Compress all line groups and free their in-memory lines to reclaim memory.
     /// This is primarily intended for debug/maintenance actions.
     pub(crate) fn compress_all_groups(&mut self) {
@@ -62,30 +86,6 @@ impl Buffer {
             // Free lines if present; debug_assert in free() ensures it's compressed
             line_group.free();
         }
-    }
-
-    pub(crate) fn new_from_file(
-        path: PathBuf,
-        sender: &Sender<Event>,
-    ) -> Result<Self, std::io::Error> {
-        let file_size = std::fs::metadata(&path)?.len() as usize;
-        let _ = sender.send(BufferLoadingStarted(path.clone(), file_size));
-        let file = File::open(&path)?;
-        let buffer_reader = io::BufReader::new(file);
-        let mut start = Instant::now();
-        let mut buffer = Self {
-            path: Some(path.clone()),
-            ..Default::default()
-        };
-        for line_text in buffer_reader.lines().flatten() {
-            buffer.push_line(line_text);
-            if start.elapsed() > Duration::from_millis(50) {
-                let _ = sender.send(BufferLoading(path.clone(), buffer.length, file_size));
-                start = Instant::now();
-            }
-        }
-
-        Ok(buffer)
     }
 
     fn push_line(&mut self, line: impl Into<Line>) {
@@ -141,11 +141,16 @@ impl Buffer {
     where
         F: FnMut(&mut Line) + Clone + Sync,
     {
+        let _ = self.sender.send(Event::OperationProgress(FILTERING.to_owned(), self.line_count()));
         self.content
             .par_iter_mut()
-            .for_each(|line_group| line_group.filter_line_mut(filter.clone()));
+            .for_each(|line_group| {
+                let _ = self.sender.send(Event::OperationIncrement(FILTERING.to_owned(), 1));
+                line_group.filter_line_mut(filter.clone());
+            });
         let new_length = self.compute_length();
         self.dirty = true;
+        let _ = self.sender.send(Event::OperationFinished(FILTERING.to_owned()));
         new_length
     }
 
@@ -331,7 +336,8 @@ mod tests {
 
     #[test]
     fn from_str_builds_lines_and_lengths() {
-        let b = Buffer::from("a\nbb\nccc");
+        let (sender, _) = std::sync::mpsc::channel();
+        let b = Buffer::new_from_string(sender, "a\nbb\nccc");
         assert_eq!(b.line_count(), 3);
         // Each line counted as len+1 in our model
         assert_eq!(b.len(), (1 + 1) + (2 + 1) + (3 + 1));
@@ -342,7 +348,8 @@ mod tests {
 
     #[test]
     fn iter_yields_all_lines_in_order() {
-        let b = Buffer::from("l1\nl2\nl3");
+        let (sender, _) = std::sync::mpsc::channel();
+        let b = Buffer::new_from_string(sender, "l1\nl2\nl3");
         let mut collected = Vec::new();
         b.line_groups().iter().for_each(|line_group| {
             line_group
@@ -357,7 +364,8 @@ mod tests {
     #[test]
     fn group_boundary_and_compression_path() {
         // Push exactly DEFAULT_GROUP_SIZE lines to trigger compression of first group
-        let mut b = Buffer::default();
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut b = Buffer::new(sender);
         for i in 0..DEFAULT_GROUP_SIZE {
             b.push_line(format!("{:03}", i));
         }
@@ -376,7 +384,8 @@ mod tests {
 
     #[test]
     fn filter_line_mut_updates_all_lines() {
-        let mut b = Buffer::from("a\nbb");
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut b = Buffer::new_from_string(sender, "a\nbb");
         let new_len = b.filter_line_mut(|l| {
             let mut s = l.content().to_string();
             s.push('x');
@@ -390,7 +399,8 @@ mod tests {
 
     #[test]
     fn retain_line_mut_keeps_predicate_matches() {
-        let mut b = Buffer::from("a\nbb\nccc\ndddd");
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut b = Buffer::new_from_string(sender, "a\nbb\nccc\ndddd");
         let _ = b.retain_line_mut(|l| l.len() % 2 == 0); // keep even lengths: 2 and 4
         assert_eq!(b.line_count(), 2);
         assert_eq!(b.line_text(0), "bb");
@@ -400,7 +410,8 @@ mod tests {
 
     #[test]
     fn drain_line_mut_various_ranges() {
-        let mut b = Buffer::from("l0\nl1\nl2\nl3\nl4");
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut b = Buffer::new_from_string(sender, "l0\nl1\nl2\nl3\nl4");
         let len1 = b.drain_line_mut(1..3); // remove l1,l2
         assert_eq!(b.line_count(), 3);
         assert_eq!(b.line_text(0), "l0");
@@ -416,7 +427,8 @@ mod tests {
 
     #[test]
     fn prepare_range_for_read_safe_and_accessible() {
-        let mut b = Buffer::default();
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut b = Buffer::new(sender);
         for i in 0..(DEFAULT_GROUP_SIZE * 2 + 10) {
             b.push_line(format!("line{}", i));
         }
@@ -430,7 +442,8 @@ mod tests {
 
     #[test]
     fn mem_non_decreasing_after_growth() {
-        let mut b = Buffer::default();
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut b = Buffer::new(sender);
         let base = b.mem();
         b.push_line("abc");
         assert!(b.mem() >= base);

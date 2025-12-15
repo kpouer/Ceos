@@ -13,6 +13,8 @@ use eframe::epaint::FontId;
 use log::info;
 use std::cmp;
 use std::ops::Range;
+use std::sync::mpsc::Sender;
+use crate::event::Event;
 
 pub(crate) const DEFAULT_LINE_HEIGHT: f32 = 16.0;
 
@@ -27,15 +29,15 @@ pub(crate) struct TextAreaProperties {
     pub(crate) selection: Option<Selection>,
 }
 
-impl Default for TextAreaProperties {
-    fn default() -> Self {
+impl TextAreaProperties {
+    pub(crate) fn new(sender: Sender<Event>) -> TextAreaProperties {
         let font_id = FontId::new(DEFAULT_LINE_HEIGHT, egui::FontFamily::Monospace);
         let mut renderer_manager = RendererManager::default();
         renderer_manager.add_renderer(TEXT_LAYER, Box::new(TextRenderer::new(font_id.clone())));
         renderer_manager.add_renderer(SELECTION_LAYER, Box::new(SelectionRenderer {}));
         renderer_manager.add_renderer(CARET_LAYER, Box::new(CaretRenderer::default()));
         Self {
-            buffer: Default::default(),
+            buffer: Buffer::new(sender),
             renderer_manager,
             line_height: DEFAULT_LINE_HEIGHT,
             font_id,
@@ -44,9 +46,7 @@ impl Default for TextAreaProperties {
             selection: None,
         }
     }
-}
 
-impl TextAreaProperties {
     pub(crate) fn set_font_id(&mut self, font_id: FontId) {
         self.font_id = font_id.clone();
         self.char_width = 0.0;
@@ -98,14 +98,5 @@ impl TextAreaProperties {
             self.buffer.line_count(),
         );
         min_row..max_row
-    }
-}
-
-impl From<Buffer> for TextAreaProperties {
-    fn from(buffer: Buffer) -> Self {
-        Self {
-            buffer,
-            ..Default::default()
-        }
     }
 }

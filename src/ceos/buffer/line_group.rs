@@ -219,7 +219,7 @@ impl LineGroup {
         }
     }
 
-    pub(crate) fn filter_line_mut(&mut self, mut filter: impl FnMut(&mut Line)) {
+    pub(crate) fn filter_line_mut(&mut self, filter: impl FnMut(&mut Line)) {
         let should_decompress = self.lines.is_none();
         if should_decompress {
             self.decompress();

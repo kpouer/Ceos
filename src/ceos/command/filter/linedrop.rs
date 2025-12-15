@@ -95,7 +95,8 @@ mod tests {
 
     #[test]
     fn test_filter_prefix() -> Result<(), ()> {
-        let mut buffer = Buffer::from(CONTENT);
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, CONTENT);
         assert_eq!(CONTENT.len(), buffer.len());
         assert_eq!(5, buffer.line_count());
         let filter = LineDrop::try_from("l ..2")?;
@@ -108,7 +109,8 @@ mod tests {
 
     #[test]
     fn test_filter_range() -> Result<(), ()> {
-        let mut buffer = Buffer::from(CONTENT);
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, CONTENT);
         assert_eq!(CONTENT.len(), buffer.len());
         assert_eq!(5, buffer.line_count());
         let filter = LineDrop::try_from("l 3..")?;
@@ -121,7 +123,8 @@ mod tests {
 
     #[test]
     fn test_filter_suffix() -> Result<(), ()> {
-        let mut buffer = Buffer::from(CONTENT);
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, CONTENT);
         assert_eq!(CONTENT.len(), buffer.len());
         assert_eq!(5, buffer.line_count());
         let filter = LineDrop::try_from("l 2..4")?;
