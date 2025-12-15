@@ -27,6 +27,12 @@ impl ProgressManager {
         }
     }
 
+    pub(crate) fn increment(&mut self, id: &str) {
+        if let Some(progress) = self.progress.get_mut(id) {
+            progress.current += 1;
+        }
+    }
+
     pub(crate) fn remove(&mut self, id: &str) {
         self.progress.remove(id);
     }
