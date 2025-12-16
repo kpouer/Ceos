@@ -64,23 +64,28 @@ impl Renderer for Search {
     }
 }
 
+const SEARCHING_INDEX: &str = "Searching...";
+
 impl Search {
     pub(crate) fn init(&mut self, buffer: &Buffer) {
         let start = Instant::now();
-        let _ = buffer.sender.send(Event::OperationStarted("Searching...".to_owned(), buffer.line_groups().len()));
-        buffer
+        let _ = buffer.sender.send(Event::OperationStarted(SEARCHING_INDEX.to_owned(), buffer.line_groups().len()));
+        let lines: Vec<usize> = buffer
             .line_groups()
             .iter()
             .map(|line_group| line_group.lines())
-            .for_each(|lines| {
-                lines
+            .flat_map(|lines| {
+                let _ = buffer.sender.send(Event::OperationIncrement(SEARCHING_INDEX.to_owned(), 1));
+                let indexes = lines
                     .iter()
                     .enumerate()
-                    .filter(|(_, line)| line.content().contains(&self.pattern))
-                    .for_each(|(i, _)| self.lines.push(i));
-                let _ = buffer.sender.send(Event::OperationIncrement("Searching...".to_owned(), 1));
-            });
-        let _ = buffer.sender.send(Event::OperationFinished("Searching...".to_owned()));
+                    .filter_map(|(i, line)| line.content().contains(&self.pattern).then_some(i))
+                    .collect::<Vec<_>>();
+                indexes
+            })
+            .collect();
+        self.lines = lines;
+        let _ = buffer.sender.send(Event::OperationFinished(SEARCHING_INDEX.to_owned()));
         info!("Search took {}ms", start.elapsed().as_millis());
     }
 
