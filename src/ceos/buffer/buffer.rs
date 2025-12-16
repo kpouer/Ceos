@@ -160,9 +160,9 @@ impl Buffer {
         let _ = self.sender.send(Event::OperationStarted(FILTERING.to_owned(), self.content.len()));
         self.content
             .iter_mut()
-            .for_each(|g| {
+            .for_each(|line_group| {
                 let _ = self.sender.send(Event::OperationIncrement(FILTERING.to_owned(), 1));
-                g.retain(|l| filter(l));
+                line_group.retain(|line| filter(line));
             });
         // remove empty groups
         self.content.retain(|g| !g.is_empty());
