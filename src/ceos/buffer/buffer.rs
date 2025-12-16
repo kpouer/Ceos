@@ -29,7 +29,7 @@ impl Buffer {
     pub(crate) fn new(sender: Sender<Event>) -> Self {
         Self {
             path: None,
-            content: vec![LineGroup::default()],
+            content: vec![LineGroup::with_first_line(0)],
             length: 0,
             dirty: false,
             sender,
@@ -96,7 +96,8 @@ impl Buffer {
         if last_group.is_full() {
             last_group.eventually_compress();
             last_group.free();
-            self.content.push(LineGroup::default());
+            let next_first = last_group.first_line() + last_group.line_count();
+            self.content.push(LineGroup::with_first_line(next_first));
         }
     }
 
@@ -133,6 +134,7 @@ impl Buffer {
             }
         }
         let new_length = self.compute_length();
+        self.recompute_first_lines();
         self.dirty = true;
         new_length
     }
@@ -165,6 +167,7 @@ impl Buffer {
         // remove empty groups
         self.content.retain(|g| !g.is_empty());
         let new_length = self.compute_length();
+        self.recompute_first_lines();
         self.dirty = true;
         let _ = self.sender.send(Event::OperationFinished(FILTERING.to_owned()));
         new_length
@@ -310,6 +313,14 @@ impl Index<usize> for Buffer {
 }
 
 impl Buffer {
+    fn recompute_first_lines(&mut self) {
+        let mut acc = 0usize;
+        for g in &mut self.content {
+            g.set_first_line(acc);
+            acc += g.line_count();
+        }
+    }
+
     fn find_group_index(&self, mut line: usize) -> Option<(usize, usize)> {
         for (group_index, line_group) in self.content.iter().enumerate() {
             if line < line_group.line_count() {
@@ -391,10 +402,10 @@ mod tests {
     fn filter_line_mut_updates_all_lines() {
         let (sender, _) = std::sync::mpsc::channel();
         let mut b = Buffer::new_from_string(sender, "a\nbb");
-        let new_len = b.filter_line_mut(|l| {
-            let mut s = l.content().to_string();
+        let new_len = b.filter_line_mut(|line| {
+            let mut s = line.to_string();
             s.push('x');
-            *l = Line::from(s);
+            *line = Line::from(s);
         });
         assert!(new_len >= b.len());
         assert!(b.line_text(0).ends_with('x'));

@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use std::ops::RangeBounds;
 
 #[derive(Default, Debug, Clone)]
@@ -24,7 +25,7 @@ impl Line {
     pub(crate) fn content(&self) -> &str {
         &self.content
     }
-    
+
     pub(crate) fn contains(&self, needle: &str) -> bool {
         self.content.contains(needle)
     }
@@ -39,6 +40,12 @@ impl Line {
     {
         self.content.drain(range);
         self.content.shrink_to_fit();
+    }
+}
+
+impl Display for Line {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.content)
     }
 }
 

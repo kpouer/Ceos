@@ -18,22 +18,19 @@ pub(crate) struct LineGroup {
     // total UTF-8 text length of the group with one '\n' separator between lines
     length: usize,
     max_line_length: usize,
-}
-
-impl Default for LineGroup {
-    fn default() -> Self {
-        Self::with_capacity(DEFAULT_GROUP_SIZE)
-    }
+    /// Global index (0-based) of the first line contained in this group
+    first_line: usize,
 }
 
 impl LineGroup {
-    pub(crate) fn with_capacity(cap: usize) -> Self {
+    pub(crate) fn with_first_line(first_line: usize) -> Self {
         Self {
-            lines: Some(Vec::with_capacity(cap)),
+            lines: Some(Vec::with_capacity(DEFAULT_GROUP_SIZE)),
             compressed: None,
             line_count: 0,
             length: 0,
             max_line_length: 0,
+            first_line,
         }
     }
 
@@ -202,6 +199,14 @@ impl LineGroup {
         self.max_line_length
     }
 
+    pub(crate) fn first_line(&self) -> usize {
+        self.first_line
+    }
+
+    pub(crate) fn set_first_line(&mut self, value: usize) {
+        self.first_line = value;
+    }
+
     /// Returns true if this group currently holds compressed data
     pub(crate) fn is_compressed(&self) -> bool {
         self.compressed.is_some()
@@ -314,7 +319,7 @@ mod tests {
     use super::*;
 
     fn lg_from_strs(strs: &[&str]) -> LineGroup {
-        let mut g = LineGroup::default();
+        let mut g = LineGroup::with_first_line(0);
         for s in strs {
             g.push(Line::from(*s));
         }
@@ -323,7 +328,7 @@ mod tests {
 
     #[test]
     fn push_updates_counters_and_index() {
-        let mut g = LineGroup::default();
+        let mut g = LineGroup::with_first_line(0);
         g.push(Line::from("a"));
         g.push(Line::from("bb"));
 
@@ -395,7 +400,7 @@ mod tests {
 
     #[test]
     fn is_full_after_default_group_size_pushes() {
-        let mut g = LineGroup::default();
+        let mut g = LineGroup::with_first_line(0);
         for _ in 0..DEFAULT_GROUP_SIZE {
             g.push(Line::from("a"));
         }
@@ -404,7 +409,7 @@ mod tests {
 
     #[test]
     fn mem_reports_non_zero_after_push() {
-        let mut g = LineGroup::default();
+        let mut g = LineGroup::with_first_line(0);
         let base = g.mem();
         g.push(Line::from("abcdef"));
         assert!(g.mem() >= base);
