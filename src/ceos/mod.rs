@@ -108,6 +108,7 @@ impl Ceos {
                 self.progress_manager.remove(BUFFER_SAVING);
             }
             BufferLoaded(buffer) => {
+                self.search_panel.search.reset();
                 self.progress_manager.remove(BUFFER_LOADING);
                 self.textarea_properties.set_buffer(buffer);
             }

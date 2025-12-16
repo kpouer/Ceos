@@ -72,7 +72,7 @@ impl Search {
         let _ = buffer.sender.send(Event::OperationStarted(SEARCHING_INDEX.to_owned(), buffer.line_groups().len()));
         let lines: Vec<usize> = buffer
             .line_groups()
-            .iter()
+            .par_iter()
             .map(|line_group| line_group.lines())
             .flat_map(|lines| {
                 let _ = buffer.sender.send(Event::OperationIncrement(SEARCHING_INDEX.to_owned(), 1));
@@ -87,6 +87,10 @@ impl Search {
         self.lines = lines;
         let _ = buffer.sender.send(Event::OperationFinished(SEARCHING_INDEX.to_owned()));
         info!("Search took {}ms", start.elapsed().as_millis());
+    }
+
+    pub(crate) fn reset(&mut self) {
+        *self = Self::default();
     }
 
     pub(crate) fn has_results(&self) -> bool {
