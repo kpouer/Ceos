@@ -76,12 +76,11 @@ impl Search {
             .map(|line_group| line_group.lines())
             .flat_map(|lines| {
                 let _ = buffer.sender.send(Event::OperationIncrement(SEARCHING_INDEX.to_owned(), 1));
-                let indexes = lines
+                lines
                     .iter()
                     .enumerate()
-                    .filter_map(|(i, line)| line.content().contains(&self.pattern).then_some(i))
-                    .collect::<Vec<_>>();
-                indexes
+                    .filter_map(|(i, line)| line.contains(&self.pattern).then_some(i))
+                    .collect::<Vec<_>>()
             })
             .collect();
         self.lines = lines;

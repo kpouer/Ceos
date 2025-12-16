@@ -24,6 +24,10 @@ impl Line {
     pub(crate) fn content(&self) -> &str {
         &self.content
     }
+    
+    pub(crate) fn contains(&self, needle: &str) -> bool {
+        self.content.contains(needle)
+    }
 
     pub(crate) fn mem(&self) -> usize {
         self.content.capacity()
