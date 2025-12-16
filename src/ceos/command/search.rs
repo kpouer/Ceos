@@ -73,13 +73,13 @@ impl Search {
         let lines: Vec<usize> = buffer
             .line_groups()
             .par_iter()
-            .map(|line_group| line_group.lines())
-            .flat_map(|lines| {
+            .map(|line_group| (line_group.first_line(), line_group.lines()))
+            .flat_map(|(first_line, lines)| {
                 let _ = buffer.sender.send(Event::OperationIncrement(SEARCHING_INDEX.to_owned(), 1));
                 lines
                     .iter()
                     .enumerate()
-                    .filter_map(|(i, line)| line.contains(&self.pattern).then_some(i))
+                    .filter_map(|(i, line)| line.contains(&self.pattern).then_some(first_line + i))
                     .collect::<Vec<_>>()
             })
             .collect();
