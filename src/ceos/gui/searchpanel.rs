@@ -31,7 +31,7 @@ impl SearchPanel {
                     body.rows(30.0, self.search.result_count(), |mut row| {
                         let row_index = row.index();
                         let line_number = self.search.line_number(row_index);
-                        self.add_column(&mut row, line_number, line_number.to_string());
+                        self.add_column(&mut row, line_number, (line_number + 1).to_string());
                         self.add_column(&mut row, line_number, buffer.line_text(line_number));
                     });
                 });
