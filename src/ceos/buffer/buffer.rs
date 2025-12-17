@@ -118,14 +118,14 @@ impl Buffer {
         let mut to_remove = end - start;
         let global_index = start;
         while to_remove > 0 {
-            if let Some((gi, li)) = self.find_group_index(global_index) {
-                let group_len = self.content[gi].len();
-                let max_in_group = group_len - li;
+            if let Some((group_index, line_index)) = self.find_group_index(global_index) {
+                let line_group = &mut self.content[group_index];
+                let max_in_group = line_group.len() - line_index;
                 let take = to_remove.min(max_in_group);
-                self.content[gi].drain_lines(li..li + take);
+                line_group.drain_lines(line_index..line_index + take);
                 // If group is now empty, remove it to keep structure compact
-                if self.content[gi].is_empty() {
-                    self.content.remove(gi);
+                if line_group.is_empty() {
+                    self.content.remove(group_index);
                 }
                 to_remove -= take;
                 // global_index stays the same because we removed at this position
@@ -245,6 +245,8 @@ impl Buffer {
         self.content.iter().map(|g| g.line_count()).sum()
     }
 
+    /// Returns the buffer length.
+    /// It is the number of chars + end of lines
     pub(crate) fn len(&self) -> usize {
         self.length
     }
@@ -293,31 +295,16 @@ impl Buffer {
         let groups_mem: usize = self.content.iter().map(|line_group| line_group.mem()).sum();
         vec_overhead + array_mem + groups_mem
     }
-}
 
-impl Buffer {
     pub fn compressed_size(&self) -> usize {
         self.content.iter().map(|data| data.compressed_size()).sum()
     }
-}
 
-impl Index<usize> for Buffer {
-    type Output = Line;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        let (group_index, line_index) = self
-            .find_group_index(index)
-            .expect("line index out of bounds");
-        &self.content[group_index][line_index]
-    }
-}
-
-impl Buffer {
     fn recompute_first_lines(&mut self) {
-        let mut acc = 0usize;
+        let mut first_line = 0;
         for g in &mut self.content {
-            g.set_first_line(acc);
-            acc += g.line_count();
+            g.set_first_line(first_line);
+            first_line += g.line_count();
         }
     }
 
@@ -343,6 +330,17 @@ impl Buffer {
             Bound::Unbounded => self.line_count(),
         };
         (start.min(self.line_count()), end.min(self.line_count()))
+    }
+}
+
+impl Index<usize> for Buffer {
+    type Output = Line;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        let (group_index, line_index) = self
+            .find_group_index(index)
+            .expect("line index out of bounds");
+        &self.content[group_index][line_index]
     }
 }
 
