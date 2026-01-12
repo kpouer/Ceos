@@ -19,14 +19,8 @@ pub(crate) struct RendererManager {
 impl RendererManager {
     pub(crate) fn add_renderer(&mut self, layer: u8, renderer: Box<dyn Renderer>) {
         let entry = RendererEntry { layer, renderer };
-        for (i, e) in self.renderers.iter().enumerate() {
-            if entry.layer < e.layer {
-                self.renderers.insert(i, entry);
-                return;
-            }
-        }
-
-        self.renderers.push(entry);
+        let index = self.renderers.partition_point(|e| e.layer <= entry.layer);
+        self.renderers.insert(index, entry);
     }
 
     pub(crate) fn before_frame(&mut self) {
