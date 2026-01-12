@@ -97,11 +97,9 @@ impl Ceos {
             Event::BufferSaved(path) => {
                 self.progress_manager.remove(BUFFER_SAVING);
                 // Marquer le buffer comme non-dirty si c'est le même fichier
-                if let Some(current_path) = &self.textarea_properties.buffer.path {
-                    if current_path == &path {
+                if let Some(current_path) = &self.textarea_properties.buffer.path && current_path == &path {
                         self.textarea_properties.buffer.dirty = false;
                     }
-                }
             }
             Event::BufferSaveFailed(_) => {
                 // Retirer la progression en cas d'échec
