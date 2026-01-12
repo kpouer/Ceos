@@ -15,10 +15,11 @@ impl<T: Into<String>> From<T> for Line {
 }
 
 impl Line {
-    pub(crate) fn is_empty(&self) -> bool {
+    pub(crate) const fn is_empty(&self) -> bool {
         self.content.is_empty()
     }
-    pub(crate) fn len(&self) -> usize {
+
+    pub(crate) const fn len(&self) -> usize {
         self.content.len()
     }
 
@@ -30,7 +31,7 @@ impl Line {
         self.content.contains(needle)
     }
 
-    pub(crate) fn mem(&self) -> usize {
+    pub(crate) const fn mem(&self) -> usize {
         self.content.capacity()
     }
 

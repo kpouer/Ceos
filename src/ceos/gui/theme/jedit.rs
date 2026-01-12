@@ -22,7 +22,7 @@ static OPERATOR: Color32 = Color32::from_rgb(0x00, 0x00, 0x00);
 
 impl Theme {
     #[allow(non_snake_case)]
-    pub(crate) fn jEdit() -> Self {
+    pub(crate) const fn jEdit() -> Self {
         Self {
             dark: false,
             background: Color32::WHITE,

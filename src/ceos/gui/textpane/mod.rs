@@ -27,7 +27,7 @@ pub(crate) struct TextPane<'a> {
 }
 
 impl<'a> TextPane<'a> {
-    pub(crate) fn new(
+    pub(crate) const fn new(
         textarea_properties: &'a mut TextAreaProperties,
         current_command: &'a Option<Box<dyn Command + Send + Sync + 'static>>,
         theme: &'a Theme,

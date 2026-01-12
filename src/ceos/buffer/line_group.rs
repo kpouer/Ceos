@@ -179,44 +179,44 @@ impl LineGroup {
         Cow::Owned(self.decompress_lines())
     }
 
-    pub(crate) fn line_count(&self) -> usize {
+    pub(crate) const fn line_count(&self) -> usize {
         self.line_count
     }
 
-    pub(crate) fn len(&self) -> usize {
+    pub(crate) const fn len(&self) -> usize {
         self.length
     }
 
-    pub(crate) fn is_full(&self) -> bool {
+    pub(crate) const fn is_full(&self) -> bool {
         self.line_count >= DEFAULT_GROUP_SIZE
     }
 
-    pub(crate) fn is_empty(&self) -> bool {
+    pub(crate) const fn is_empty(&self) -> bool {
         self.line_count == 0
     }
 
-    pub(crate) fn max_line_length(&self) -> usize {
+    pub(crate) const fn max_line_length(&self) -> usize {
         self.max_line_length
     }
 
-    pub(crate) fn first_line(&self) -> usize {
+    pub(crate) const fn first_line(&self) -> usize {
         self.first_line
     }
 
-    pub(crate) fn set_first_line(&mut self, value: usize) {
+    pub(crate) const fn set_first_line(&mut self, value: usize) {
         self.first_line = value;
     }
 
     /// Returns true if this group currently holds compressed data
-    pub(crate) fn is_compressed(&self) -> bool {
+    pub(crate) const fn is_compressed(&self) -> bool {
         self.compressed.is_some()
     }
 
-    pub(crate) fn is_decompressed(&self) -> bool {
+    pub(crate) const fn is_decompressed(&self) -> bool {
         self.lines.is_some()
     }
 
-    pub(crate) fn decompressed_line_count(&self) -> usize {
+    pub(crate) const fn decompressed_line_count(&self) -> usize {
         if let Some(lines) = &self.lines {
             lines.len()
         } else {

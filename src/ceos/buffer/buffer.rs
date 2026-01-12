@@ -247,7 +247,8 @@ impl Buffer {
 
     /// Returns the buffer length.
     /// It is the number of chars + end of lines
-    pub(crate) fn len(&self) -> usize {
+    #[inline]
+    pub(crate) const fn len(&self) -> usize {
         self.length
     }
 
@@ -259,7 +260,7 @@ impl Buffer {
             .unwrap_or(0)
     }
 
-    pub(crate) fn group_count(&self) -> usize {
+    pub(crate) const fn group_count(&self) -> usize {
         self.content.len()
     }
 

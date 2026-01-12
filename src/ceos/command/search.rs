@@ -92,15 +92,15 @@ impl Search {
         *self = Self::default();
     }
 
-    pub(crate) fn has_results(&self) -> bool {
+    pub(crate) const fn has_results(&self) -> bool {
         !self.lines.is_empty()
     }
 
-    pub(crate) fn next(&mut self) {
+    pub(crate) const fn next(&mut self) {
         self.index = (self.index + 1) % self.lines.len();
     }
 
-    pub(crate) fn prev(&mut self) {
+    pub(crate) const fn prev(&mut self) {
         if self.lines.is_empty() {
             return;
         }
@@ -119,7 +119,7 @@ impl Search {
         self.lines[index]
     }
 
-    pub(crate) fn result_count(&self) -> usize {
+    pub(crate) const fn result_count(&self) -> usize {
         self.lines.len()
     }
 }

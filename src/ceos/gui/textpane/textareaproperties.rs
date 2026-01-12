@@ -63,30 +63,34 @@ impl TextAreaProperties {
         self.buffer = buffer
     }
 
-    pub(crate) fn x_to_column(&self, x: f32) -> usize {
+    pub(crate) const fn x_to_column(&self, x: f32) -> usize {
         (x / self.char_width).floor() as usize
     }
 
-    pub(crate) fn y_to_line(&self, y: f32) -> usize {
+    pub(crate) const fn y_to_line(&self, y: f32) -> usize {
         (y / self.line_height).floor() as usize
     }
 
-    pub(crate) fn point_to_text_position(&self, point: Pos2) -> (usize, usize) {
+    pub(crate) const fn point_to_text_position(&self, point: Pos2) -> (usize, usize) {
         (self.x_to_column(point.x), self.y_to_line(point.y))
     }
 
+    #[inline]
     pub(crate) fn gutter_width(&self) -> f32 {
         gutter::gutter_width(self.char_width, self.buffer.line_count())
     }
 
+    #[inline]
     pub(crate) fn text_bounds(&self) -> Vec2 {
         Vec2::new(self.text_width(), self.text_height())
     }
 
+    #[inline]
     pub(crate) fn text_width(&self) -> f32 {
         self.buffer.max_line_length() as f32 * self.char_width
     }
 
+    #[inline]
     pub(crate) fn text_height(&self) -> f32 {
         self.line_height * self.buffer.line_count() as f32
     }

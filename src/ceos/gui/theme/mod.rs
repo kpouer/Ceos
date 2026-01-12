@@ -44,7 +44,7 @@ impl From<&Theme> for Visuals {
 }
 
 impl Theme {
-    pub(crate) fn color(&self, token: &Token) -> Color32 {
+    pub(crate) const fn color(&self, token: &Token) -> Color32 {
         match token {
             Token::Bool => self.literal,
             Token::Null => self.literal,

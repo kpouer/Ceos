@@ -59,7 +59,7 @@ pub(crate) struct Progress {
 }
 
 impl Progress {
-    pub(crate) fn percent(&self) -> f32 {
+    pub(crate) const fn percent(&self) -> f32 {
         self.current as f32 / self.max as f32
     }
 }

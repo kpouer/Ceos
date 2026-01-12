@@ -33,7 +33,7 @@ impl TryFrom<&str> for Range {
 }
 
 impl Range {
-    fn new(start: usize, end: usize) -> Result<Range, ()> {
+    const fn new(start: usize, end: usize) -> Result<Range, ()> {
         if start > end {
             return Err(());
         }
@@ -43,7 +43,7 @@ impl Range {
         })
     }
 
-    pub(crate) fn contains(&self, value: usize) -> bool {
+    pub(crate) const fn contains(&self, value: usize) -> bool {
         if value < self.start {
             return false;
         }

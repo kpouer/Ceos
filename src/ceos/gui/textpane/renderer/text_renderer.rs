@@ -11,7 +11,7 @@ pub(crate) struct TextRenderer {
 }
 
 impl TextRenderer {
-    pub(crate) fn new(font_id: FontId) -> Self {
+    pub(crate) const fn new(font_id: FontId) -> Self {
         Self { font_id }
     }
 }

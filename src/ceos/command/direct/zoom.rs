@@ -31,7 +31,7 @@ impl TryFrom<&str> for Zoom {
 }
 
 impl Zoom {
-    pub(crate) fn get_font_id(&self) -> FontId {
+    pub(crate) const fn get_font_id(&self) -> FontId {
         FontId::new(self.size, egui::FontFamily::Monospace)
     }
 }

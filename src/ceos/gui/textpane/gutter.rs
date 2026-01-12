@@ -11,7 +11,7 @@ pub(crate) struct Gutter<'a> {
 }
 
 impl<'a> Gutter<'a> {
-    pub(crate) fn new(
+    pub(crate) const fn new(
         textarea: &'a TextAreaProperties,
         drawing_rect: Rect,
         virtual_rect: Rect,
@@ -60,7 +60,7 @@ impl Widget for Gutter<'_> {
     }
 }
 
-pub(crate) fn gutter_width(char_width: f32, line_count: usize) -> f32 {
+pub(crate) const fn gutter_width(char_width: f32, line_count: usize) -> f32 {
     if line_count == 0 {
         char_width * 3.0
     } else {

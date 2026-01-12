@@ -1,7 +1,7 @@
 use crate::ceos::gui::theme::Theme;
 
 impl Theme {
-    pub(crate) fn solarized_dark() -> Theme {
+    pub(crate) const fn solarized_dark() -> Theme {
         Theme {
             dark: true,
             background: egui_solarized::BASE03,
@@ -19,7 +19,7 @@ impl Theme {
         }
     }
 
-    pub(crate) fn solarized_light() -> Theme {
+    pub(crate) const fn solarized_light() -> Theme {
         Theme {
             dark: false,
             background: egui_solarized::BASE3,

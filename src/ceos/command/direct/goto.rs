@@ -31,7 +31,7 @@ impl TryFrom<&str> for Goto {
 }
 
 impl Goto {
-    pub(crate) fn new(line: usize) -> Self {
+    pub(crate) const fn new(line: usize) -> Self {
         Self { line }
     }
 
