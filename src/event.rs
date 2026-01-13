@@ -21,6 +21,7 @@ pub(crate) enum Event {
     GotoLine(Goto),
     NewFont(FontId),
     SetCommand(String),
+    /// Clear the current command
     ClearCommand,
     /// An operation started (label, total size)
     OperationStarted(String, usize),

@@ -71,7 +71,7 @@ impl Widget for &mut TextArea<'_> {
 impl TextArea<'_> {
     fn handle_interaction(&mut self, rect: Rect, response: &mut Response) {
         if response.clicked() || response.drag_started() {
-            self.sender.send(ClearCommand).unwrap();
+            let _ = self.sender.send(ClearCommand);
             self.update_caret_position(rect, &response);
             response.mark_changed();
         } else if (response.dragged() || response.drag_stopped())
@@ -81,15 +81,13 @@ impl TextArea<'_> {
                 .textarea_properties
                 .x_to_column(pointer_pos.x - rect.left());
             let caret_column = self.textarea_properties.caret_position.column;
-            if caret_column > column {
-                self.sender
-                    .send(SetCommand(format!("{column}..{caret_column}")))
-                    .unwrap();
+            let (start, end) = if caret_column > column {
+                (column, caret_column)
             } else {
-                self.sender
-                    .send(SetCommand(format!("{caret_column}..{column}")))
-                    .unwrap();
-            }
+                (caret_column, column)
+            };
+            let _ = self.sender
+                .send(SetCommand(format!("{start}..{end}")));
             response.mark_changed();
         }
     }
