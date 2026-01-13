@@ -3,7 +3,7 @@ use std::sync::mpsc::Sender;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::{FontId, Stroke, StrokeKind};
 use egui::Event::{MouseWheel, Zoom};
-use egui::{Context, InputState, Response, Widget};
+use egui::{Context, InputState, Response, Ui, Widget};
 use log::info;
 
 use crate::ceos::command::Command;
@@ -58,6 +58,18 @@ impl Widget for &mut TextArea<'_> {
             ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::Text);
         }
 
+        self.handle_interaction(rect, &mut response);
+
+        if ui.is_rect_visible(rect) {
+            self.paint_content(ui);
+        }
+
+        response
+    }
+}
+
+impl TextArea<'_> {
+    fn handle_interaction(&mut self, rect: Rect, response: &mut Response) {
         if response.clicked() || response.drag_started() {
             self.sender.send(ClearCommand).unwrap();
             self.update_caret_position(rect, &response);
@@ -80,56 +92,54 @@ impl Widget for &mut TextArea<'_> {
             }
             response.mark_changed();
         }
+    }
 
-        if ui.is_rect_visible(rect) {
-            ui.painter().rect(
-                self.drawing_rect,
-                0.0,
-                self.theme.background,
-                Stroke::NONE,
-                StrokeKind::Inside,
-            );
-            ui.set_height(self.textarea_properties.text_height());
-            let mut drawing_pos = Pos2::new(ui.max_rect().left(), ui.clip_rect().top());
-            self.handle_input(ui.ctx(), self.drawing_rect.left_top());
-            let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
-            // Ensure the buffer has decompressed the groups needed for the visible range
-            self.textarea_properties
-                .buffer
-                .prepare_range_for_read(row_range.clone());
-            row_range.into_iter().for_each(|line| {
-                if self.search.has_results() {
-                    self.search.paint_line(
-                        ui,
-                        self.theme,
-                        self.textarea_properties,
-                        line,
-                        drawing_pos,
-                    );
-                }
-                if let Some(filter_renderer) = &self.current_command {
-                    filter_renderer.paint_line(
-                        ui,
-                        self.theme,
-                        self.textarea_properties,
-                        line,
-                        drawing_pos,
-                    );
-                }
-
-                self.textarea_properties.renderer_manager.paint_line(
+    fn paint_content(&mut self, ui: &mut Ui) {
+        ui.painter().rect(
+            self.drawing_rect,
+            0.0,
+            self.theme.background,
+            Stroke::NONE,
+            StrokeKind::Inside,
+        );
+        ui.set_height(self.textarea_properties.text_height());
+        let mut drawing_pos = Pos2::new(ui.max_rect().left(), ui.clip_rect().top());
+        self.handle_input(ui.ctx(), self.drawing_rect.left_top());
+        let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
+        // Ensure the buffer has decompressed the groups needed for the visible range
+        self.textarea_properties
+            .buffer
+            .prepare_range_for_read(row_range.clone());
+        row_range.into_iter().for_each(|line| {
+            if self.search.has_results() {
+                self.search.paint_line(
                     ui,
                     self.theme,
                     self.textarea_properties,
                     line,
                     drawing_pos,
                 );
+            }
+            if let Some(filter_renderer) = &self.current_command {
+                filter_renderer.paint_line(
+                    ui,
+                    self.theme,
+                    self.textarea_properties,
+                    line,
+                    drawing_pos,
+                );
+            }
 
-                drawing_pos.y += self.textarea_properties.line_height;
-            });
-        }
+            self.textarea_properties.renderer_manager.paint_line(
+                ui,
+                self.theme,
+                self.textarea_properties,
+                line,
+                drawing_pos,
+            );
 
-        response
+            drawing_pos.y += self.textarea_properties.line_height;
+        });
     }
 }
 
