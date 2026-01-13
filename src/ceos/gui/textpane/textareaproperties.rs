@@ -71,8 +71,11 @@ impl TextAreaProperties {
         (y / self.line_height).floor() as usize
     }
 
-    pub(crate) const fn point_to_text_position(&self, point: Pos2) -> (usize, usize) {
-        (self.x_to_column(point.x), self.y_to_line(point.y))
+    pub(crate) const fn point_to_text_position(&self, point: Pos2) -> Position {
+        Position {
+            column: self.x_to_column(point.x),
+            line: self.y_to_line(point.y),
+        }
     }
 
     #[inline]

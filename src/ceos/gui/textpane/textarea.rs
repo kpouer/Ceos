@@ -163,8 +163,8 @@ impl TextArea<'_> {
             {
                 pos.x -= top_left.x;
                 pos.y -= top_left.y;
-                let (column, line) = textarea_properties.point_to_text_position(pos);
-                info!("point to column:{column} line:{line},  topleft {top_left}, pos {pos}");
+                let position = textarea_properties.point_to_text_position(pos);
+                info!("point to {position}, topleft {top_left}, pos {pos}");
                 // textarea_properties.caret_position = Position { column, line };
             }
 
