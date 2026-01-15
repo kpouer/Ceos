@@ -18,12 +18,23 @@ impl Renderer for SelectionRenderer {
         drawing_pos: Pos2,
     ) {
         if let Some(selection) = &textarea_properties.selection
-            && selection.line == line
         {
-            let start_x =
-                drawing_pos.x + selection.start_column as f32 * textarea_properties.char_width;
-            let end_x =
-                drawing_pos.x + selection.end_column as f32 * textarea_properties.char_width;
+            let start_column = if selection.start.line < line {
+                0
+            } else if selection.start.line == line {
+                selection.start.column
+            } else {
+                return;
+            } as f32;
+            let end_column = if selection.end.line == line {
+                selection.end.column
+            } else if selection.end.line > line {
+                textarea_properties.buffer.line_text(line).len()
+            } else {
+                return;
+            } as f32;
+            let start_x = drawing_pos.x + start_column * textarea_properties.char_width;
+            let end_x = drawing_pos.x + end_column * textarea_properties.char_width;
             let rect = Rect::from([
                 Pos2::new(start_x, drawing_pos.y),
                 Pos2::new(end_x, drawing_pos.y + textarea_properties.line_height),

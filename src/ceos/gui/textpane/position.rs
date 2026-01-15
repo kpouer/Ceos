@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Default, Debug, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct Position {
     pub(crate) line: usize,
     pub(crate) column: usize,

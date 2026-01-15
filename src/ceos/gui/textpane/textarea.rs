@@ -8,8 +8,10 @@ use log::info;
 
 use crate::ceos::command::Command;
 use crate::ceos::command::search::Search;
+use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::renderer::Renderer;
+use crate::ceos::gui::textpane::selection::Selection;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::event::Event;
@@ -70,25 +72,36 @@ impl Widget for &mut TextArea<'_> {
 
 impl TextArea<'_> {
     fn handle_interaction(&mut self, rect: Rect, response: &mut Response) {
-        if response.clicked() || response.drag_started() {
-            let _ = self.sender.send(ClearCommand);
-            self.update_caret_position(rect, &response);
-            response.mark_changed();
-        } else if (response.dragged() || response.drag_stopped())
-            && let Some(pointer_pos) = response.interact_pointer_pos()
-        {
-            let column = self
-                .textarea_properties
-                .x_to_column(pointer_pos.x - rect.left());
-            let caret_column = self.textarea_properties.caret_position.column;
-            let (start, end) = if caret_column > column {
-                (column, caret_column)
-            } else {
-                (caret_column, column)
-            };
-            let _ = self.sender
-                .send(SetCommand(format!("{start}..{end}")));
-            response.mark_changed();
+        if let Some(pointer_pos) = response.interact_pointer_pos() {
+            if response.clicked() || response.drag_started() {
+                let _ = self.sender.send(ClearCommand);
+                self.update_caret_position(rect, &pointer_pos);
+                response.mark_changed();
+            } else if (response.dragged() || response.drag_stopped()) {
+                match self.textarea_properties.interaction_mode {
+                    InteractionMode::Column => {
+                        let column = self
+                            .textarea_properties
+                            .x_to_column(pointer_pos.x - rect.left());
+                        let caret_column = self.textarea_properties.caret_position.column;
+                        let start = column.min(caret_column);
+                        let end = column.max(caret_column);
+                        let _ = self.sender
+                            .send(SetCommand(format!("{start}..{end}")));
+                        response.mark_changed();
+                    }
+                    InteractionMode::Selection => {
+                        let pointer_pos = self.build_position(rect, &pointer_pos);
+                        let caret_position = self.textarea_properties.caret_position;
+                        let (start, end) = if caret_position < pointer_pos {
+                            (caret_position, pointer_pos)
+                        } else {
+                            (pointer_pos, caret_position)
+                        };
+                        self.textarea_properties.selection = Some(Selection { start, end });
+                    }
+                }
+            }
         }
     }
 
@@ -142,16 +155,29 @@ impl TextArea<'_> {
 }
 
 impl TextArea<'_> {
-    fn update_caret_position(&mut self, rect: Rect, response: &Response) {
-        if let Some(pointer_pos) = response.interact_pointer_pos() {
-            let column = self
-                .textarea_properties
-                .x_to_column(pointer_pos.x - rect.left());
-            let line = self
-                .textarea_properties
-                .y_to_line(pointer_pos.y - rect.top());
-            self.textarea_properties.caret_position = Position { column, line };
-        }
+    fn update_caret_position(&mut self, rect: Rect, pos: &Pos2) {
+        self.textarea_properties.caret_position = self.build_position(rect, pos);
+    }
+
+    /// ```rust
+    /// Builds a `Position` object based on the interaction pointer's position within a given rectangular area.
+    ///
+    /// # Arguments
+    ///
+    /// * `rect` - A `Rect` representing the area in which the position is being calculated.
+    /// * `pos` - A `Pos2` object containing coordinates on screen.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Position`:
+    /// - `Position` the position in the text.
+    ///
+    /// The `Position` object represents the calculated column and line, using `textarea_properties`
+    /// to map the pointer's x and y coordinates relative to the `rect`.
+    fn build_position(&self, rect: Rect, pos: &Pos2) -> Position {
+        let column = self.textarea_properties.x_to_column(pos.x - rect.left());
+        let line = self.textarea_properties.y_to_line(pos.y - rect.top());
+        Position { column, line }
     }
 
     fn handle_input(&self, ctx: &Context, top_left: Pos2) {

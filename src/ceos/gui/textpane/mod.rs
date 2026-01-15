@@ -16,6 +16,7 @@ pub(crate) mod renderer;
 mod selection;
 mod textarea;
 pub(crate) mod textareaproperties;
+mod interaction_mode;
 
 #[derive(Debug)]
 pub(crate) struct TextPane<'a> {

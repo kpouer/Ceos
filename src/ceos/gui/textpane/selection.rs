@@ -1,6 +1,7 @@
+use crate::ceos::gui::textpane::position::Position;
+
 #[derive(Debug)]
 pub(crate) struct Selection {
-    pub(crate) start_column: usize,
-    pub(crate) end_column: usize,
-    pub(crate) line: usize,
+    pub(crate) start: Position,
+    pub(crate) end: Position,
 }

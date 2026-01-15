@@ -14,6 +14,7 @@ use log::info;
 use std::cmp;
 use std::ops::Range;
 use std::sync::mpsc::Sender;
+use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
 use crate::event::Event;
 
 pub(crate) const DEFAULT_LINE_HEIGHT: f32 = 16.0;
@@ -27,6 +28,7 @@ pub(crate) struct TextAreaProperties {
     pub(crate) renderer_manager: RendererManager,
     pub(crate) caret_position: Position,
     pub(crate) selection: Option<Selection>,
+    pub(crate) interaction_mode: InteractionMode,
 }
 
 impl TextAreaProperties {
@@ -44,6 +46,7 @@ impl TextAreaProperties {
             char_width: 0.0,
             caret_position: Position::default(),
             selection: None,
+            interaction_mode: InteractionMode::Selection,
         }
     }
 
