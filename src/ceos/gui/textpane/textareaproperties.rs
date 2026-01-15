@@ -50,6 +50,13 @@ impl TextAreaProperties {
         }
     }
 
+    pub(crate) fn set_interaction_mode(&mut self, mode: InteractionMode) {
+        self.interaction_mode = mode;
+        if mode == InteractionMode::Column {
+            self.selection = None;
+        }
+    }
+
     pub(crate) fn set_font_id(&mut self, font_id: FontId) {
         self.font_id = font_id.clone();
         self.char_width = 0.0;

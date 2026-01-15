@@ -77,7 +77,7 @@ impl TextArea<'_> {
                 let _ = self.sender.send(ClearCommand);
                 self.update_caret_position(rect, &pointer_pos);
                 response.mark_changed();
-            } else if (response.dragged() || response.drag_stopped()) {
+            } else if response.dragged() || response.drag_stopped() {
                 match self.textarea_properties.interaction_mode {
                     InteractionMode::Column => {
                         let column = self

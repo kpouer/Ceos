@@ -4,6 +4,7 @@ use crate::ceos::command::search::Search;
 use crate::ceos::gui::frame_history::FrameHistory;
 use crate::ceos::gui::searchpanel::SearchPanel;
 use crate::ceos::gui::textpane::TextPane;
+use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
 use crate::ceos::options::Options;
 use crate::ceos::progress_manager::{BUFFER_LOADING, BUFFER_SAVING, ProgressManager};
 use crate::event::Event;
@@ -72,8 +73,7 @@ impl Ceos {
     pub(crate) fn process_event(&mut self, ctx: &Context, event: Event) {
         match event {
             Event::ClearCommand => {
-                self.command_buffer = String::new();
-                self.current_command = None;
+                self.clear_command();
             }
             Event::SetCommand(command) => {
                 self.command_buffer = command;
@@ -97,9 +97,11 @@ impl Ceos {
             Event::BufferSaved(path) => {
                 self.progress_manager.remove(BUFFER_SAVING);
                 // Marquer le buffer comme non-dirty si c'est le même fichier
-                if let Some(current_path) = &self.textarea_properties.buffer.path && current_path == &path {
-                        self.textarea_properties.buffer.dirty = false;
-                    }
+                if let Some(current_path) = &self.textarea_properties.buffer.path
+                    && current_path == &path
+                {
+                    self.textarea_properties.buffer.dirty = false;
+                }
             }
             Event::BufferSaveFailed(_) => {
                 // Retirer la progression en cas d'échec
@@ -110,18 +112,27 @@ impl Ceos {
                 self.progress_manager.remove(BUFFER_LOADING);
                 self.textarea_properties.set_buffer(buffer);
             }
-            BufferClosed => self.textarea_properties.set_buffer(Buffer::new(self.sender.clone())),
+            BufferClosed => self
+                .textarea_properties
+                .set_buffer(Buffer::new(self.sender.clone())),
             GotoLine(goto) => goto.execute(ctx, &mut self.textarea_properties),
             NewFont(font_id) => self.textarea_properties.set_font_id(font_id),
-            Event::OperationStarted(label, length) => self.progress_manager.add(label.clone(), label, length),
+            Event::OperationStarted(label, length) => {
+                self.progress_manager.add(label.clone(), label, length)
+            }
             Event::OperationProgress(label, value) => self.progress_manager.update(&label, value),
-            Event::OperationIncrement(label, amount) => self.progress_manager.increment(&label, amount),
+            Event::OperationIncrement(label, amount) => {
+                self.progress_manager.increment(&label, amount)
+            }
             Event::OperationFinished(label) => self.progress_manager.remove(&label),
         }
     }
-}
 
-impl Ceos {
+    fn clear_command(&mut self) {
+        self.command_buffer = String::new();
+        self.current_command = None;
+    }
+
     pub(crate) fn try_search(&mut self) -> bool {
         if let Ok(mut search) = Search::try_from(self.command_buffer.as_str()) {
             search.init(&self.textarea_properties.buffer);
@@ -164,7 +175,6 @@ impl Ceos {
                 command.execute(&mut tmp_buffer);
                 sender.send(Event::BufferLoaded(tmp_buffer)).unwrap();
             });
-
         } else if let Ok(command) = Event::try_from(self.command_buffer.as_str()) {
             self.sender.send(command).unwrap();
         }
@@ -296,7 +306,9 @@ impl Ceos {
             // Quick toggle directly in the menu as well (optional convenience)
             ui.separator();
             let response = ui.checkbox(&mut self.options.compression, "Compression");
-            if response.changed() && let Err(e) = self.options.save() {
+            if response.changed()
+                && let Err(e) = self.options.save()
+            {
                 warn!("Impossible d'enregistrer ceos.toml: {e}");
             }
         });
@@ -349,7 +361,9 @@ impl Ceos {
                 ui.vertical(|ui| {
                     ui.heading("Paramètres");
                     let response = ui.checkbox(&mut self.options.compression, "Compression");
-                    if response.changed() && let Err(e) = self.options.save() {
+                    if response.changed()
+                        && let Err(e) = self.options.save()
+                    {
                         warn!("Impossible d'enregistrer ceos.toml: {e}");
                     }
                 });
@@ -440,6 +454,27 @@ impl Ceos {
                 "{} lines",
                 self.textarea_properties.buffer.line_count()
             ));
+
+            ui.separator();
+
+            let mode_text = match self.textarea_properties.interaction_mode {
+                InteractionMode::Selection => "Selection",
+                InteractionMode::Column => "Column",
+            };
+
+            if ui.add(egui::Button::new(mode_text).frame(false)).clicked() {
+                match self.textarea_properties.interaction_mode {
+                    InteractionMode::Selection => {
+                        self.textarea_properties
+                            .set_interaction_mode(InteractionMode::Column);
+                    }
+                    InteractionMode::Column => {
+                        self.clear_command();
+                        self.textarea_properties
+                            .set_interaction_mode(InteractionMode::Selection)
+                    }
+                };
+            }
         });
     }
 
@@ -502,7 +537,8 @@ impl Ceos {
                                 return;
                             }
                             current += bytes.len() + 1;
-                            let _ = sender.send(Event::BufferSaving(path.clone(), current, total_size));
+                            let _ =
+                                sender.send(Event::BufferSaving(path.clone(), current, total_size));
                         }
                         // Fin de progression
                         let _ = sender.send(Event::BufferSaved(path.clone()));
