@@ -91,12 +91,17 @@ impl TextArea<'_> {
             }
         } else if response.dragged() || response.drag_stopped() {
             response.mark_changed();
+            let drag_start_position = response.ctx.memory(|m| {
+                m.data
+                    .get_temp::<Position>(DRAG_STARTED_ID.into())
+                    .expect("there should be a drag_started")
+            });
             match self.textarea_properties.interaction_mode {
                 InteractionMode::Column => {
-                    self.handle_drag_update_column(rect, response, pointer_pos)
+                    self.handle_drag_update_column(rect, drag_start_position, pointer_pos)
                 }
                 InteractionMode::Selection => {
-                    self.handle_drag_update_selection(rect, response, &pointer_pos)
+                    self.handle_drag_update_selection(rect, drag_start_position, &pointer_pos)
                 }
             }
             if response.drag_stopped() {
@@ -104,22 +109,16 @@ impl TextArea<'_> {
                     .ctx
                     .memory_mut(|m| m.data.remove_temp::<Position>(DRAG_STARTED_ID.into()));
             }
-            response.mark_changed();
         }
     }
 
     fn handle_drag_update_selection(
         &mut self,
         rect: Rect,
-        response: &mut Response,
+        drag_start_position: Position,
         pointer_pos: &Pos2,
     ) {
         let pointer_pos = self.build_position(rect, &pointer_pos);
-        let drag_start_position = response.ctx.memory(|m| {
-            m.data
-                .get_temp(DRAG_STARTED_ID.into())
-                .expect("there should be a drag_started")
-        });
         let (start, end) = if drag_start_position < pointer_pos {
             (drag_start_position, pointer_pos)
         } else {
@@ -131,19 +130,14 @@ impl TextArea<'_> {
     fn handle_drag_update_column(
         &mut self,
         rect: Rect,
-        response: &mut Response,
+        drag_start_position: Position,
         pointer_pos: Pos2,
     ) {
         let column = self
             .textarea_properties
             .x_to_column(pointer_pos.x - rect.left());
-        let drag_start_position = response.ctx.memory(|m| {
-            m.data
-                .get_temp(DRAG_STARTED_ID.into())
-                .expect("there should be a drag_started")
-        });
-        let start = column.min(drag_start_position);
-        let end = column.max(drag_start_position);
+        let start = column.min(drag_start_position.column);
+        let end = column.max(drag_start_position.column);
         let _ = self.sender.send(SetCommand(format!("{start}..{end}")));
     }
 
