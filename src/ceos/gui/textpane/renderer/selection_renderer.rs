@@ -2,7 +2,6 @@ use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use eframe::emath::Pos2;
-use eframe::epaint::StrokeKind;
 use egui::Rect;
 
 #[derive(Debug)]
@@ -39,12 +38,10 @@ impl Renderer for SelectionRenderer {
                 Pos2::new(start_x, drawing_pos.y),
                 Pos2::new(end_x, drawing_pos.y + textarea_properties.line_height),
             ]);
-            ui.painter().rect(
+            ui.painter().rect_filled(
                 rect,
                 0.0,
                 ui.style().visuals.selection.bg_fill,
-                ui.style().visuals.selection.stroke,
-                StrokeKind::Inside,
             );
         }
     }
