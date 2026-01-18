@@ -73,57 +73,77 @@ impl Widget for &mut TextArea<'_> {
 impl TextArea<'_> {
     fn handle_interaction(&mut self, rect: Rect, response: &mut Response) {
         const DRAG_STARTED_ID: &str = "drag_started";
-        if let Some(pointer_pos) = response.interact_pointer_pos() {
-            if response.clicked() || response.drag_started() {
-                let _ = self.sender.send(ClearCommand);
-                self.update_caret_position(rect, &pointer_pos);
-                response.mark_changed();
-                if response.drag_started() {
-                    response.ctx.memory_mut(|m| {
-                        m.data.insert_temp(
-                            DRAG_STARTED_ID.into(),
-                            self.textarea_properties.caret_position,
-                        )
-                    });
+        let Some(pointer_pos) = response.interact_pointer_pos() else {
+            return;
+        };
+        if response.clicked() || response.drag_started() {
+            let _ = self.sender.send(ClearCommand);
+            self.update_caret_position(rect, &pointer_pos);
+            response.mark_changed();
+            if response.drag_started() {
+                response.ctx.memory_mut(|m| {
+                    m.data.insert_temp(
+                        DRAG_STARTED_ID.into(),
+                        self.textarea_properties.caret_position,
+                    )
+                });
+            }
+        } else if response.dragged() || response.drag_stopped() {
+            response.mark_changed();
+            match self.textarea_properties.interaction_mode {
+                InteractionMode::Column => {
+                    self.handle_drag_update_column(rect, response, pointer_pos)
                 }
-            } else if response.dragged() || response.drag_stopped() {
-                match self.textarea_properties.interaction_mode {
-                    InteractionMode::Column => {
-                        let column = self
-                            .textarea_properties
-                            .x_to_column(pointer_pos.x - rect.left());
-                        let drag_start_position = response.ctx.memory(|m| {
-                            m.data
-                                .get_temp("drag_started".into())
-                                .expect("there should be a drag_started")
-                        });
-                        let start = column.min(drag_start_position);
-                        let end = column.max(drag_start_position);
-                        let _ = self.sender.send(SetCommand(format!("{start}..{end}")));
-                        response.mark_changed();
-                    }
-                    InteractionMode::Selection => {
-                        let pointer_pos = self.build_position(rect, &pointer_pos);
-                        let drag_start_position = response.ctx.memory(|m| {
-                            m.data
-                                .get_temp("drag_started".into())
-                                .expect("there should be a drag_started")
-                        });
-                        let (start, end) = if drag_start_position < pointer_pos {
-                            (drag_start_position, pointer_pos)
-                        } else {
-                            (pointer_pos, drag_start_position)
-                        };
-                        self.textarea_properties.selection = Some(Selection { start, end });
-                    }
-                }
-                if response.drag_stopped() {
-                    response
-                        .ctx
-                        .memory_mut(|m| m.data.remove_temp::<Position>(DRAG_STARTED_ID.into()));
+                InteractionMode::Selection => {
+                    self.handle_drag_update_selection(rect, response, &pointer_pos)
                 }
             }
+            if response.drag_stopped() {
+                response
+                    .ctx
+                    .memory_mut(|m| m.data.remove_temp::<Position>(DRAG_STARTED_ID.into()));
+            }
+            response.mark_changed();
         }
+    }
+
+    fn handle_drag_update_selection(
+        &mut self,
+        rect: Rect,
+        response: &mut Response,
+        pointer_pos: &Pos2,
+    ) {
+        let pointer_pos = self.build_position(rect, &pointer_pos);
+        let drag_start_position = response.ctx.memory(|m| {
+            m.data
+                .get_temp("drag_started".into())
+                .expect("there should be a drag_started")
+        });
+        let (start, end) = if drag_start_position < pointer_pos {
+            (drag_start_position, pointer_pos)
+        } else {
+            (pointer_pos, drag_start_position)
+        };
+        self.textarea_properties.selection = Some(Selection { start, end });
+    }
+
+    fn handle_drag_update_column(
+        &mut self,
+        rect: Rect,
+        response: &mut Response,
+        pointer_pos: Pos2,
+    ) {
+        let column = self
+            .textarea_properties
+            .x_to_column(pointer_pos.x - rect.left());
+        let drag_start_position = response.ctx.memory(|m| {
+            m.data
+                .get_temp("drag_started".into())
+                .expect("there should be a drag_started")
+        });
+        let start = column.min(drag_start_position);
+        let end = column.max(drag_start_position);
+        let _ = self.sender.send(SetCommand(format!("{start}..{end}")));
     }
 
     fn paint_content(&mut self, ui: &mut Ui) {
@@ -199,13 +219,12 @@ impl TextArea<'_> {
     fn handle_input(&self, ctx: &Context, top_left: Pos2) {
         ctx.input(|i| {
             self.handle_dropped_file(i);
-            let textarea_properties = &self.textarea_properties;
             if i.pointer.primary_clicked()
                 && let Some(mut pos) = i.pointer.latest_pos()
             {
                 pos.x -= top_left.x;
                 pos.y -= top_left.y;
-                let position = textarea_properties.point_to_text_position(pos);
+                let position = self.textarea_properties.point_to_text_position(pos);
                 info!("point to {position}, topleft {top_left}, pos {pos}");
                 // textarea_properties.caret_position = Position { column, line };
             }
