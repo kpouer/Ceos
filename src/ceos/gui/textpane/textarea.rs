@@ -72,34 +72,55 @@ impl Widget for &mut TextArea<'_> {
 
 impl TextArea<'_> {
     fn handle_interaction(&mut self, rect: Rect, response: &mut Response) {
+        const DRAG_STARTED_ID: &str = "drag_started";
         if let Some(pointer_pos) = response.interact_pointer_pos() {
             if response.clicked() || response.drag_started() {
                 let _ = self.sender.send(ClearCommand);
                 self.update_caret_position(rect, &pointer_pos);
                 response.mark_changed();
+                if response.drag_started() {
+                    response.ctx.memory_mut(|m| {
+                        m.data.insert_temp(
+                            DRAG_STARTED_ID.into(),
+                            self.textarea_properties.caret_position,
+                        )
+                    });
+                }
             } else if response.dragged() || response.drag_stopped() {
                 match self.textarea_properties.interaction_mode {
                     InteractionMode::Column => {
                         let column = self
                             .textarea_properties
                             .x_to_column(pointer_pos.x - rect.left());
-                        let caret_column = self.textarea_properties.caret_position.column;
-                        let start = column.min(caret_column);
-                        let end = column.max(caret_column);
-                        let _ = self.sender
-                            .send(SetCommand(format!("{start}..{end}")));
+                        let drag_start_position = response.ctx.memory(|m| {
+                            m.data
+                                .get_temp("drag_started".into())
+                                .expect("there should be a drag_started")
+                        });
+                        let start = column.min(drag_start_position);
+                        let end = column.max(drag_start_position);
+                        let _ = self.sender.send(SetCommand(format!("{start}..{end}")));
                         response.mark_changed();
                     }
                     InteractionMode::Selection => {
                         let pointer_pos = self.build_position(rect, &pointer_pos);
-                        let caret_position = self.textarea_properties.caret_position;
-                        let (start, end) = if caret_position < pointer_pos {
-                            (caret_position, pointer_pos)
+                        let drag_start_position = response.ctx.memory(|m| {
+                            m.data
+                                .get_temp("drag_started".into())
+                                .expect("there should be a drag_started")
+                        });
+                        let (start, end) = if drag_start_position < pointer_pos {
+                            (drag_start_position, pointer_pos)
                         } else {
-                            (pointer_pos, caret_position)
+                            (pointer_pos, drag_start_position)
                         };
                         self.textarea_properties.selection = Some(Selection { start, end });
                     }
+                }
+                if response.drag_stopped() {
+                    response
+                        .ctx
+                        .memory_mut(|m| m.data.remove_temp::<Position>(DRAG_STARTED_ID.into()));
                 }
             }
         }
@@ -123,13 +144,8 @@ impl TextArea<'_> {
             .prepare_range_for_read(row_range.clone());
         row_range.into_iter().for_each(|line| {
             if self.search.has_results() {
-                self.search.paint_line(
-                    ui,
-                    self.theme,
-                    self.textarea_properties,
-                    line,
-                    drawing_pos,
-                );
+                self.search
+                    .paint_line(ui, self.theme, self.textarea_properties, line, drawing_pos);
             }
             if let Some(filter_renderer) = &self.current_command {
                 filter_renderer.paint_line(
