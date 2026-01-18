@@ -70,9 +70,10 @@ impl Widget for &mut TextArea<'_> {
     }
 }
 
+const DRAG_STARTED_ID: &str = "drag_started";
+
 impl TextArea<'_> {
     fn handle_interaction(&mut self, rect: Rect, response: &mut Response) {
-        const DRAG_STARTED_ID: &str = "drag_started";
         let Some(pointer_pos) = response.interact_pointer_pos() else {
             return;
         };
@@ -116,7 +117,7 @@ impl TextArea<'_> {
         let pointer_pos = self.build_position(rect, &pointer_pos);
         let drag_start_position = response.ctx.memory(|m| {
             m.data
-                .get_temp("drag_started".into())
+                .get_temp(DRAG_STARTED_ID.into())
                 .expect("there should be a drag_started")
         });
         let (start, end) = if drag_start_position < pointer_pos {
@@ -138,7 +139,7 @@ impl TextArea<'_> {
             .x_to_column(pointer_pos.x - rect.left());
         let drag_start_position = response.ctx.memory(|m| {
             m.data
-                .get_temp("drag_started".into())
+                .get_temp(DRAG_STARTED_ID.into())
                 .expect("there should be a drag_started")
         });
         let start = column.min(drag_start_position);
