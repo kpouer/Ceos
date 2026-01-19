@@ -8,19 +8,17 @@ impl<'a> TextTool<'a> {
         Self { text }
     }
 
+    // ... existing code ...
     pub(crate) fn find_word_start(&self, pos: usize) -> usize {
         if pos == 0 || self.text.is_empty() {
             return 0;
         }
 
-        self.text
-            .chars()
-            .take(pos)
-            .collect::<Vec<_>>()
-            .iter()
+        self.text[..pos]
+            .char_indices()
             .rev()
-            .position(|c| Self::is_word_separator(c))
-            .map(|i| pos - i)
+            .find(|(_, c)| Self::is_word_separator(c))
+            .map(|(i, _)| i + 1)
             .unwrap_or(0)
     }
 
