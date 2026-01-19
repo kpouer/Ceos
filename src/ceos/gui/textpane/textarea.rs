@@ -14,6 +14,7 @@ use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::selection::Selection;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
+use crate::ceos::tools::text_tool::TextTool;
 use crate::event::Event;
 use crate::event::Event::{ClearCommand, NewFont, OpenFile, SetCommand};
 
@@ -77,7 +78,9 @@ impl TextArea<'_> {
         let Some(pointer_pos) = response.interact_pointer_pos() else {
             return;
         };
-        if response.clicked() || response.drag_started() {
+        if response.double_clicked() {
+            self.handle_double_click(rect, response, &pointer_pos);
+        } else if response.clicked() || response.drag_started() {
             let _ = self.sender.send(ClearCommand);
             self.update_caret_position(rect, &pointer_pos);
             response.mark_changed();
@@ -110,6 +113,28 @@ impl TextArea<'_> {
                     .memory_mut(|m| m.data.remove_temp::<Position>(DRAG_STARTED_ID.into()));
             }
         }
+    }
+
+    fn handle_double_click(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
+        let _ = self.sender.send(ClearCommand);
+        self.update_caret_position(rect, &pointer_pos);
+        let caret_position = self.textarea_properties.caret_position;
+        let text = self.textarea_properties.buffer.line_text(caret_position.line);
+        let text_tool = TextTool::new(text);
+        let start_col = text_tool.find_word_start(caret_position.column);
+
+        let end_col = text_tool.find_word_end(caret_position.column);
+        self.textarea_properties.selection = Some(Selection {
+            start: Position {
+                line: caret_position.line,
+                column: start_col,
+            },
+            end: Position {
+                line: caret_position.line,
+                column: end_col,
+            },
+        });
+        response.mark_changed();
     }
 
     fn handle_drag_update_selection(
