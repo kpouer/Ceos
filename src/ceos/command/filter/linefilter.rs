@@ -1,5 +1,5 @@
 use std::fmt::Display;
-
+use std::time::Instant;
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::{Stroke, StrokeKind};
 use egui::Ui;
@@ -77,12 +77,14 @@ impl Renderer for LineFilter {
 
 impl Command for LineFilter {
     fn execute(&self, buffer: &mut Buffer) {
+        let start = Instant::now();
         let line_count = buffer.line_count();
         let new_length = buffer.retain_line_mut(|line| self.accept(line));
         info!(
-            "Applied filter '{:?}' removed {} lines, new length {new_length}",
+            "Applied filter '{:?}' removed {} lines, new length {new_length} in {}ms",
             self.filters,
-            line_count - buffer.line_count()
+            line_count - buffer.line_count(),
+            start.elapsed().as_millis()
         );
     }
 }
