@@ -259,6 +259,11 @@ impl LineGroup {
     }
 
     pub(crate) fn retain<F: FnMut(&Line) -> bool>(&mut self, f: F) {
+        let compressed = self.is_compressed();
+        if compressed {
+            self.decompress();
+        }
+
         debug_assert!(self.lines.is_some());
         if let Some(lines) = &mut self.lines {
             lines.retain(f);
@@ -266,6 +271,9 @@ impl LineGroup {
                 self.compressed = None;
                 self.compute_metadata();
             }
+        }
+        if compressed {
+            self.compress();
         }
     }
 

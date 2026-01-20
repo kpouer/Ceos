@@ -158,19 +158,10 @@ impl Buffer {
 
     pub(crate) fn retain_line_mut(&mut self, mut filter: impl FnMut(&Line) -> bool) -> usize {
         let _ = self.sender.send(Event::OperationStarted(FILTERING.to_owned(), self.content.len()));
-        self.content
-            .iter_mut()
-            .for_each(|line_group| {
-                let compressed = line_group.is_compressed();
-                if compressed {
-                    line_group.eventually_decompress();
-                }
-                let _ = self.sender.send(Event::OperationIncrement(FILTERING.to_owned(), 1));
-                line_group.retain(|line| filter(line));
-                if compressed {
-                    line_group.eventually_compress();
-                }
-            });
+        for line_group in &mut self.content {
+            let _ = self.sender.send(Event::OperationIncrement(FILTERING.to_owned(), 1));
+            line_group.retain(|line| filter(line));
+        }
         // remove empty groups
         self.content.retain(|g| !g.is_empty());
         let new_length = self.compute_length();
