@@ -36,12 +36,17 @@ impl TryFrom<&str> for LineFilter {
     type Error = ();
 
     fn try_from(command: &str) -> Result<Self, Self::Error> {
-        if command.starts_with("filter ") && command.len() > 7 {
-            let command = command[7..].split('&').map(|tok| tok.to_string()).collect();
-            Ok(Self { filters: command })
-        } else {
-            Err(())
-        }
+        const PREFIX: &str = "filter ";
+
+        command.strip_prefix(PREFIX)
+            .filter(|rest| !rest.is_empty())
+            .map(|rest| {
+                let filters = rest.split('&')
+                    .map(|tok| tok.to_string())
+                    .collect();
+                Self { filters }
+            })
+            .ok_or(())
     }
 }
 
