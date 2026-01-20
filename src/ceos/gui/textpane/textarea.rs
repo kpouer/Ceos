@@ -117,7 +117,7 @@ impl TextArea<'_> {
 
     fn handle_double_click(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
         let _ = self.sender.send(ClearCommand);
-        self.update_caret_position(rect, &pointer_pos);
+        self.update_caret_position(rect, pointer_pos);
         let caret_position = self.textarea_properties.caret_position;
         let text = self.textarea_properties.buffer.line_text(caret_position.line);
         let text_tool = TextTool::new(text);
@@ -143,7 +143,7 @@ impl TextArea<'_> {
         drag_start_position: Position,
         pointer_pos: &Pos2,
     ) {
-        let pointer_pos = self.build_position(rect, &pointer_pos);
+        let pointer_pos = self.build_position(rect, pointer_pos);
         let (start, end) = if drag_start_position < pointer_pos {
             (drag_start_position, pointer_pos)
         } else {
