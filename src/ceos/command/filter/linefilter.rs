@@ -33,14 +33,14 @@ impl LineFilter {
 }
 
 impl TryFrom<&str> for LineFilter {
-    type Error = String;
+    type Error = ();
 
     fn try_from(command: &str) -> Result<Self, Self::Error> {
         if command.starts_with("filter ") && command.len() > 7 {
             let command = command[7..].split('&').map(|tok| tok.to_string()).collect();
             Ok(Self { filters: command })
         } else {
-            Err("Command not valid".to_string())
+            Err(())
         }
     }
 }
@@ -93,7 +93,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_filter() -> Result<(), String> {
+    fn test_filter() -> Result<(), ()> {
         let filter = LineFilter::try_from("filter delete")?;
         let content = "1 delete me\n\
         2 keep me\n\
