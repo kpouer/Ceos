@@ -115,7 +115,7 @@ impl Ceos {
             BufferClosed => self
                 .textarea_properties
                 .set_buffer(Buffer::new(self.sender.clone())),
-            GotoLine(goto) => goto.execute(ctx, &mut self.textarea_properties),
+            GotoLine(goto) => goto.execute(&mut self.textarea_properties),
             NewFont(font_id) => self.textarea_properties.set_font_id(font_id),
             Event::OperationStarted(label, length) => {
                 self.progress_manager.add(label.clone(), label, length)

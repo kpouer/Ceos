@@ -29,6 +29,7 @@ pub(crate) struct TextAreaProperties {
     pub(crate) caret_position: Position,
     pub(crate) selection: Option<Selection>,
     pub(crate) interaction_mode: InteractionMode,
+    pub(crate) scroll_offset: Vec2,
 }
 
 impl TextAreaProperties {
@@ -47,6 +48,7 @@ impl TextAreaProperties {
             caret_position: Position::default(),
             selection: None,
             interaction_mode: InteractionMode::Selection,
+            scroll_offset: Vec2::ZERO,
         }
     }
 

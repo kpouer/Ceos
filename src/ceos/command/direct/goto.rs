@@ -3,7 +3,6 @@ use std::cmp;
 use eframe::emath::Vec2;
 use egui::Context;
 
-use crate::ceos::gui::textpane::TextPaneState;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 
 #[derive(Debug)]
@@ -35,12 +34,10 @@ impl Goto {
         Self { line }
     }
 
-    pub(crate) fn execute(&self, ctx: &Context, textarea: &mut TextAreaProperties) {
+    pub(crate) fn execute(&self, textarea: &mut TextAreaProperties) {
         let y_offset = textarea.line_height
             * ((cmp::min(self.line, textarea.buffer.line_count()) as f32) - 1.0);
-        let mut textpane_state = TextPaneState::get(ctx);
-        textpane_state.scroll_offset = Vec2::new(0.0, y_offset);
-        ctx.memory_mut(|m| m.data.insert_temp(TextPaneState::id(), textpane_state));
+        textarea.scroll_offset = Vec2::new(0.0, y_offset);
     }
 }
 
