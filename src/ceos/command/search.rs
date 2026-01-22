@@ -20,7 +20,7 @@ pub(crate) struct Search {
 }
 
 impl TryFrom<&str> for Search {
-    type Error = String;
+    type Error = ();
 
     fn try_from(command: &str) -> Result<Self, Self::Error> {
         if command.starts_with("s ") && command.len() > 2 {
@@ -31,7 +31,7 @@ impl TryFrom<&str> for Search {
                 index: 0,
             })
         } else {
-            Err("Command not valid".to_string())
+            Err(())
         }
     }
 }
