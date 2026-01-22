@@ -23,7 +23,8 @@ impl TryFrom<&str> for Search {
     type Error = ();
 
     fn try_from(command: &str) -> Result<Self, Self::Error> {
-        if command.starts_with("s ") && command.len() > 2 {
+        const PREFIX: &str = "s ";
+        if command.starts_with(PREFIX) && command.len() > 2 {
             let pattern = command[2..].to_string();
             Ok(Self {
                 pattern,
