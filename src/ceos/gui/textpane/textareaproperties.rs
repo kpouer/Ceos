@@ -89,7 +89,7 @@ impl TextAreaProperties {
     pub(crate) fn set_first_line(&mut self, line: usize) {
         info!("set first line: {line}");
         let line = line.min(self.buffer.line_count());
-        self.scroll_offset.y = self.line_height * ((line - 1) as f32);
+        self.scroll_offset.y = self.line_height * (line.saturating_sub(1) as f32);
     }
 
     pub(crate) const fn x_to_column(&self, x: f32) -> usize {
