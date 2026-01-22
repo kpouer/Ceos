@@ -54,12 +54,13 @@ impl Widget for TextPane<'_> {
 
             let mut gutter_rect = ui.available_rect_before_wrap();
             gutter_rect.set_width(gutter_width);
+            let old_scroll_offset = self.textarea_properties.scroll_offset;
             let scroll_result_gutter = egui::ScrollArea::vertical()
                 .id_salt("gutter")
                 .auto_shrink(false)
                 .max_width(gutter_width)
                 .scroll_bar_visibility(AlwaysHidden)
-                .vertical_scroll_offset(self.textarea_properties.scroll_offset.y)
+                .vertical_scroll_offset(old_scroll_offset.y)
                 .show_viewport(ui, |ui, rect| {
                     Gutter::new(self.textarea_properties, gutter_rect, rect).ui(ui);
                 });
@@ -67,7 +68,7 @@ impl Widget for TextPane<'_> {
             let scroll_result_textarea = egui::ScrollArea::both()
                 .id_salt("textarea")
                 .auto_shrink(false)
-                .scroll_offset(self.textarea_properties.scroll_offset)
+                .scroll_offset(old_scroll_offset)
                 .show_viewport(ui, |ui, rect| {
                     TextArea::new(
                         self.textarea_properties,
@@ -82,15 +83,17 @@ impl Widget for TextPane<'_> {
                 });
 
             let mut offset = scroll_result_textarea.state.offset;
-            offset.y = if scroll_result_gutter.state.offset.y != self.textarea_properties.scroll_offset.y {
-                scroll_result_gutter.state.offset.y
-            } else if scroll_result_textarea.state.offset.y != self.textarea_properties.scroll_offset.y {
-                scroll_result_textarea.state.offset.y
-            } else {
-                self.textarea_properties.scroll_offset.y
-            };
-            if self.textarea_properties.scroll_offset != offset {
-                self.textarea_properties.scroll_offset = offset;
+            if offset != old_scroll_offset {
+                offset.y = if scroll_result_gutter.state.offset.y != self.textarea_properties.scroll_offset.y {
+                    scroll_result_gutter.state.offset.y
+                } else if scroll_result_textarea.state.offset.y != self.textarea_properties.scroll_offset.y {
+                    scroll_result_textarea.state.offset.y
+                } else {
+                    self.textarea_properties.scroll_offset.y
+                };
+                if self.textarea_properties.scroll_offset != offset {
+                    self.textarea_properties.scroll_offset = offset;
+                }
             }
         });
         let (_, response) = ui.allocate_exact_size(available_size, egui::Sense::click_and_drag());

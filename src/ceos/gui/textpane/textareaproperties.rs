@@ -75,6 +75,23 @@ impl TextAreaProperties {
         self.buffer = buffer
     }
 
+    /// ```
+    /// Sets the first visible line of the buffer in the view.
+    ///
+    /// This function adjusts the scroll offset based on the specified line,
+    /// ensuring that the given line becomes the first visible line in the buffer view.
+    /// If the provided line number exceeds the total number of lines in the buffer,
+    /// it will be clamped to the maximum line count.
+    ///
+    /// # Parameters
+    /// - `line`: The index of the line to set as the first visible line in the view.
+    /// ```
+    pub(crate) fn set_first_line(&mut self, line: usize) {
+        info!("set first line: {line}");
+        let line = line.min(self.buffer.line_count());
+        self.scroll_offset.y = self.line_height * ((line - 1) as f32);
+    }
+
     pub(crate) const fn x_to_column(&self, x: f32) -> usize {
         (x / self.char_width).floor() as usize
     }
