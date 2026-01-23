@@ -20,6 +20,7 @@ pub(crate) enum Event {
     BufferClosed,
     GotoLine(Goto),
     NewFont(FontId),
+    ShowHelp,
     SetCommand(String),
     /// Clear the current command
     ClearCommand,
@@ -37,6 +38,9 @@ impl TryFrom<&str> for Event {
     type Error = ();
 
     fn try_from(command: &str) -> Result<Self, Self::Error> {
+        if command == "?" {
+            return Ok(Event::ShowHelp);
+        }
         if command.starts_with(':') {
             if let Ok(goto) = Goto::try_from(command) {
                 return Ok(GotoLine(goto));

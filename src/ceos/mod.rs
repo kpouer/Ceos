@@ -2,6 +2,7 @@ use crate::ceos::command::Command;
 use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::command::search::Search;
 use crate::ceos::gui::frame_history::FrameHistory;
+use crate::ceos::gui::helppanel::HelpPanel;
 use crate::ceos::gui::searchpanel::SearchPanel;
 use crate::ceos::gui::textpane::TextPane;
 use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
@@ -45,6 +46,7 @@ pub(crate) struct Ceos {
     initialized: bool,
     progress_manager: ProgressManager,
     show_options: bool,
+    show_help: bool,
     options: Options,
 }
 
@@ -64,6 +66,7 @@ impl Default for Ceos {
             initialized: false,
             progress_manager: Default::default(),
             show_options: false,
+            show_help: false,
             options: Options::load(),
         }
     }
@@ -74,6 +77,9 @@ impl Ceos {
         match event {
             Event::ClearCommand => {
                 self.clear_command();
+            }
+            Event::ShowHelp => {
+                self.show_help = true;
             }
             Event::SetCommand(command) => {
                 self.command_buffer = command;
@@ -221,6 +227,9 @@ impl eframe::App for Ceos {
 
         self.build_menu_panel(ctx);
         self.build_options_window(ctx);
+        if self.show_help {
+            HelpPanel::show(ctx, &mut self.show_help);
+        }
         self.build_bottom_panel(ctx);
 
         egui::CentralPanel::default()
@@ -417,6 +426,9 @@ impl Ceos {
     }
 
     fn handle_keys(&mut self, ui: &Ui) {
+        if ui.input(|i| i.key_pressed(Key::Escape)) {
+            self.show_help = false;
+        }
         #[allow(clippy::collapsible_if)]
         if ui.input(|i| i.key_pressed(Key::Enter)) {
             self.execute_command();
