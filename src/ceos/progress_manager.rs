@@ -29,11 +29,7 @@ impl ProgressManager {
 
     pub(crate) fn increment(&mut self, id: &str, amount: usize) {
         if let Some(progress) = self.progress.get_mut(id) {
-            if progress.current > 100000 {
-                progress.current += amount;
-            } else {
-                progress.current += amount;
-            }
+            progress.current += amount;
         }
     }
 
