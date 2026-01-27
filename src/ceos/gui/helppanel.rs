@@ -20,7 +20,7 @@ impl HelpPanel {
                             ui.label("Show this help panel");
                             ui.end_row();
 
-                            ui.label(":<ligne>");
+                            ui.label(":<line>");
                             ui.label("Go to the specified line");
                             ui.end_row();
 
@@ -38,8 +38,14 @@ impl HelpPanel {
 
                             ui.label("l <range>");
                             ui.label("Drop the lines within the range");
+                            ui.end_row();
+                            ui.label("");
                             ui.label("ex: l ..10 will drop the lines 1 to 9");
+                            ui.end_row();
+                            ui.label("");
                             ui.label("ex: l 5..10 will drop the lines 5 to 9");
+                            ui.end_row();
+                            ui.label("");
                             ui.label("ex: l 10.. will drop the lines 10 to the end");
                             ui.end_row();
 
