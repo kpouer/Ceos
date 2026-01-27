@@ -1,8 +1,9 @@
 use crate::ceos::buffer::line::Line;
-use crate::ceos::buffer::line_group::DEFAULT_GROUP_SIZE;
 use crate::ceos::buffer::line_group::LineGroup;
+use crate::ceos::buffer::line_group::DEFAULT_GROUP_SIZE;
 use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
+use flate2::bufread::GzDecoder;
 use rayon::prelude::*;
 use std::fs::File;
 use std::io;
@@ -53,13 +54,39 @@ impl Buffer {
     ) -> Result<Self, std::io::Error> {
         let file_size = std::fs::metadata(&path)?.len() as usize;
         let _ = sender.send(BufferLoadingStarted(path.clone(), file_size));
-        let file = File::open(&path)?;
-        let buffer_reader = io::BufReader::new(file);
-        let mut start = Instant::now();
         let mut buffer = Self {
             path: Some(path.clone()),
             ..Self::new(sender)
         };
+
+        Self::load_buffer(path, file_size, &mut buffer)?;
+
+        Ok(buffer)
+    }
+
+    fn load_buffer(path: PathBuf, file_size: usize, buffer: &mut Buffer) -> Result<(), io::Error> {
+        let file = File::open(&path)?;
+
+        let is_gz = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("gz"));
+
+        if is_gz {
+            let buffer_reader = io::BufReader::new(file);
+            let decoder = GzDecoder::new(buffer_reader);
+            let mut buffer_reader = io::BufReader::new(decoder);
+            Self::load_reader(path, file_size, buffer, &mut buffer_reader);
+        } else {
+            let mut buffer_reader = io::BufReader::new(file);
+            Self::load_reader(path, file_size, buffer, &mut buffer_reader);
+        }
+
+        Ok(())
+    }
+
+    fn load_reader(path: PathBuf, file_size: usize, buffer: &mut Buffer, buffer_reader: impl BufRead) {
+        let mut start = Instant::now();
         for line_text in buffer_reader.lines().flatten() {
             buffer.push_line(line_text);
             if start.elapsed() > Duration::from_millis(50) {
@@ -67,8 +94,6 @@ impl Buffer {
                 start = Instant::now();
             }
         }
-
-        Ok(buffer)
     }
 
     /// Compress all line groups and free their in-memory lines to reclaim memory.
