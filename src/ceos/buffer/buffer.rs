@@ -65,16 +65,16 @@ impl Buffer {
 
     fn load_buffer(&mut self) -> Result<(), io::Error> {
         let path = self.path.as_ref().expect("buffer has no path");
-        let file = File::open(&path)?;
+        let file = File::open(path)?;
 
         let is_gz = path
             .extension()
             .and_then(|e| e.to_str())
             .is_some_and(|ext| ext.eq_ignore_ascii_case("gz"));
 
-        let file_size = std::fs::metadata(&path)?.len() as usize;
+        let file_size = std::fs::metadata(path)?.len() as usize;
         if is_gz {
-            let file_size = match gzip_uncompressed_size_fast(&path) {
+            let file_size = match gzip_uncompressed_size_fast(path) {
                 Ok(size) => size as usize,
                 Err(_) => file_size,
             };
