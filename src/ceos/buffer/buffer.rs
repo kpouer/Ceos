@@ -1,6 +1,6 @@
 use crate::ceos::buffer::line::Line;
-use crate::ceos::buffer::line_group::LineGroup;
 use crate::ceos::buffer::line_group::DEFAULT_GROUP_SIZE;
+use crate::ceos::buffer::line_group::LineGroup;
 use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use flate2::bufread::GzDecoder;
@@ -13,6 +13,7 @@ use std::ops::{Index, RangeBounds};
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
+use crate::ceos::tools::misc_tool::gzip_uncompressed_size_fast;
 
 #[derive(Debug)]
 pub(crate) struct Buffer {
@@ -52,19 +53,17 @@ impl Buffer {
         path: PathBuf,
         sender: Sender<Event>,
     ) -> Result<Self, std::io::Error> {
-        let file_size = std::fs::metadata(&path)?.len() as usize;
-        let _ = sender.send(BufferLoadingStarted(path.clone(), file_size));
         let mut buffer = Self {
             path: Some(path.clone()),
             ..Self::new(sender)
         };
 
-        Self::load_buffer(path, file_size, &mut buffer)?;
+        buffer.load_buffer(path)?;
 
         Ok(buffer)
     }
 
-    fn load_buffer(path: PathBuf, file_size: usize, buffer: &mut Buffer) -> Result<(), io::Error> {
+    fn load_buffer(&mut self, path: PathBuf) -> Result<(), io::Error> {
         let file = File::open(&path)?;
 
         let is_gz = path
@@ -72,25 +71,38 @@ impl Buffer {
             .and_then(|e| e.to_str())
             .is_some_and(|ext| ext.eq_ignore_ascii_case("gz"));
 
+        let file_size = std::fs::metadata(&path)?.len() as usize;
         if is_gz {
+            let file_size = match gzip_uncompressed_size_fast(&path) {
+                Ok(size) => size as usize,
+                Err(_) => file_size,
+            };
+            let _ = self
+                .sender
+                .send(BufferLoadingStarted(path.clone(), file_size));
             let buffer_reader = io::BufReader::new(file);
             let decoder = GzDecoder::new(buffer_reader);
             let mut buffer_reader = io::BufReader::new(decoder);
-            Self::load_reader(path, file_size, buffer, &mut buffer_reader);
+            self.load_reader(path, file_size, &mut buffer_reader);
         } else {
+            let _ = self
+                .sender
+                .send(BufferLoadingStarted(path.clone(), file_size));
             let mut buffer_reader = io::BufReader::new(file);
-            Self::load_reader(path, file_size, buffer, &mut buffer_reader);
+            self.load_reader(path, file_size, &mut buffer_reader);
         }
 
         Ok(())
     }
 
-    fn load_reader(path: PathBuf, file_size: usize, buffer: &mut Buffer, buffer_reader: impl BufRead) {
+    fn load_reader(&mut self, path: PathBuf, file_size: usize, buffer_reader: impl BufRead) {
         let mut start = Instant::now();
         for line_text in buffer_reader.lines().flatten() {
-            buffer.push_line(line_text);
+            self.push_line(line_text);
             if start.elapsed() > Duration::from_millis(50) {
-                let _ = buffer.sender.send(BufferLoading(path.clone(), buffer.length, file_size));
+                let _ = self
+                    .sender
+                    .send(BufferLoading(path.clone(), self.length, file_size));
                 start = Instant::now();
             }
         }
@@ -168,16 +180,21 @@ impl Buffer {
     where
         F: FnMut(&mut Line) + Clone + Sync,
     {
-        let _ = self.sender.send(Event::OperationStarted(FILTERING.to_owned(), self.content.len()));
-        self.content
-            .par_iter_mut()
-            .for_each(|line_group| {
-                let _ = self.sender.send(Event::OperationIncrement(FILTERING.to_owned(), 1));
-                line_group.filter_line_mut(filter.clone());
-            });
+        let _ = self.sender.send(Event::OperationStarted(
+            FILTERING.to_owned(),
+            self.content.len(),
+        ));
+        self.content.par_iter_mut().for_each(|line_group| {
+            let _ = self
+                .sender
+                .send(Event::OperationIncrement(FILTERING.to_owned(), 1));
+            line_group.filter_line_mut(filter.clone());
+        });
         let new_length = self.compute_length();
         self.dirty = true;
-        let _ = self.sender.send(Event::OperationFinished(FILTERING.to_owned()));
+        let _ = self
+            .sender
+            .send(Event::OperationFinished(FILTERING.to_owned()));
         new_length
     }
 
@@ -185,19 +202,24 @@ impl Buffer {
     where
         F: Fn(&Line) -> bool + Sync + Send + Clone,
     {
-        let _ = self.sender.send(Event::OperationStarted(FILTERING.to_owned(), self.content.len()));
-        self.content
-            .par_iter_mut()
-            .for_each(|line_group| {
-                let _ = self.sender.send(Event::OperationIncrement(FILTERING.to_owned(), 1));
-                line_group.retain(filter.clone());
-            });
+        let _ = self.sender.send(Event::OperationStarted(
+            FILTERING.to_owned(),
+            self.content.len(),
+        ));
+        self.content.par_iter_mut().for_each(|line_group| {
+            let _ = self
+                .sender
+                .send(Event::OperationIncrement(FILTERING.to_owned(), 1));
+            line_group.retain(filter.clone());
+        });
         // remove empty groups
         self.content.retain(|g| !g.is_empty());
         let new_length = self.compute_length();
         self.recompute_first_lines();
         self.dirty = true;
-        let _ = self.sender.send(Event::OperationFinished(FILTERING.to_owned()));
+        let _ = self
+            .sender
+            .send(Event::OperationFinished(FILTERING.to_owned()));
         new_length
     }
 
