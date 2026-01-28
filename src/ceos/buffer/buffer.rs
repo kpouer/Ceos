@@ -54,16 +54,17 @@ impl Buffer {
         sender: Sender<Event>,
     ) -> Result<Self, std::io::Error> {
         let mut buffer = Self {
-            path: Some(path.clone()),
+            path: Some(path),
             ..Self::new(sender)
         };
 
-        buffer.load_buffer(path)?;
+        buffer.load_buffer()?;
 
         Ok(buffer)
     }
 
-    fn load_buffer(&mut self, path: PathBuf) -> Result<(), io::Error> {
+    fn load_buffer(&mut self) -> Result<(), io::Error> {
+        let path = self.path.as_ref().expect("buffer has no path");
         let file = File::open(&path)?;
 
         let is_gz = path
@@ -83,29 +84,31 @@ impl Buffer {
             let buffer_reader = io::BufReader::new(file);
             let decoder = GzDecoder::new(buffer_reader);
             let mut buffer_reader = io::BufReader::new(decoder);
-            self.load_reader(path, file_size, &mut buffer_reader);
+            self.load_reader(file_size, &mut buffer_reader)?;
         } else {
             let _ = self
                 .sender
                 .send(BufferLoadingStarted(path.clone(), file_size));
             let mut buffer_reader = io::BufReader::new(file);
-            self.load_reader(path, file_size, &mut buffer_reader);
+            self.load_reader(file_size, &mut buffer_reader)?;
         }
 
         Ok(())
     }
 
-    fn load_reader(&mut self, path: PathBuf, file_size: usize, buffer_reader: impl BufRead) {
+    fn load_reader(&mut self, file_size: usize, buffer_reader: impl BufRead) -> Result<(), io::Error> {
         let mut start = Instant::now();
-        for line_text in buffer_reader.lines().flatten() {
-            self.push_line(line_text);
+        for line_text in buffer_reader.lines() {
+            self.push_line(line_text?);
             if start.elapsed() > Duration::from_millis(50) {
+                let path = self.path.clone().expect("buffer has no path");
                 let _ = self
                     .sender
-                    .send(BufferLoading(path.clone(), self.length, file_size));
+                    .send(BufferLoading(path, self.length, file_size));
                 start = Instant::now();
             }
         }
+        Ok(())
     }
 
     /// Compress all line groups and free their in-memory lines to reclaim memory.
