@@ -18,7 +18,7 @@ use crate::ceos::tools::misc_tool::gzip_uncompressed_size_fast;
 #[derive(Debug)]
 pub(crate) struct Buffer {
     pub(crate) path: Option<PathBuf>,
-    /// the linegorups, the last one is never full. Eventually it is empty
+    /// the linegroups, the last one is never full. Eventually it is empty
     content: Vec<LineGroup>,
     length: usize,
     pub(crate) dirty: bool,
