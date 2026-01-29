@@ -13,7 +13,7 @@ use std::ops::{Index, RangeBounds};
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
-use crate::ceos::tools::misc_tool::gzip_uncompressed_size_fast;
+use crate::ceos::tools::misc_tool::{gzip_uncompressed_size_fast, is_gzip};
 
 #[derive(Debug)]
 pub(crate) struct Buffer {
@@ -67,13 +67,10 @@ impl Buffer {
         let path = self.path.as_ref().expect("buffer has no path");
         let file = File::open(path)?;
 
-        let is_gz = path
-            .extension()
-            .and_then(|e| e.to_str())
-            .is_some_and(|ext| ext.eq_ignore_ascii_case("gz"));
+        let mut buffer_reader = io::BufReader::new(file);
 
         let file_size = std::fs::metadata(path)?.len() as usize;
-        if is_gz {
+        if is_gzip(&mut buffer_reader) {
             let file_size = match gzip_uncompressed_size_fast(path) {
                 Ok(size) => size as usize,
                 Err(_) => file_size,
@@ -81,7 +78,6 @@ impl Buffer {
             let _ = self
                 .sender
                 .send(BufferLoadingStarted(path.clone(), file_size));
-            let buffer_reader = io::BufReader::new(file);
             let decoder = GzDecoder::new(buffer_reader);
             let mut buffer_reader = io::BufReader::new(decoder);
             self.load_reader(file_size, &mut buffer_reader)?;
@@ -89,7 +85,6 @@ impl Buffer {
             let _ = self
                 .sender
                 .send(BufferLoadingStarted(path.clone(), file_size));
-            let mut buffer_reader = io::BufReader::new(file);
             self.load_reader(file_size, &mut buffer_reader)?;
         }
 
