@@ -3,7 +3,7 @@ use std::sync::mpsc::Sender;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::{FontId, Stroke, StrokeKind};
 use egui::Event::{MouseWheel, Zoom};
-use egui::{Context, InputState, Response, Ui, Widget};
+use egui::{Context, InputState, Key, Response, Ui, Widget};
 use log::info;
 
 use crate::ceos::command::Command;
@@ -265,81 +265,7 @@ impl TextArea<'_> {
                     repeat: _,
                     modifiers: _,
                     ..
-                } => match key {
-                    egui::Key::Home => {
-                        let ctrl = if cfg!(target_os = "macos") {
-                            i.modifiers.command
-                        } else {
-                            i.modifiers.ctrl
-                        };
-                        if ctrl {
-                            caret_position.line = 0;
-                            caret_position.column = 0;
-                        } else {
-                            caret_position.column = 0;
-                        }
-                    }
-                    egui::Key::End => {
-                        let ctrl = if cfg!(target_os = "macos") {
-                            i.modifiers.command
-                        } else {
-                            i.modifiers.ctrl
-                        };
-                        if ctrl {
-                            caret_position.line = line_count.saturating_sub(1);
-                            let line_text = self
-                                .textarea_properties
-                                .buffer
-                                .line_text(caret_position.line);
-                            caret_position.column = line_text.len();
-                        } else {
-                            let line_text = self
-                                .textarea_properties
-                                .buffer
-                                .line_text(caret_position.line);
-                            caret_position.column = line_text.len();
-                        }
-                    }
-                    egui::Key::ArrowLeft => {
-                        caret_position.column = caret_position.column.saturating_sub(1);
-                    }
-                    egui::Key::ArrowRight => {
-                        caret_position.column = self
-                            .textarea_properties
-                            .buffer
-                            .line_text(caret_position.line)
-                            .len()
-                            .min(caret_position.column.saturating_add(1));
-                    }
-                    egui::Key::ArrowUp => {
-                        caret_position.line = caret_position.line.saturating_sub(1);
-                        self.textarea_properties.set_first_line(caret_position.line);
-                    }
-                    egui::Key::ArrowDown => {
-                        caret_position.line = self
-                            .textarea_properties
-                            .buffer
-                            .line_count()
-                            .min(caret_position.line + 1);
-                        self.textarea_properties.set_first_line(caret_position.line);
-                    }
-                    egui::Key::PageUp => {
-                        let visible_lines = self.visible_line_count();
-                        if caret_position.line > visible_lines {
-                            caret_position.line -= visible_lines;
-                        } else {
-                            caret_position.line = 0;
-                        }
-                        self.textarea_properties.set_first_line(caret_position.line);
-                    }
-                    egui::Key::PageDown => {
-                        let visible_lines = self.visible_line_count();
-                        caret_position.line =
-                            (caret_position.line + visible_lines).min(line_count.saturating_sub(1));
-                        self.textarea_properties.set_first_line(caret_position.line);
-                    }
-                    _ => {}
-                },
+                } => self.handle_key_event(&mut caret_position, line_count, i, key),
                 MouseWheel {
                     unit: _,
                     delta,
@@ -370,6 +296,90 @@ impl TextArea<'_> {
             }
 
             self.textarea_properties.scroll_offset = scroll_offset;
+        }
+    }
+
+    fn handle_key_event(
+        &mut self,
+        caret_position: &mut Position,
+        line_count: usize,
+        i: &InputState,
+        key: &Key,
+    ) {
+        match key {
+            egui::Key::Home => {
+                let ctrl = if cfg!(target_os = "macos") {
+                    i.modifiers.command
+                } else {
+                    i.modifiers.ctrl
+                };
+                if ctrl {
+                    caret_position.line = 0;
+                    caret_position.column = 0;
+                } else {
+                    caret_position.column = 0;
+                }
+            }
+            egui::Key::End => {
+                let ctrl = if cfg!(target_os = "macos") {
+                    i.modifiers.command
+                } else {
+                    i.modifiers.ctrl
+                };
+                if ctrl {
+                    caret_position.line = line_count.saturating_sub(1);
+                    let line_text = self
+                        .textarea_properties
+                        .buffer
+                        .line_text(caret_position.line);
+                    caret_position.column = line_text.len();
+                } else {
+                    let line_text = self
+                        .textarea_properties
+                        .buffer
+                        .line_text(caret_position.line);
+                    caret_position.column = line_text.len();
+                }
+            }
+            egui::Key::ArrowLeft => {
+                caret_position.column = caret_position.column.saturating_sub(1);
+            }
+            egui::Key::ArrowRight => {
+                caret_position.column = self
+                    .textarea_properties
+                    .buffer
+                    .line_text(caret_position.line)
+                    .len()
+                    .min(caret_position.column.saturating_add(1));
+            }
+            egui::Key::ArrowUp => {
+                caret_position.line = caret_position.line.saturating_sub(1);
+                self.textarea_properties.set_first_line(caret_position.line);
+            }
+            egui::Key::ArrowDown => {
+                caret_position.line = self
+                    .textarea_properties
+                    .buffer
+                    .line_count()
+                    .min(caret_position.line + 1);
+                self.textarea_properties.set_first_line(caret_position.line);
+            }
+            egui::Key::PageUp => {
+                let visible_lines = self.visible_line_count();
+                if caret_position.line > visible_lines {
+                    caret_position.line -= visible_lines;
+                } else {
+                    caret_position.line = 0;
+                }
+                self.textarea_properties.set_first_line(caret_position.line);
+            }
+            egui::Key::PageDown => {
+                let visible_lines = self.visible_line_count();
+                caret_position.line =
+                    (caret_position.line + visible_lines).min(line_count.saturating_sub(1));
+                self.textarea_properties.set_first_line(caret_position.line);
+            }
+            _ => {}
         }
     }
 
