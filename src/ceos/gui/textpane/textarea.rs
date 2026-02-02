@@ -3,7 +3,7 @@ use std::sync::mpsc::Sender;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::{FontId, Stroke, StrokeKind};
 use egui::Event::{MouseWheel, Zoom};
-use egui::{Context, InputState, Key, Response, Ui, Widget};
+use egui::{Context, InputState, Response, Ui, Widget};
 use log::info;
 
 use crate::ceos::command::Command;
@@ -304,16 +304,11 @@ impl TextArea<'_> {
         caret_position: &mut Position,
         line_count: usize,
         i: &InputState,
-        key: &Key,
+        key: &egui::Key,
     ) {
         match key {
             egui::Key::Home => {
-                let ctrl = if cfg!(target_os = "macos") {
-                    i.modifiers.command
-                } else {
-                    i.modifiers.ctrl
-                };
-                if ctrl {
+                if Self::is_control_pressed(i) {
                     caret_position.line = 0;
                     caret_position.column = 0;
                 } else {
@@ -321,25 +316,14 @@ impl TextArea<'_> {
                 }
             }
             egui::Key::End => {
-                let ctrl = if cfg!(target_os = "macos") {
-                    i.modifiers.command
-                } else {
-                    i.modifiers.ctrl
-                };
-                if ctrl {
+                if Self::is_control_pressed(i) {
                     caret_position.line = line_count.saturating_sub(1);
-                    let line_text = self
-                        .textarea_properties
-                        .buffer
-                        .line_text(caret_position.line);
-                    caret_position.column = line_text.len();
-                } else {
-                    let line_text = self
-                        .textarea_properties
-                        .buffer
-                        .line_text(caret_position.line);
-                    caret_position.column = line_text.len();
                 }
+                let line_text = self
+                    .textarea_properties
+                    .buffer
+                    .line_text(caret_position.line);
+                caret_position.column = line_text.len();
             }
             egui::Key::ArrowLeft => {
                 caret_position.column = caret_position.column.saturating_sub(1);
@@ -381,6 +365,15 @@ impl TextArea<'_> {
             }
             _ => {}
         }
+    }
+
+    fn is_control_pressed(i: &InputState) -> bool {
+        let ctrl = if cfg!(target_os = "macos") {
+            i.modifiers.command
+        } else {
+            i.modifiers.ctrl
+        };
+        ctrl
     }
 
     fn handle_dropped_file(&self, i: &InputState) {
