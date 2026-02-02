@@ -345,7 +345,7 @@ impl Buffer {
         vec_overhead + array_mem + groups_mem
     }
 
-    pub fn compressed_size(&self) -> usize {
+    pub(crate) fn compressed_size(&self) -> usize {
         self.content.iter().map(|data| data.compressed_size()).sum()
     }
 
