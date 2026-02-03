@@ -246,7 +246,7 @@ impl LineGroup {
     ///     recompressed after the modifications, and any decompressed data is
     ///     freed.
     /// ```
-    pub(crate) fn filter_line_mut(&mut self, filter: impl FnMut(&mut Line)) {
+    pub(crate) fn filter_lines_mut(&mut self, filter: impl FnMut(&mut Line)) {
         let should_decompress = self.lines.is_none();
         if should_decompress {
             self.decompress();
@@ -256,6 +256,29 @@ impl LineGroup {
         debug_assert!(self.lines.is_some());
         if let Some(lines) = &mut self.lines {
             lines.iter_mut().for_each(filter);
+        }
+
+        self.compute_metadata();
+        if should_decompress {
+            self.compress();
+            self.free();
+            debug_assert!(self.compressed.is_some());
+            debug_assert!(self.lines.is_none());
+        }
+    }
+
+    pub(crate) fn filter_line_mut(&mut self, line_number: usize, mut filter: impl FnMut(&mut Line)) {
+        let should_decompress = self.lines.is_none();
+        if should_decompress {
+            self.decompress();
+            // free compresed data as we will modify the line array
+            self.compressed = None;
+        }
+        debug_assert!(self.lines.is_some());
+        
+        if let Some(lines) = &mut self.lines {
+            let line = &mut lines[line_number];
+            filter(line);
         }
 
         self.compute_metadata();
@@ -398,7 +421,7 @@ mod tests {
         let mut g = lg_from_strs(&["a", "b"]);
         g.compress(); // start compressed
         g.free();
-        g.filter_line_mut(|l| {
+        g.filter_lines_mut(|l| {
             let mut s = l.content().to_string();
             s.push('x');
             *l = Line::from(s);

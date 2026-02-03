@@ -6,6 +6,8 @@ use egui::Event::{MouseWheel, Zoom};
 use egui::{Context, InputState, Response, Ui, Widget};
 use log::info;
 
+// use crate::ceos::buffer::buffer::TextRange;
+use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::command::Command;
 use crate::ceos::command::search::Search;
 use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
@@ -362,6 +364,17 @@ impl TextArea<'_> {
                 caret_position.line =
                     (caret_position.line + visible_lines).min(line_count.saturating_sub(1));
                 self.textarea_properties.set_first_line(caret_position.line);
+            }
+            egui::Key::Delete | egui::Key::Backspace => {
+                if let Some(selection) = self.textarea_properties.selection.take() {
+                    let range = TextRange::new(
+                        selection.start.line,
+                        selection.start.column,
+                        selection.end.line,
+                        selection.end.column,
+                    );
+                    self.textarea_properties.buffer.delete_range(range);
+                }
             }
             _ => {}
         }

@@ -1,6 +1,8 @@
 use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::line_group::DEFAULT_GROUP_SIZE;
 use crate::ceos::buffer::line_group::LineGroup;
+use crate::ceos::buffer::text_range::TextRange;
+use crate::ceos::tools::misc_tool::{gzip_uncompressed_size_fast, is_gzip};
 use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use flate2::bufread::GzDecoder;
@@ -13,7 +15,6 @@ use std::ops::{Index, RangeBounds};
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
-use crate::ceos::tools::misc_tool::{gzip_uncompressed_size_fast, is_gzip};
 
 #[derive(Debug)]
 pub(crate) struct Buffer {
@@ -91,7 +92,11 @@ impl Buffer {
         Ok(())
     }
 
-    fn load_reader(&mut self, file_size: usize, buffer_reader: impl BufRead) -> Result<(), io::Error> {
+    fn load_reader(
+        &mut self,
+        file_size: usize,
+        buffer_reader: impl BufRead,
+    ) -> Result<(), io::Error> {
         let mut start = Instant::now();
         for line_text in buffer_reader.lines() {
             self.push_line(line_text?);
@@ -134,6 +139,37 @@ impl Buffer {
             let next_first = last_group.first_line() + last_group.line_count();
             self.content.push(LineGroup::with_first_line(next_first));
         }
+    }
+
+    pub(crate) fn delete_range(&mut self, text_range: TextRange) {
+        let line_count = self.line_count();
+        if line_count == 0 || text_range.start_line >= line_count {
+            return;
+        }
+
+        let start_line = text_range.start_line;
+        let end_line = text_range.end_line.min(line_count.saturating_sub(1));
+
+        if start_line == end_line {
+            self.prepare_range_for_read(start_line..=end_line);
+            let line_len = self.line_text(start_line).len();
+            let start_col = text_range.start_column.min(line_len);
+            let end_col = text_range.end_column.min(line_len);
+            if start_col >= end_col {
+                return;
+            }
+            if let Some((group_index, line_index)) = self.find_group_index(start_line) {
+                let line_group = &mut self.content[group_index];
+                line_group.filter_line_mut(line_index, |line| {
+                    line.drain(start_col..end_col);
+                });
+            }
+            self.compute_length();
+            self.dirty = true;
+            return;
+        }
+
+
     }
 
     pub(crate) fn line_groups(&self) -> &[LineGroup] {
@@ -186,7 +222,7 @@ impl Buffer {
             let _ = self
                 .sender
                 .send(Event::OperationIncrement(FILTERING.to_owned(), 1));
-            line_group.filter_line_mut(filter.clone());
+            line_group.filter_lines_mut(filter.clone());
         });
         let new_length = self.compute_length();
         self.dirty = true;
@@ -501,6 +537,37 @@ mod tests {
             b.line_text(DEFAULT_GROUP_SIZE),
             format!("line{}", DEFAULT_GROUP_SIZE)
         );
+    }
+
+    #[test]
+    fn delete_range_single_line() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut b = Buffer::new_from_string(sender, "abcdef");
+        b.delete_range(TextRange::new(0, 2, 0, 5));
+        assert_eq!(b.line_text(0), "abf");
+        assert_eq!(b.line_count(), 1);
+        assert!(b.dirty);
+    }
+
+    #[test]
+    fn delete_range_multi_line_merges() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut b = Buffer::new_from_string(sender, "hello\nworld\n!!!");
+        b.delete_range(TextRange::new(0, 2, 1, 3));
+        assert_eq!(b.line_text(0), "held");
+        assert_eq!(b.line_text(1), "!!!");
+        assert_eq!(b.line_count(), 2);
+        assert!(b.dirty);
+    }
+
+    #[test]
+    fn delete_range_to_line_start() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut b = Buffer::new_from_string(sender, "aaa\nbbb\nccc");
+        b.delete_range(TextRange::new(0, 0, 2, 0));
+        assert_eq!(b.line_text(0), "ccc");
+        assert_eq!(b.line_count(), 1);
+        assert!(b.dirty);
     }
 
     #[test]
