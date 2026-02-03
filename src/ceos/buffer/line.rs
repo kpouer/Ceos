@@ -42,6 +42,10 @@ impl Line {
         self.content.drain(range);
         self.content.shrink_to_fit();
     }
+
+    pub(crate) fn push_str(&mut self, str: &str) {
+        self.content.push_str(str);
+    }
 }
 
 impl Display for Line {
@@ -116,5 +120,14 @@ mod tests {
         assert_eq!(line.content(), "hello");
         assert_eq!(line.len(), 5);
         assert_eq!(line.mem(), 5);
+    }
+
+    #[test]
+    fn push_str_appends_content() {
+        let mut line = Line::from("hello");
+        line.push_str(" world");
+        assert_eq!(line.content(), "hello world");
+        assert_eq!(line.len(), 11);
+        assert!(!line.is_empty());
     }
 }
