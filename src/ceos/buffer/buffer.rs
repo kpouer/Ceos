@@ -393,6 +393,20 @@ impl Buffer {
         }
     }
 
+    /// Finds the index of the group and the corresponding line within that group,
+    /// given a line number in the aggregated content.
+    ///
+    /// # Arguments
+    ///
+    /// * `line` - The zero-based line number in the aggregated content to locate.
+    ///
+    /// # Returns
+    ///
+    /// * `Some((usize, usize))` - A tuple containing:
+    ///   - The index of the group (`usize`).
+    ///   - The corresponding line number relative to the group (`usize`).
+    /// * `None` - If the given line number exceeds the total number of lines
+    ///   in all groups combined.
     fn find_group_index(&self, mut line: usize) -> Option<(usize, usize)> {
         for (group_index, line_group) in self.content.iter().enumerate() {
             if line < line_group.line_count() {
