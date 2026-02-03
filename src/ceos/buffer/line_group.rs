@@ -24,8 +24,12 @@ pub(crate) struct LineGroup {
 
 impl LineGroup {
     pub(crate) fn with_first_line(first_line: usize) -> Self {
+        Self::with_first_line_and_group_size(first_line, DEFAULT_GROUP_SIZE)
+    }
+
+    pub(crate) fn with_first_line_and_group_size(first_line: usize, group_size: usize) -> Self {
         Self {
-            lines: Some(Vec::with_capacity(DEFAULT_GROUP_SIZE)),
+            lines: Some(Vec::with_capacity(group_size)),
             compressed: None,
             line_count: 0,
             length: 0,
