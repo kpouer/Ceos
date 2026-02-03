@@ -151,24 +151,33 @@ impl Buffer {
         let end_line = text_range.end_line.min(line_count.saturating_sub(1));
 
         if start_line == end_line {
-            self.prepare_range_for_read(start_line..=end_line);
-            let line_len = self.line_text(start_line).len();
-            let start_col = text_range.start_column.min(line_len);
-            let end_col = text_range.end_column.min(line_len);
-            if start_col >= end_col {
-                return;
-            }
-            if let Some((group_index, line_index)) = self.find_group_index(start_line) {
-                let line_group = &mut self.content[group_index];
-                line_group.filter_line_mut(line_index, |line| {
-                    line.drain(start_col..end_col);
-                });
-            }
-            self.compute_length();
-            self.dirty = true;
-            return;
+            self.delete_in_single_line(start_line, text_range.start_column, text_range.end_column);
+        } else {
+            self.delete_across_lines(start_line, text_range.start_column, end_line, text_range.end_column);
         }
 
+        self.compute_length();
+        self.recompute_first_lines();
+        self.dirty = true;
+    }
+
+    fn delete_in_single_line(&mut self, line_idx: usize, start_col: usize, end_col: usize) {
+        self.prepare_range_for_read(line_idx..=line_idx);
+        let line_len = self.line_text(line_idx).len();
+        let start_col = start_col.min(line_len);
+        let end_col = end_col.min(line_len);
+        if start_col >= end_col {
+            return;
+        }
+        if let Some((group_index, line_index)) = self.find_group_index(line_idx) {
+            let line_group = &mut self.content[group_index];
+            line_group.filter_line_mut(line_index, |line| {
+                line.drain(start_col..end_col);
+            });
+        }
+    }
+
+    fn delete_across_lines(&mut self, start_line: usize, start_col: usize, end_line: usize, end_col: usize) {
         let (start_group_index, start_line_in_group) = self
             .find_group_index(start_line)
             .expect("start_line out of bounds");
@@ -176,37 +185,35 @@ impl Buffer {
             .find_group_index(end_line)
             .expect("end_line out of bounds");
 
+        self.prepare_range_for_read(start_line..=end_line);
+
         if start_group_index == end_group_index {
             let line_group = &mut self.content[start_group_index];
-            let suffix = line_group[end_line_in_group].content()[text_range.end_column..].to_owned();
+            let suffix = line_group[end_line_in_group].content()[end_col..].to_owned();
             line_group.filter_line_mut(start_line_in_group, |line| {
-                line.drain(text_range.start_column..);
+                line.drain(start_col..);
                 line.push_str(&suffix);
             });
             line_group.drain_lines(start_line_in_group + 1..=end_line_in_group);
-            self.compute_length();
-            self.dirty = true;
-            return;
-        }
-        let suffix = {
-            let end_group = &mut self.content[end_group_index];
-            let first_line = &end_group.lines()[start_line_in_group];
-            let suffix = first_line.content()[text_range.end_column..].to_owned();
-            end_group.drain_lines(0..=end_line_in_group);
-            suffix
-        };
+        } else {
+            let suffix = {
+                let end_group = &mut self.content[end_group_index];
+                let last_line = &end_group.lines()[end_line_in_group];
+                let suffix = last_line.content()[end_col..].to_owned();
+                end_group.drain_lines(0..=end_line_in_group);
+                suffix
+            };
 
-        let first_group = &mut self.content[start_group_index];
-        first_group.filter_line_mut(start_line_in_group, |line| {
-            line.drain(text_range.start_column..);
-            line.push_str(&suffix);
-        });
-        // drain the linegroups between the start and the end group
-        if start_group_index + 1 < end_group_index {
-            self.content.drain(start_group_index + 1..end_group_index);
+            let first_group = &mut self.content[start_group_index];
+            first_group.filter_line_mut(start_line_in_group, |line| {
+                line.drain(start_col..);
+                line.push_str(&suffix);
+            });
+            // drain the linegroups between the start and the end group
+            if start_group_index + 1 < end_group_index {
+                self.content.drain(start_group_index + 1..end_group_index);
+            }
         }
-        self.dirty = true;
-        return;
     }
 
     pub(crate) fn line_groups(&self) -> &[LineGroup] {
