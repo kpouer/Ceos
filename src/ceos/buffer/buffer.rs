@@ -175,6 +175,19 @@ impl Buffer {
         let (end_group_index, end_line_in_group) = self
             .find_group_index(end_line)
             .expect("end_line out of bounds");
+
+        if start_group_index == end_group_index {
+            let line_group = &mut self.content[start_group_index];
+            let suffix = line_group[end_line_in_group].content()[text_range.end_column..].to_owned();
+            line_group.filter_line_mut(start_line_in_group, |line| {
+                line.drain(text_range.start_column..);
+                line.push_str(&suffix);
+            });
+            line_group.drain_lines(start_line_in_group + 1..=end_line_in_group);
+            self.compute_length();
+            self.dirty = true;
+            return;
+        }
         let suffix = {
             let end_group = &mut self.content[end_group_index];
             let first_line = &end_group.lines()[start_line_in_group];

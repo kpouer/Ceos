@@ -276,7 +276,7 @@ impl LineGroup {
             self.compressed = None;
         }
         debug_assert!(self.lines.is_some());
-        
+
         if let Some(lines) = &mut self.lines {
             let line = &mut lines[line_number];
             filter(line);
