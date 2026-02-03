@@ -224,8 +224,6 @@ impl LineGroup {
         }
     }
 
-    /// ```rust
-    ///
     /// Applies a mutable filter function to each line in the internal data structure.
     ///
     /// This function ensures that the internal line data is decompressed (if needed)
@@ -245,7 +243,6 @@ impl LineGroup {
     ///  4. If the line data was initially decompressed for this operation, it is
     ///     recompressed after the modifications, and any decompressed data is
     ///     freed.
-    /// ```
     pub(crate) fn filter_lines_mut(&mut self, filter: impl FnMut(&mut Line)) {
         let should_decompress = self.lines.is_none();
         if should_decompress {
@@ -290,7 +287,7 @@ impl LineGroup {
         }
     }
 
-    fn compute_metadata(&mut self) {
+    pub(crate) fn compute_metadata(&mut self) {
         debug_assert!(self.is_decompressed());
         if let Some(lines) = &self.lines {
             let (length, max_line_length) = lines.iter().fold((0, 0), |(sum, max), line| {

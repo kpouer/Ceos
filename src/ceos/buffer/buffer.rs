@@ -169,7 +169,31 @@ impl Buffer {
             return;
         }
 
+        let (start_group_index, start_line_in_group) = self
+            .find_group_index(start_line)
+            .expect("start_line out of bounds");
+        let (end_group_index, end_line_in_group) = self
+            .find_group_index(end_line)
+            .expect("end_line out of bounds");
+        let suffix = {
+            let end_group = &mut self.content[end_group_index];
+            let first_line = &end_group.lines()[start_line_in_group];
+            let suffix = first_line.content()[text_range.end_column..].to_owned();
+            end_group.drain_lines(0..=end_line_in_group);
+            suffix
+        };
 
+        let first_group = &mut self.content[start_group_index];
+        first_group.filter_line_mut(start_line_in_group, |line| {
+            line.drain(text_range.start_column..);
+            line.push_str(&suffix);
+        });
+        // drain the linegroups between the start and the end group
+        if start_group_index + 1 < end_group_index {
+            self.content.drain(start_group_index + 1..end_group_index);
+        }
+        self.dirty = true;
+        return;
     }
 
     pub(crate) fn line_groups(&self) -> &[LineGroup] {
