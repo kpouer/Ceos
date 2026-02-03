@@ -224,6 +224,28 @@ impl LineGroup {
         }
     }
 
+    /// ```rust
+    ///
+    /// Applies a mutable filter function to each line in the internal data structure.
+    ///
+    /// This function ensures that the internal line data is decompressed (if needed)
+    /// before modifying it and applies the provided filter function to each line.
+    /// Once the modifications are complete, it recompresses the line data and
+    /// frees unnecessary memory.
+    ///
+    /// # Parameters
+    /// - `filter`: A closure or function that takes a mutable reference to a `Line`
+    ///   and modifies it.
+    ///
+    /// # Behavior
+    /// 1. If the internal line data (`self.lines`) is compressed, the method decompresses it
+    /// and will recompress after.
+    ///  2. The provided `filter` function is applied to each line
+    ///  3. Updates the metadata of the object by calling `self.compute_metadata`.
+    ///  4. If the line data was initially decompressed for this operation, it is
+    ///     recompressed after the modifications, and any decompressed data is
+    ///     freed.
+    /// ```
     pub(crate) fn filter_line_mut(&mut self, filter: impl FnMut(&mut Line)) {
         let should_decompress = self.lines.is_none();
         if should_decompress {
