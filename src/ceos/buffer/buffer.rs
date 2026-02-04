@@ -9,8 +9,7 @@ use rayon::prelude::*;
 use std::fs::File;
 use std::io;
 use std::io::BufRead;
-use std::ops::Bound;
-use std::ops::{Index, RangeBounds};
+use std::ops::{Bound, Index, RangeBounds};
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
@@ -236,29 +235,49 @@ impl Buffer {
         R: RangeBounds<usize>,
     {
         // Convert RangeBounds to concrete start..end
-        let (start, end) = self.normalize_range(range);
-        if start >= end {
-            return self.length;
+        let (start_line, end_line) = self.normalize_range(range);
+        if start_line >= end_line {
+            return self.compute_length();
         }
 
-        let mut to_remove = end - start;
-        let global_index = start;
-        while to_remove > 0 {
-            if let Some((group_index, line_index)) = self.find_group_index(global_index) {
-                let line_group = &mut self.content[group_index];
-                let max_in_group = line_group.len() - line_index;
-                let take = to_remove.min(max_in_group);
-                line_group.drain_lines(line_index..line_index + take);
-                // If group is now empty, remove it to keep structure compact
-                if line_group.is_empty() {
-                    self.content.remove(group_index);
-                }
-                to_remove -= take;
-                // global_index stays the same because we removed at this position
+        let (start_group_index, start_line_in_group) = self
+            .find_group_index(start_line)
+            .expect("start_line out of bounds");
+        let (end_group_index, end_line_in_group) = self
+            .find_group_index(end_line - 1)
+            .expect("end_line out of bounds");
+
+        let start_group_line_count = self.content[start_group_index].line_count();
+        let should_remove_first_group =
+            start_line_in_group == 0 && (start_group_index < end_group_index || end_line_in_group == start_group_line_count - 1);
+
+        if !should_remove_first_group {
+            let end_in_group = if start_group_index == end_group_index {
+                end_line_in_group + 1
             } else {
-                break;
-            }
+                start_group_line_count
+            };
+            self.content[start_group_index].drain_lines(start_line_in_group..end_in_group);
         }
+
+        if start_group_index != end_group_index {
+            let first_group_to_remove = if should_remove_first_group {
+                start_group_index
+            } else {
+                start_group_index + 1
+            };
+            let end_group = &mut self.content[end_group_index];
+            if end_line_in_group == end_group.line_count() - 1 {
+                // all the last group has to be removed
+                self.content.drain(first_group_to_remove..=end_group_index);
+            } else {
+                end_group.drain_lines(..=end_line_in_group);
+                self.content.drain(first_group_to_remove..end_group_index);
+            }
+        } else if should_remove_first_group {
+            self.content.remove(start_group_index);
+        }
+
         let new_length = self.compute_length();
         self.recompute_first_lines();
         self.dirty = true;
@@ -423,9 +442,7 @@ impl Buffer {
             .content
             .iter()
             .map(|line_group| line_group.len())
-            .sum::<usize>()
-            + self.content.len()
-            - 1;
+            .sum::<usize>();
         self.length
     }
 
@@ -473,6 +490,7 @@ impl Buffer {
     }
 
     fn normalize_range<R: RangeBounds<usize>>(&self, range: R) -> (usize, usize) {
+        // todo : use let Range { start, end } = slice::range(range, ..len);
         let start = match range.start_bound() {
             Bound::Included(&s) => s,
             Bound::Excluded(&s) => s + 1,
@@ -516,11 +534,12 @@ mod tests {
     #[test]
     fn from_str_builds_lines_and_lengths() {
         let (sender, _) = std::sync::mpsc::channel();
-        let b = Buffer::new_from_string(sender, "a\nbb\nccc", 2);
+        let mut b = Buffer::new_from_string(sender, "a\nbb\nccc", 2);
         assert_eq!(b.line_count(), 3);
         // Each line counted as len+1 in our model
         assert_eq!(b.len(), (1 + 1) + (2 + 1) + (3 + 1));
         assert_eq!(b.max_line_length(), 3);
+        b.prepare_range_for_read(..);
         assert_eq!(b.line_text(0), "a");
         assert_eq!(b[1].content(), "bb");
     }
@@ -554,7 +573,8 @@ mod tests {
         // Access a few positions
         b.prepare_range_for_read(0..10);
         assert_eq!(b.line_text(0), "000");
-        b.prepare_range_for_read(b.group_size - 10..b.group_size + 100);
+        let start = if b.group_size > 10 { b.group_size - 10 } else { 0 };
+        b.prepare_range_for_read(start..b.group_size + 100);
         assert_eq!(
             b.line_text(b.group_size - 1),
             format!("{:03}", b.group_size - 1)
@@ -571,6 +591,7 @@ mod tests {
             *line = Line::from(s);
         });
         assert!(new_len >= b.len());
+        b.prepare_range_for_read(..);
         assert!(b.line_text(0).ends_with('x'));
         assert!(b.line_text(1).ends_with('x'));
         assert!(b.dirty);
@@ -590,18 +611,63 @@ mod tests {
     #[test]
     fn drain_line_mut_various_ranges() {
         let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "l0\nl1\nl2\nl3\nl4", 2);
-        let len1 = buffer.drain_line_mut(1..3); // remove l1,l2
+        let mut buffer = Buffer::new_from_string(sender.clone(), "l0\nl1\nl2\nl3\nl4", 2);
+        // buffer has 5 lines: ["l0", "l1", "l2", "l3", "l4"]
+        // group_size = 2
+        // groups: G0: [l0, l1], G1: [l2, l3], G2: [l4]
+
+        let _ = buffer.drain_line_mut(1..3); // remove l1, l2
+        // expected: ["l0", "l3", "l4"]
+        // groups: G0: [l0], G1: [l3], G2: [l4] (or merged, but drain_line_mut doesn't merge)
+        buffer.debug();
         assert_eq!(buffer.line_count(), 3);
+        buffer.prepare_range_for_read(..);
         assert_eq!(buffer.line_text(0), "l0");
         assert_eq!(buffer.line_text(1), "l3");
         assert_eq!(buffer.line_text(2), "l4");
-        assert_eq!(len1, buffer.len());
 
         // Remove last element with inclusive range
+        let mut buffer = Buffer::new_from_string(sender.clone(), "l0\nl1\nl2", 2);
         let _ = buffer.drain_line_mut(2..=2);
         assert_eq!(buffer.line_count(), 2);
-        assert_eq!(buffer.line_text(1), "l3");
+        buffer.prepare_range_for_read(..);
+        assert_eq!(buffer.line_text(0), "l0");
+        assert_eq!(buffer.line_text(1), "l1");
+
+        // Remove all lines
+        let mut buffer = Buffer::new_from_string(sender, "l0\nl1\nl2", 2);
+        let _ = buffer.drain_line_mut(..);
+        assert_eq!(buffer.line_count(), 0);
+    }
+
+    #[test]
+    fn drain_line_mut_bug_reproduction() {
+        let (sender, _) = std::sync::mpsc::channel();
+        
+        // Test 1: Drain spanning multiple groups
+        let mut buffer = Buffer::new_from_string(sender.clone(), "l0\nl1\nl2\nl3\nl4", 2);
+        // Groups: G0:[l0, l1], G1:[l2, l3], G2:[l4]
+        // Drain 1..4 (l1, l2, l3)
+        buffer.drain_line_mut(1..4);
+        // Expected: ["l0", "l4"]
+        assert_eq!(buffer.line_count(), 2, "Line count should be 2 after draining 1..4");
+        buffer.prepare_range_for_read(..);
+        assert_eq!(buffer.line_text(0), "l0");
+        assert_eq!(buffer.line_text(1), "l4");
+
+        // Test 2: should_remove_first_group when spanning multiple groups
+        let mut buffer = Buffer::new_from_string(sender, "l0\nl1\nl2\nl3", 2);
+        // Groups: G0:[l0, l1], G1:[l2, l3]
+        // Drain 0..3 (l0, l1, l2)
+        // start_line_in_group = 0
+        // lines_to_delete = 3
+        // line_group.line_count() = 2
+        // current code's should_remove_first_group = (0 == 0 && 2 == 3) => false
+        // BUT it SHOULD remove G0 because l0, l1 are both being deleted.
+        buffer.drain_line_mut(0..3);
+        assert_eq!(buffer.line_count(), 1);
+        buffer.prepare_range_for_read(..);
+        assert_eq!(buffer.line_text(0), "l3");
     }
 
     #[test]

@@ -329,12 +329,18 @@ impl LineGroup {
     where
         R: RangeBounds<usize>,
     {
-        debug_assert!(self.lines.is_some());
+        let compressed = self.is_compressed();
+        if compressed {
+            self.decompress();
+        }
         self.compressed = None;
         if let Some(lines) = &mut self.lines {
             lines.drain(range);
         }
         self.compute_metadata();
+        if compressed {
+            self.compress();
+        }
     }
 
     pub(crate) fn mem(&self) -> usize {

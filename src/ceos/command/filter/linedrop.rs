@@ -102,6 +102,7 @@ mod tests {
         let filter = LineDrop::try_from("l ..2")?;
         filter.execute(&mut buffer);
         assert_eq!(3, buffer.line_count());
+        buffer.prepare_range_for_read(..);
         assert_eq!("3 delete me", buffer.line_text(1));
         assert!(buffer.dirty);
         Ok(())
@@ -116,6 +117,7 @@ mod tests {
         let filter = LineDrop::try_from("l 3..")?;
         filter.execute(&mut buffer);
         assert_eq!(3, buffer.line_count());
+        buffer.prepare_range_for_read(..);
         assert_eq!("2 keep me", buffer.line_text(1));
         assert!(buffer.dirty);
         Ok(())
@@ -130,6 +132,7 @@ mod tests {
         let filter = LineDrop::try_from("l 2..4")?;
         filter.execute(&mut buffer);
         assert_eq!(3, buffer.line_count());
+        buffer.prepare_range_for_read(..);
         assert_eq!("2 keep me", buffer.line_text(1));
         assert!(buffer.dirty);
         Ok(())

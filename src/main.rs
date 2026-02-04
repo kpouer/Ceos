@@ -1,4 +1,6 @@
 #![windows_subsystem = "windows"]
+extern crate core;
+
 use crate::ceos::Ceos;
 
 mod ceos;
