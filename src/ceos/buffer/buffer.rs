@@ -641,6 +641,18 @@ mod tests {
     }
 
     #[test]
+    fn new_from_file_loads_cargo_toml() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let path = PathBuf::from("Cargo.toml");
+        let mut buffer = Buffer::new_from_file(path, sender).expect("Failed to load Cargo.toml");
+
+        assert!(buffer.line_count() > 0);
+        let first_line = buffer.line_text(0);
+        assert!(first_line.contains("[package]"));
+        buffer.compress_all_groups();
+    }
+
+    #[test]
     fn drain_line_mut_bug_reproduction() {
         let (sender, _) = std::sync::mpsc::channel();
         
