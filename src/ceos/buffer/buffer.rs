@@ -1,5 +1,4 @@
 use crate::ceos::buffer::line::Line;
-use crate::ceos::buffer::line_group::DEFAULT_GROUP_SIZE;
 use crate::ceos::buffer::line_group::LineGroup;
 use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::tools::misc_tool::{gzip_uncompressed_size_fast, is_gzip};
@@ -16,6 +15,8 @@ use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
 
+const DEFAULT_GROUP_SIZE: usize = 1000;
+
 #[derive(Debug)]
 pub(crate) struct Buffer {
     pub(crate) path: Option<PathBuf>,
@@ -24,23 +25,19 @@ pub(crate) struct Buffer {
     length: usize,
     pub(crate) dirty: bool,
     pub(crate) sender: Sender<Event>,
+    /// The size of the groups used for line compression.
+    group_size: usize,
 }
 
 const FILTERING: &str = "Filtering...";
 
 impl Buffer {
     pub(crate) fn new(sender: Sender<Event>) -> Self {
-        Self {
-            path: None,
-            content: vec![LineGroup::with_first_line(0)],
-            length: 0,
-            dirty: false,
-            sender,
-        }
+        Self::new_with_group_size(sender, DEFAULT_GROUP_SIZE)
     }
 
-    pub(crate) fn new_from_string(sender: Sender<Event>, text: &str) -> Self {
-        let mut buffer = Self::new(sender);
+    pub(crate) fn new_from_string(sender: Sender<Event>, text: &str, group_size: usize) -> Self {
+        let mut buffer = Self::new_with_group_size(sender, group_size);
 
         let lines_iterator = text.lines();
         lines_iterator.into_iter().for_each(|line| {
@@ -48,6 +45,17 @@ impl Buffer {
         });
 
         buffer
+    }
+
+    fn new_with_group_size(sender: Sender<Event>, group_size: usize) -> Self {
+        Self {
+            path: None,
+            content: vec![LineGroup::new(0, group_size)],
+            length: 0,
+            dirty: false,
+            sender,
+            group_size,
+        }
     }
 
     pub(crate) fn new_from_file(
@@ -137,7 +145,7 @@ impl Buffer {
             last_group.eventually_compress();
             last_group.free();
             let next_first = last_group.first_line() + last_group.line_count();
-            self.content.push(LineGroup::with_first_line(next_first));
+            self.content.push(LineGroup::new(next_first, self.group_size));
         }
     }
 
@@ -197,6 +205,7 @@ impl Buffer {
             line_group.drain_lines(start_line_in_group + 1..=end_line_in_group);
         } else {
             let suffix = {
+                // process the end group and retrieve the suffix
                 let end_group = &mut self.content[end_group_index];
                 let last_line = &end_group.lines()[end_line_in_group];
                 let suffix = last_line.content()[end_col..].to_owned();
@@ -209,6 +218,8 @@ impl Buffer {
                 line.drain(start_col..);
                 line.push_str(&suffix);
             });
+            first_group.drain_lines(start_line_in_group + 1..);
+
             // drain the linegroups between the start and the end group
             if start_group_index + 1 < end_group_index {
                 self.content.drain(start_group_index + 1..end_group_index);
@@ -338,8 +349,8 @@ impl Buffer {
 
         // Define a window to keep around the requested range to avoid thrashing.
         // Groups entirely outside this window will be recompressed.
-        let window_start = start.saturating_sub(DEFAULT_GROUP_SIZE);
-        let window_end = (end + DEFAULT_GROUP_SIZE).min(total_lines);
+        let window_start = start.saturating_sub(self.group_size);
+        let window_end = (end + self.group_size).min(total_lines);
 
         // Walk groups and decompress those intersecting [start, end),
         // recompress those fully outside [window_start, window_end).
@@ -474,6 +485,17 @@ impl Buffer {
         };
         (start.min(self.line_count()), end.min(self.line_count()))
     }
+
+    #[cfg(debug_assertions)]
+    fn debug(&self) {
+        println!("Buffer Debug Info:");
+        println!("Line Count: {}", self.line_count());
+        println!("Dirty: {}", self.dirty);
+        println!("Content:");
+        for line_group in &self.content {
+            line_group.debug();
+        }
+    }
 }
 
 impl Index<usize> for Buffer {
@@ -494,7 +516,7 @@ mod tests {
     #[test]
     fn from_str_builds_lines_and_lengths() {
         let (sender, _) = std::sync::mpsc::channel();
-        let b = Buffer::new_from_string(sender, "a\nbb\nccc");
+        let b = Buffer::new_from_string(sender, "a\nbb\nccc", 2);
         assert_eq!(b.line_count(), 3);
         // Each line counted as len+1 in our model
         assert_eq!(b.len(), (1 + 1) + (2 + 1) + (3 + 1));
@@ -506,7 +528,7 @@ mod tests {
     #[test]
     fn iter_yields_all_lines_in_order() {
         let (sender, _) = std::sync::mpsc::channel();
-        let b = Buffer::new_from_string(sender, "l1\nl2\nl3");
+        let b = Buffer::new_from_string(sender, "l1\nl2\nl3", 2);
         let mut collected = Vec::new();
         b.line_groups().iter().for_each(|line_group| {
             line_group
@@ -522,27 +544,27 @@ mod tests {
     fn group_boundary_and_compression_path() {
         // Push exactly DEFAULT_GROUP_SIZE lines to trigger compression of first group
         let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new(sender);
-        for i in 0..DEFAULT_GROUP_SIZE {
+        let mut b = Buffer::new_with_group_size(sender, 2);
+        for i in 0..b.group_size {
             b.push_line(format!("{:03}", i));
         }
         // We should still report correct counts and access
-        assert_eq!(b.line_count(), DEFAULT_GROUP_SIZE);
+        assert_eq!(b.line_count(), b.group_size);
         assert_eq!(b.max_line_length(), 3);
         // Access a few positions
         b.prepare_range_for_read(0..10);
         assert_eq!(b.line_text(0), "000");
-        b.prepare_range_for_read(DEFAULT_GROUP_SIZE - 10..DEFAULT_GROUP_SIZE + 100);
+        b.prepare_range_for_read(b.group_size - 10..b.group_size + 100);
         assert_eq!(
-            b.line_text(DEFAULT_GROUP_SIZE - 1),
-            format!("{:03}", DEFAULT_GROUP_SIZE - 1)
+            b.line_text(b.group_size - 1),
+            format!("{:03}", b.group_size - 1)
         );
     }
 
     #[test]
     fn filter_line_mut_updates_all_lines() {
         let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new_from_string(sender, "a\nbb");
+        let mut b = Buffer::new_from_string(sender, "a\nbb", 2);
         let new_len = b.filter_line_mut(|line| {
             let mut s = line.to_string();
             s.push('x');
@@ -557,7 +579,7 @@ mod tests {
     #[test]
     fn retain_line_mut_keeps_predicate_matches() {
         let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new_from_string(sender, "a\nbb\nccc\ndddd");
+        let mut b = Buffer::new_from_string(sender, "a\nbb\nccc\ndddd", 2);
         let _ = b.retain_line_mut(|l| l.len() % 2 == 0); // keep even lengths: 2 and 4
         assert_eq!(b.line_count(), 2);
         assert_eq!(b.line_text(0), "bb");
@@ -568,24 +590,24 @@ mod tests {
     #[test]
     fn drain_line_mut_various_ranges() {
         let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new_from_string(sender, "l0\nl1\nl2\nl3\nl4");
-        let len1 = b.drain_line_mut(1..3); // remove l1,l2
-        assert_eq!(b.line_count(), 3);
-        assert_eq!(b.line_text(0), "l0");
-        assert_eq!(b.line_text(1), "l3");
-        assert_eq!(b.line_text(2), "l4");
-        assert_eq!(len1, b.len());
+        let mut buffer = Buffer::new_from_string(sender, "l0\nl1\nl2\nl3\nl4", 2);
+        let len1 = buffer.drain_line_mut(1..3); // remove l1,l2
+        assert_eq!(buffer.line_count(), 3);
+        assert_eq!(buffer.line_text(0), "l0");
+        assert_eq!(buffer.line_text(1), "l3");
+        assert_eq!(buffer.line_text(2), "l4");
+        assert_eq!(len1, buffer.len());
 
         // Remove last element with inclusive range
-        let _ = b.drain_line_mut(2..=2);
-        assert_eq!(b.line_count(), 2);
-        assert_eq!(b.line_text(1), "l3");
+        let _ = buffer.drain_line_mut(2..=2);
+        assert_eq!(buffer.line_count(), 2);
+        assert_eq!(buffer.line_text(1), "l3");
     }
 
     #[test]
     fn prepare_range_for_read_safe_and_accessible() {
         let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new(sender);
+        let mut b = Buffer::new_with_group_size(sender, 2);
         for i in 0..(DEFAULT_GROUP_SIZE * 2 + 10) {
             b.push_line(format!("line{}", i));
         }
@@ -600,7 +622,7 @@ mod tests {
     #[test]
     fn delete_range_single_line() {
         let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new_from_string(sender, "abcdef");
+        let mut b = Buffer::new_from_string(sender, "abcdef", 2);
         b.delete_range(TextRange::new(0, 2, 0, 5));
         assert_eq!(b.line_text(0), "abf");
         assert_eq!(b.line_count(), 1);
@@ -610,7 +632,7 @@ mod tests {
     #[test]
     fn delete_range_multi_line_merges() {
         let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new_from_string(sender, "hello\nworld\n!!!");
+        let mut b = Buffer::new_from_string(sender, "hello\nworld\n!!!", 2);
         b.delete_range(TextRange::new(0, 2, 1, 3));
         assert_eq!(b.line_text(0), "held");
         assert_eq!(b.line_text(1), "!!!");
@@ -621,17 +643,22 @@ mod tests {
     #[test]
     fn delete_range_to_line_start() {
         let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new_from_string(sender, "aaa\nbbb\nccc");
-        b.delete_range(TextRange::new(0, 0, 2, 0));
-        assert_eq!(b.line_text(0), "ccc");
-        assert_eq!(b.line_count(), 1);
-        assert!(b.dirty);
+        const TEXT: &str = "aaa\n\
+        bbb\n\
+        ccc";
+        let mut buffer = Buffer::new_from_string(sender, TEXT, 2);
+        let range = TextRange::new(0, 1, 2, 1);
+        buffer.delete_range(range);
+        buffer.debug();
+        assert_eq!(buffer.line_text(0), "acc");
+        assert_eq!(buffer.line_count(), 1);
+        assert!(buffer.dirty);
     }
 
     #[test]
     fn mem_non_decreasing_after_growth() {
         let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new(sender);
+        let mut b = Buffer::new_with_group_size(sender, 2);
         let base = b.mem();
         b.push_line("abc");
         assert!(b.mem() >= base);

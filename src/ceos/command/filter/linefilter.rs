@@ -1,9 +1,9 @@
-use std::fmt::Display;
-use std::time::Instant;
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::{Stroke, StrokeKind};
 use egui::Ui;
 use log::info;
+use std::fmt::Display;
+use std::time::Instant;
 
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::line::Line;
@@ -38,12 +38,11 @@ impl TryFrom<&str> for LineFilter {
     fn try_from(command: &str) -> Result<Self, Self::Error> {
         const PREFIX: &str = "filter ";
 
-        command.strip_prefix(PREFIX)
+        command
+            .strip_prefix(PREFIX)
             .filter(|rest| !rest.is_empty())
             .map(|rest| {
-                let filters = rest.split('&')
-                    .map(|tok| tok.to_string())
-                    .collect();
+                let filters = rest.split('&').map(|tok| tok.to_string()).collect();
                 Self { filters }
             })
             .ok_or(())
@@ -102,13 +101,13 @@ mod tests {
     #[test]
     fn test_filter() -> Result<(), ()> {
         let filter = LineFilter::try_from("filter delete")?;
-        let content = "1 delete me\n\
+        const CONTENT: &str = "1 delete me\n\
         2 keep me\n\
         3 delete me\n\
         4 keep me\n";
         let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, content);
-        assert_eq!(content.len(), buffer.len());
+        let mut buffer = Buffer::new_from_string(sender, CONTENT, 2);
+        assert_eq!(CONTENT.len(), buffer.len());
         assert_eq!(4, buffer.line_count());
         filter.execute(&mut buffer);
         assert!(buffer.dirty);

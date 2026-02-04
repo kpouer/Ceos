@@ -5,8 +5,6 @@ use std::io::{Read, Write};
 use std::ops::Index;
 use std::ops::RangeBounds;
 
-pub(super) const DEFAULT_GROUP_SIZE: usize = 1000;
-
 #[derive(Debug)]
 pub(crate) struct LineGroup {
     /// Contains the uncompressed data. Might be there even if the compressed data is present.
@@ -20,14 +18,11 @@ pub(crate) struct LineGroup {
     max_line_length: usize,
     /// Global index (0-based) of the first line contained in this group
     first_line: usize,
+    group_size: usize,
 }
 
 impl LineGroup {
-    pub(crate) fn with_first_line(first_line: usize) -> Self {
-        Self::with_first_line_and_group_size(first_line, DEFAULT_GROUP_SIZE)
-    }
-
-    pub(crate) fn with_first_line_and_group_size(first_line: usize, group_size: usize) -> Self {
+    pub(crate) fn new(first_line: usize, group_size: usize) -> Self {
         Self {
             lines: Some(Vec::with_capacity(group_size)),
             compressed: None,
@@ -35,6 +30,7 @@ impl LineGroup {
             length: 0,
             max_line_length: 0,
             first_line,
+            group_size,
         }
     }
 
@@ -78,7 +74,9 @@ impl LineGroup {
                         warn!("Failed to write to LZ4 encoder: {e}");
                         return;
                     }
-                    if i != self.line_count - 1 && let Err(e) = encoder.write_all(b"\n") {
+                    if i != self.line_count - 1
+                        && let Err(e) = encoder.write_all(b"\n")
+                    {
                         warn!("Failed to write newline to LZ4 encoder: {e}");
                         return;
                     }
@@ -192,7 +190,7 @@ impl LineGroup {
     }
 
     pub(crate) const fn is_full(&self) -> bool {
-        self.line_count >= DEFAULT_GROUP_SIZE
+        self.line_count >= self.group_size
     }
 
     pub(crate) const fn is_empty(&self) -> bool {
@@ -268,7 +266,11 @@ impl LineGroup {
         }
     }
 
-    pub(crate) fn filter_line_mut(&mut self, line_number: usize, mut filter: impl FnMut(&mut Line)) {
+    pub(crate) fn filter_line_mut(
+        &mut self,
+        line_number: usize,
+        mut filter: impl FnMut(&mut Line),
+    ) {
         let should_decompress = self.lines.is_none();
         if should_decompress {
             self.decompress();
@@ -352,6 +354,18 @@ impl LineGroup {
             .map(|data| data.len())
             .unwrap_or_default()
     }
+
+    #[cfg(debug_assertions)]
+    pub(crate) fn debug(&self) {
+        println!(
+            "LineGroup {{ line_count: {}, length: {}, max_line_length: {}, first_line: {}, compressed: {:?} }}",
+            self.line_count,
+            self.length,
+            self.max_line_length,
+            self.first_line,
+            self.compressed.is_some()
+        );
+    }
 }
 
 impl Index<usize> for LineGroup {
@@ -373,7 +387,7 @@ mod tests {
     use super::*;
 
     fn lg_from_strs(strs: &[&str]) -> LineGroup {
-        let mut g = LineGroup::with_first_line(0);
+        let mut g = LineGroup::new(0, 2);
         for s in strs {
             g.push(Line::from(*s));
         }
@@ -382,7 +396,7 @@ mod tests {
 
     #[test]
     fn push_updates_counters_and_index() {
-        let mut g = LineGroup::with_first_line(0);
+        let mut g = LineGroup::new(0, 2);
         g.push(Line::from("a"));
         g.push(Line::from("bb"));
 
@@ -454,8 +468,8 @@ mod tests {
 
     #[test]
     fn is_full_after_default_group_size_pushes() {
-        let mut g = LineGroup::with_first_line(0);
-        for _ in 0..DEFAULT_GROUP_SIZE {
+        let mut g = LineGroup::new(0, 2);
+        for _ in 0..g.group_size {
             g.push(Line::from("a"));
         }
         assert!(g.is_full());
@@ -463,7 +477,7 @@ mod tests {
 
     #[test]
     fn mem_reports_non_zero_after_push() {
-        let mut g = LineGroup::with_first_line(0);
+        let mut g = LineGroup::new(0, 2);
         let base = g.mem();
         g.push(Line::from("abcdef"));
         assert!(g.mem() >= base);
