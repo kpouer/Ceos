@@ -144,13 +144,14 @@ impl Buffer {
             last_group.eventually_compress();
             last_group.free();
             let next_first = last_group.first_line() + last_group.line_count();
-            self.content.push(LineGroup::new(next_first, self.group_size));
+            self.content
+                .push(LineGroup::new(next_first, self.group_size));
         }
     }
 
     pub(crate) fn delete_range(&mut self, text_range: TextRange) {
         let line_count = self.line_count();
-        if line_count == 0 || text_range.start_line >= line_count {
+        if line_count == 0 || text_range.start_line >= line_count || text_range.is_empty() {
             return;
         }
 
@@ -165,7 +166,12 @@ impl Buffer {
                 });
             }
         } else {
-            self.delete_across_lines(start_line, text_range.start_column, end_line, text_range.end_column);
+            self.delete_across_lines(
+                start_line,
+                text_range.start_column,
+                end_line,
+                text_range.end_column,
+            );
         }
 
         self.compute_length();
@@ -173,7 +179,13 @@ impl Buffer {
         self.dirty = true;
     }
 
-    fn delete_across_lines(&mut self, start_line: usize, start_col: usize, end_line: usize, end_col: usize) {
+    fn delete_across_lines(
+        &mut self,
+        start_line: usize,
+        start_col: usize,
+        end_line: usize,
+        end_col: usize,
+    ) {
         let (start_group_index, start_line_in_group) = self
             .find_group_index(start_line)
             .expect("start_line out of bounds");
@@ -237,8 +249,9 @@ impl Buffer {
             .expect("end_line out of bounds");
 
         let start_group_line_count = self.content[start_group_index].line_count();
-        let should_remove_first_group =
-            start_line_in_group == 0 && (start_group_index < end_group_index || end_line_in_group == start_group_line_count - 1);
+        let should_remove_first_group = start_line_in_group == 0
+            && (start_group_index < end_group_index
+                || end_line_in_group == start_group_line_count - 1);
 
         if !should_remove_first_group {
             let end_in_group = if start_group_index == end_group_index {
@@ -562,7 +575,11 @@ mod tests {
         // Access a few positions
         b.prepare_range_for_read(0..10);
         assert_eq!(b.line_text(0), "000");
-        let start = if b.group_size > 10 { b.group_size - 10 } else { 0 };
+        let start = if b.group_size > 10 {
+            b.group_size - 10
+        } else {
+            0
+        };
         b.prepare_range_for_read(start..b.group_size + 100);
         assert_eq!(
             b.line_text(b.group_size - 1),
@@ -644,14 +661,18 @@ mod tests {
     #[test]
     fn drain_line_mut_bug_reproduction() {
         let (sender, _) = std::sync::mpsc::channel();
-        
+
         // Test 1: Drain spanning multiple groups
         let mut buffer = Buffer::new_from_string(sender.clone(), "l0\nl1\nl2\nl3\nl4", 2);
         // Groups: G0:[l0, l1], G1:[l2, l3], G2:[l4]
         // Drain 1..4 (l1, l2, l3)
         buffer.drain_line_mut(1..4);
         // Expected: ["l0", "l4"]
-        assert_eq!(buffer.line_count(), 2, "Line count should be 2 after draining 1..4");
+        assert_eq!(
+            buffer.line_count(),
+            2,
+            "Line count should be 2 after draining 1..4"
+        );
         buffer.prepare_range_for_read(..);
         assert_eq!(buffer.line_text(0), "l0");
         assert_eq!(buffer.line_text(1), "l4");
