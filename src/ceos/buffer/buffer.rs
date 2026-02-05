@@ -201,35 +201,39 @@ impl Buffer {
 
         if start_group_index == end_group_index {
             info!("start group and end group are the same");
+
             let line_group = &mut self.content[start_group_index];
             line_group.eventually_decompress();
+
             let suffix = line_group[end_line_in_group].content()[end_col..].to_owned();
             line_group.filter_line_mut(start_line_in_group, |line| {
                 line.drain(start_col..);
                 line.push_str(&suffix);
             });
+
             line_group.drain_lines(start_line_in_group + 1..=end_line_in_group);
-        } else {
-            let suffix = {
-                // process the end group and retrieve the suffix
-                let end_group = &mut self.content[end_group_index];
-                let last_line = &end_group.lines()[end_line_in_group];
-                let suffix = last_line.content()[end_col..].to_owned();
-                end_group.drain_lines(0..=end_line_in_group);
-                suffix
-            };
+            return;
+        }
 
-            let first_group = &mut self.content[start_group_index];
-            first_group.filter_line_mut(start_line_in_group, |line| {
-                line.drain(start_col..);
-                line.push_str(&suffix);
-            });
-            first_group.drain_lines(start_line_in_group + 1..);
+        let suffix = {
+            // process the end group and retrieve the suffix
+            let end_group = &mut self.content[end_group_index];
+            let last_line = &end_group.lines()[end_line_in_group];
+            let suffix = last_line.content()[end_col..].to_owned();
+            end_group.drain_lines(0..=end_line_in_group);
+            suffix
+        };
 
-            // drain the linegroups between the start and the end group
-            if start_group_index + 1 < end_group_index {
-                self.content.drain(start_group_index + 1..end_group_index);
-            }
+        let first_group = &mut self.content[start_group_index];
+        first_group.filter_line_mut(start_line_in_group, |line| {
+            line.drain(start_col..);
+            line.push_str(&suffix);
+        });
+        first_group.drain_lines(start_line_in_group + 1..);
+
+        // drain the linegroups between the start and the end group
+        if start_group_index + 1 < end_group_index {
+            self.content.drain(start_group_index + 1..end_group_index);
         }
     }
 
