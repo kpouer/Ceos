@@ -199,11 +199,10 @@ impl Buffer {
             return;
         };
 
-        self.prepare_range_for_read(start_line..=end_line);
-
         if start_group_index == end_group_index {
             info!("start group and end group are the same");
             let line_group = &mut self.content[start_group_index];
+            line_group.eventually_decompress();
             let suffix = line_group[end_line_in_group].content()[end_col..].to_owned();
             line_group.filter_line_mut(start_line_in_group, |line| {
                 line.drain(start_col..);
