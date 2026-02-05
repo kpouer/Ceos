@@ -158,7 +158,12 @@ impl Buffer {
         let end_line = text_range.end_line.min(line_count.saturating_sub(1));
 
         if start_line == end_line {
-            self.delete_in_single_line(start_line, text_range.start_column, text_range.end_column);
+            if let Some((group_index, line_in_group)) = self.find_group_index(start_line) {
+                let line_group = &mut self.content[group_index];
+                line_group.filter_line_mut(line_in_group, |line| {
+                    line.drain(text_range.start_column..text_range.end_column);
+                });
+            }
         } else {
             self.delete_across_lines(start_line, text_range.start_column, end_line, text_range.end_column);
         }
@@ -166,22 +171,6 @@ impl Buffer {
         self.compute_length();
         self.recompute_first_lines();
         self.dirty = true;
-    }
-
-    fn delete_in_single_line(&mut self, line_idx: usize, start_col: usize, end_col: usize) {
-        self.prepare_range_for_read(line_idx..=line_idx);
-        let line_len = self.line_text(line_idx).len();
-        let start_col = start_col.min(line_len);
-        let end_col = end_col.min(line_len);
-        if start_col >= end_col {
-            return;
-        }
-        if let Some((group_index, line_index)) = self.find_group_index(line_idx) {
-            let line_group = &mut self.content[group_index];
-            line_group.filter_line_mut(line_index, |line| {
-                line.drain(start_col..end_col);
-            });
-        }
     }
 
     fn delete_across_lines(&mut self, start_line: usize, start_col: usize, end_line: usize, end_col: usize) {
