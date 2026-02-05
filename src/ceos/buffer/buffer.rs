@@ -13,6 +13,7 @@ use std::ops::{Bound, Index, RangeBounds};
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
+use log::{info, warn};
 
 const DEFAULT_GROUP_SIZE: usize = 1000;
 
@@ -149,6 +150,7 @@ impl Buffer {
         }
     }
 
+    /// Delete a range of text from the buffer.
     pub(crate) fn delete_range(&mut self, text_range: TextRange) {
         let line_count = self.line_count();
         if line_count == 0 || text_range.start_line >= line_count || text_range.is_empty() {
@@ -186,16 +188,21 @@ impl Buffer {
         end_line: usize,
         end_col: usize,
     ) {
-        let (start_group_index, start_line_in_group) = self
-            .find_group_index(start_line)
-            .expect("start_line out of bounds");
-        let (end_group_index, end_line_in_group) = self
-            .find_group_index(end_line)
-            .expect("end_line out of bounds");
+        let Some((start_group_index, start_line_in_group)) = self
+            .find_group_index(start_line) else {
+            warn!("start_line out of bounds");
+            return;
+        };
+        let Some((end_group_index, end_line_in_group)) = self
+            .find_group_index(end_line) else {
+            warn!("end_line out of bounds");
+            return;
+        };
 
         self.prepare_range_for_read(start_line..=end_line);
 
         if start_group_index == end_group_index {
+            info!("start group and end group are the same");
             let line_group = &mut self.content[start_group_index];
             let suffix = line_group[end_line_in_group].content()[end_col..].to_owned();
             line_group.filter_line_mut(start_line_in_group, |line| {
