@@ -255,7 +255,7 @@ impl eframe::App for Ceos {
 
 impl Ceos {
     fn before_frame(&mut self) {
-        if let Some(command) = self.current_command.as_mut() {
+        if let Some(command) = &mut self.current_command {
             command.before_frame();
         }
         self.textarea_properties.renderer_manager.before_frame();
