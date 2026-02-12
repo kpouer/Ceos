@@ -50,7 +50,7 @@ impl Renderer for TextRenderer {
         });
     }
 
-    fn set_font_id(&mut self, font_id: FontId) {
-        self.font_id = font_id;
+    fn set_font_id(&mut self, font_id: &FontId) {
+        self.font_id = font_id.clone();
     }
 }

@@ -32,7 +32,7 @@ impl RendererManager {
     pub(crate) fn set_font_id(&mut self, font_id: FontId) {
         self.renderers
             .iter_mut()
-            .for_each(|r| r.renderer.set_font_id(font_id.clone()));
+            .for_each(|r| r.renderer.set_font_id(&font_id));
     }
 
     pub(crate) fn paint_line(

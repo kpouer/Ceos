@@ -23,5 +23,5 @@ pub(crate) trait Renderer: Debug {
         drawing_pos: Pos2,
     );
 
-    fn set_font_id(&mut self, _font_id: FontId) {}
+    fn set_font_id(&mut self, _font_id: &FontId) {}
 }
