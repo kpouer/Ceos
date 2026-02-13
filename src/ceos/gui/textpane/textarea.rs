@@ -82,38 +82,14 @@ impl TextArea<'_> {
         };
         if response.double_clicked() {
             self.handle_double_click(rect, response, &pointer_pos);
-        } else if response.clicked() || response.drag_started() {
-            let _ = self.sender.send(ClearCommand);
-            self.update_caret_position(rect, &pointer_pos);
-            response.mark_changed();
-            if response.drag_started() {
-                response.ctx.memory_mut(|m| {
-                    m.data.insert_temp(
-                        DRAG_STARTED_ID.into(),
-                        self.textarea_properties.caret_position,
-                    )
-                });
-            }
-        } else if response.dragged() || response.drag_stopped() {
-            response.mark_changed();
-            let drag_start_position = response.ctx.memory(|m| {
-                m.data
-                    .get_temp::<Position>(DRAG_STARTED_ID.into())
-                    .expect("there should be a drag_started")
-            });
-            match self.textarea_properties.interaction_mode {
-                InteractionMode::Column => {
-                    self.handle_drag_update_column(rect, drag_start_position, pointer_pos)
-                }
-                InteractionMode::Selection => {
-                    self.handle_drag_update_selection(rect, drag_start_position, &pointer_pos)
-                }
-            }
-            if response.drag_stopped() {
-                response
-                    .ctx
-                    .memory_mut(|m| m.data.remove_temp::<Position>(DRAG_STARTED_ID.into()));
-            }
+        } else if response.clicked() {
+            self.handle_click(rect, response, &pointer_pos);
+        } else if response.drag_started() {
+            self.handle_drag_start(rect, response, &pointer_pos);
+        } else if response.dragged() {
+            self.handle_dragged(rect, response, &pointer_pos);
+        } else if response.drag_stopped() {
+            self.handle_drag_stopped(rect, response, &pointer_pos);
         }
     }
 
@@ -142,6 +118,46 @@ impl TextArea<'_> {
         response.mark_changed();
     }
 
+    fn handle_click(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
+        let _ = self.sender.send(ClearCommand);
+        self.update_caret_position(rect, &pointer_pos);
+        response.mark_changed();
+    }
+
+    fn handle_drag_start(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
+        self.handle_click(rect, response, pointer_pos);
+        response.ctx.memory_mut(|m| {
+            m.data.insert_temp(
+                DRAG_STARTED_ID.into(),
+                self.textarea_properties.caret_position,
+            )
+        });
+    }
+
+    fn handle_dragged(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
+        response.mark_changed();
+        let drag_start_position = response.ctx.memory(|m| {
+            m.data
+                .get_temp::<Position>(DRAG_STARTED_ID.into())
+                .expect("there should be a drag_started")
+        });
+        match self.textarea_properties.interaction_mode {
+            InteractionMode::Column => {
+                self.handle_drag_update_column(rect, drag_start_position, pointer_pos)
+            }
+            InteractionMode::Selection => {
+                self.handle_drag_update_selection(rect, drag_start_position, &pointer_pos)
+            }
+        }
+    }
+
+    fn handle_drag_stopped(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
+        self.handle_dragged(rect, response, pointer_pos);
+        response
+            .ctx
+            .memory_mut(|m| m.data.remove_temp::<Position>(DRAG_STARTED_ID.into()));
+    }
+
     fn handle_drag_update_selection(
         &mut self,
         rect: Rect,
@@ -161,7 +177,7 @@ impl TextArea<'_> {
         &mut self,
         rect: Rect,
         drag_start_position: Position,
-        pointer_pos: Pos2,
+        pointer_pos: &Pos2,
     ) {
         let column = self
             .textarea_properties
