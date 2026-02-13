@@ -238,8 +238,7 @@ impl LineGroup {
     ///   and modifies it.
     ///
     /// # Behavior
-    /// 1. If the internal line data (`self.lines`) is compressed, the method decompresses it
-    /// and will recompress after.
+    /// 1. If the internal line data (`self.lines`) is compressed, the method decompresses it and will recompress after.
     ///  2. The provided `filter` function is applied to each line
     ///  3. Updates the metadata of the object by calling `self.compute_metadata`.
     ///  4. If the line data was initially decompressed for this operation, it is

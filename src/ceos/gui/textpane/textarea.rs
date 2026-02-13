@@ -120,7 +120,7 @@ impl TextArea<'_> {
 
     fn handle_click(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
         let _ = self.sender.send(ClearCommand);
-        self.update_caret_position(rect, &pointer_pos);
+        self.update_caret_position(rect, pointer_pos);
         response.mark_changed();
     }
 
@@ -146,7 +146,7 @@ impl TextArea<'_> {
                 self.handle_drag_update_column(rect, drag_start_position, pointer_pos)
             }
             InteractionMode::Selection => {
-                self.handle_drag_update_selection(rect, drag_start_position, &pointer_pos)
+                self.handle_drag_update_selection(rect, drag_start_position, pointer_pos)
             }
         }
     }
@@ -397,12 +397,11 @@ impl TextArea<'_> {
     }
 
     fn is_control_pressed(i: &InputState) -> bool {
-        let ctrl = if cfg!(target_os = "macos") {
+        if cfg!(target_os = "macos") {
             i.modifiers.command
         } else {
             i.modifiers.ctrl
-        };
-        ctrl
+        }
     }
 
     fn handle_dropped_file(&self, i: &InputState) {
