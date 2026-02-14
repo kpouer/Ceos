@@ -402,9 +402,6 @@ impl Ceos {
                         ui.available_size(),
                         egui::TextEdit::singleline(&mut self.command_buffer),
                     );
-                    ui.memory_mut(|memory| {
-                        memory.request_focus(response.id);
-                    });
                     if response.changed() {
                         if self.try_search() {
                             self.sender
