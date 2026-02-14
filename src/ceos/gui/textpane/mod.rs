@@ -66,7 +66,7 @@ impl Widget for TextPane<'_> {
                 });
             let text_area_rect = ui.available_rect_before_wrap();
             let scroll_result_textarea = egui::ScrollArea::both()
-                .id_salt("textarea")
+                .id_salt("textarea_scroll")
                 .auto_shrink(false)
                 .scroll_offset(old_scroll_offset)
                 .show_viewport(ui, |ui, rect| {
