@@ -326,21 +326,7 @@ impl TextArea<'_> {
                         ..
                     } => self.handle_key_event(&mut caret_position, line_count, i, key),
                     egui::Event::Text(text) => {
-                        if let Some(selection) = self.textarea_properties.selection.take() {
-                            let mut selection_start = selection.start;
-                            let mut selection_end = selection.end;
-                            if selection_start > selection_end {
-                                std::mem::swap(&mut selection_start, &mut selection_end);
-                            }
-                            let range = TextRange::new(
-                                selection_start.line,
-                                selection_start.column,
-                                selection_end.line,
-                                selection_end.column,
-                            );
-                            self.textarea_properties.buffer.delete_range(range);
-                            self.textarea_properties.caret_position = selection_start;
-                        }
+                        self.delete_selection();
                         for ch in text.chars() {
                             if ch == '\r' || ch == '\x08' || ch == '\x7f' {
                                 continue;
@@ -389,6 +375,14 @@ impl TextArea<'_> {
             }
 
             self.textarea_properties.scroll_offset = scroll_offset;
+        }
+    }
+
+    /// Delete the selection content if there is one.
+    fn delete_selection(&mut self) {
+        if let Some(selection) = self.textarea_properties.selection.take() {
+            self.textarea_properties.buffer.delete_range(TextRange::from(&selection));
+            self.textarea_properties.caret_position = selection.start;
         }
     }
 
