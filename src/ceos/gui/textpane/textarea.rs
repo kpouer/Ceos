@@ -451,15 +451,8 @@ impl TextArea<'_> {
                 self.textarea_properties.set_first_line(caret_position.line);
             }
             egui::Key::Delete | egui::Key::Backspace => {
-                if let Some(selection) = self.textarea_properties.selection.take() {
-                    let mut start = selection.start;
-                    let mut end = selection.end;
-                    if start > end {
-                        std::mem::swap(&mut start, &mut end);
-                    }
-                    let range = TextRange::new(start.line, start.column, end.line, end.column);
-                    self.textarea_properties.buffer.delete_range(range);
-                    *caret_position = start;
+                if self.textarea_properties.selection.is_some() {
+                   self.delete_selection();
                 } else if *key == egui::Key::Backspace {
                     if caret_position.column > 0 {
                         let range = TextRange::new(
