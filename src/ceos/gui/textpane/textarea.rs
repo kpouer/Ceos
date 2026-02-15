@@ -109,16 +109,16 @@ impl TextArea<'_> {
         let start_col = text_tool.find_word_start(caret_position.column);
 
         let end_col = text_tool.find_word_end(caret_position.column);
-        self.textarea_properties.selection = Some(Selection {
-            start: Position {
+        self.textarea_properties.selection = Some(Selection::new(
+            Position {
                 line: caret_position.line,
                 column: start_col,
             },
-            end: Position {
+            Position {
                 line: caret_position.line,
                 column: end_col,
             },
-        });
+        ));
         response.mark_changed();
     }
 
@@ -175,7 +175,7 @@ impl TextArea<'_> {
         } else {
             (pointer_pos, drag_start_position)
         };
-        self.textarea_properties.selection = Some(Selection { start, end });
+        self.textarea_properties.selection = Some(Selection::new(start, end));
     }
 
     fn handle_drag_update_column(
@@ -262,21 +262,17 @@ impl TextArea<'_> {
 impl TextArea<'_> {
     fn update_caret_position(&mut self, rect: Rect, pos: &Pos2) {
         // ensure the new caret position is within the bounds of the text area
-        let new_caret_position = if self.textarea_properties.buffer.line_count() == 0 {
-            Position::ZERO
-        } else {
-            let mut new_caret_position = self.build_position(rect, pos);
-            new_caret_position.line = new_caret_position
-                .line
-                .min(self.textarea_properties.buffer.line_count());
-            new_caret_position.column = new_caret_position.column.min(
-                self.textarea_properties
-                    .buffer
-                    .line_text(new_caret_position.line)
-                    .len(),
-            );
-            new_caret_position
-        };
+
+        let mut new_caret_position = self.build_position(rect, pos);
+        new_caret_position.line = new_caret_position
+            .line
+            .min(self.textarea_properties.buffer.line_count() - 1);
+        new_caret_position.column = new_caret_position.column.min(
+            self.textarea_properties
+                .buffer
+                .line_text(new_caret_position.line)
+                .len(),
+        );
         self.textarea_properties.caret_position = new_caret_position;
     }
 
@@ -329,6 +325,39 @@ impl TextArea<'_> {
                         modifiers: _,
                         ..
                     } => self.handle_key_event(&mut caret_position, line_count, i, key),
+                    egui::Event::Text(text) => {
+                        if let Some(selection) = self.textarea_properties.selection.take() {
+                            let mut selection_start = selection.start;
+                            let mut selection_end = selection.end;
+                            if selection_start > selection_end {
+                                std::mem::swap(&mut selection_start, &mut selection_end);
+                            }
+                            let range = TextRange::new(
+                                selection_start.line,
+                                selection_start.column,
+                                selection_end.line,
+                                selection_end.column,
+                            );
+                            self.textarea_properties.buffer.delete_range(range);
+                            self.textarea_properties.caret_position = selection_start;
+                        }
+                        for ch in text.chars() {
+                            if ch == '\r' || ch == '\x08' || ch == '\x7f' {
+                                continue;
+                            }
+                            self.textarea_properties.buffer.insert_char(
+                                caret_position.line,
+                                caret_position.column,
+                                ch,
+                            );
+                            if ch == '\n' {
+                                caret_position.line += 1;
+                                caret_position.column = 0;
+                            } else {
+                                caret_position.column += 1;
+                            }
+                        }
+                    }
                     MouseWheel {
                         unit: _,
                         delta,
@@ -429,14 +458,68 @@ impl TextArea<'_> {
             }
             egui::Key::Delete | egui::Key::Backspace => {
                 if let Some(selection) = self.textarea_properties.selection.take() {
-                    let range = TextRange::new(
-                        selection.start.line,
-                        selection.start.column,
-                        selection.end.line,
-                        selection.end.column,
-                    );
+                    let mut start = selection.start;
+                    let mut end = selection.end;
+                    if start > end {
+                        std::mem::swap(&mut start, &mut end);
+                    }
+                    let range = TextRange::new(start.line, start.column, end.line, end.column);
                     self.textarea_properties.buffer.delete_range(range);
+                    *caret_position = start;
+                } else if *key == egui::Key::Backspace {
+                    if caret_position.column > 0 {
+                        let range = TextRange::new(
+                            caret_position.line,
+                            caret_position.column - 1,
+                            caret_position.line,
+                            caret_position.column,
+                        );
+                        self.textarea_properties.buffer.delete_range(range);
+                        caret_position.column -= 1;
+                    } else if caret_position.line > 0 {
+                        let prev_line_idx = caret_position.line - 1;
+                        let prev_line_len = self
+                            .textarea_properties
+                            .buffer
+                            .line_text(prev_line_idx)
+                            .len();
+                        let range =
+                            TextRange::new(prev_line_idx, prev_line_len, caret_position.line, 0);
+                        self.textarea_properties.buffer.delete_range(range);
+                        caret_position.line = prev_line_idx;
+                        caret_position.column = prev_line_len;
+                    }
+                } else if *key == egui::Key::Delete {
+                    let line_len = self
+                        .textarea_properties
+                        .buffer
+                        .line_text(caret_position.line)
+                        .len();
+                    if caret_position.column < line_len {
+                        let range = TextRange::new(
+                            caret_position.line,
+                            caret_position.column,
+                            caret_position.line,
+                            caret_position.column + 1,
+                        );
+                        self.textarea_properties.buffer.delete_range(range);
+                    } else if caret_position.line + 1 < line_count {
+                        let range = TextRange::new(
+                            caret_position.line,
+                            line_len,
+                            caret_position.line + 1,
+                            0,
+                        );
+                        self.textarea_properties.buffer.delete_range(range);
+                    }
                 }
+            }
+            egui::Key::Enter => {
+                self.textarea_properties
+                    .buffer
+                    .insert_newline(caret_position.line, caret_position.column);
+                caret_position.line += 1;
+                caret_position.column = 0;
             }
             _ => {}
         }

@@ -46,6 +46,10 @@ impl Line {
     pub(crate) fn push_str(&mut self, str: &str) {
         self.content.push_str(str);
     }
+
+    pub(crate) fn insert(&mut self, idx: usize, ch: char) {
+        self.content.insert(idx, ch);
+    }
 }
 
 impl Display for Line {

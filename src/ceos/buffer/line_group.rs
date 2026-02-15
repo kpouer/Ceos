@@ -23,10 +23,12 @@ pub(crate) struct LineGroup {
 
 impl LineGroup {
     pub(crate) fn new(first_line: usize, group_size: usize) -> Self {
+        let mut lines = Vec::with_capacity(group_size);
+        lines.push(Line::default());
         Self {
-            lines: Some(Vec::with_capacity(group_size)),
+            lines: Some(lines),
             compressed: None,
-            line_count: 0,
+            line_count: 1,
             length: 0,
             max_line_length: 0,
             first_line,
@@ -335,6 +337,21 @@ impl LineGroup {
         self.compressed = None;
         if let Some(lines) = &mut self.lines {
             lines.drain(range);
+        }
+        self.compute_metadata();
+        if compressed {
+            self.compress();
+        }
+    }
+
+    pub(crate) fn insert_line(&mut self, line_number: usize, line: Line) {
+        let compressed = self.is_compressed();
+        if compressed {
+            self.decompress();
+        }
+        self.compressed = None;
+        if let Some(lines) = &mut self.lines {
+            lines.insert(line_number, line);
         }
         self.compute_metadata();
         if compressed {

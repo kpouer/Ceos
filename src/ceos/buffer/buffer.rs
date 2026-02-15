@@ -404,6 +404,8 @@ impl Buffer {
         }
     }
 
+    /// Returns the text of the line at the given index.
+    /// The given index is 0-based
     pub(crate) fn line_text(&self, line: usize) -> &str {
         let (gi, li) = self
             .find_group_index(line)
@@ -413,6 +415,42 @@ impl Buffer {
 
     pub(crate) fn line_count(&self) -> usize {
         self.content.iter().map(|g| g.line_count()).sum()
+    }
+
+    pub(crate) fn insert_char(&mut self, line: usize, col: usize, ch: char) {
+        if ch == '\n' {
+            self.insert_newline(line, col);
+            return;
+        }
+        if let Some((gi, _)) = self.find_group_index(line) {
+            let relative_line = line - self.content[gi].first_line();
+            self.content[gi].filter_line_mut(relative_line, |l| {
+                l.insert(col, ch);
+            });
+            self.compute_length();
+            self.dirty = true;
+        }
+    }
+
+    pub(crate) fn insert_newline(&mut self, line: usize, col: usize) {
+        if let Some((gi, li)) = self.find_group_index(line) {
+            let suffix = {
+                let line_group = &mut self.content[gi];
+                let mut suffix = String::new();
+                line_group.filter_line_mut(li, |l| {
+                    suffix = l.content()[col..].to_owned();
+                    l.drain(col..);
+                });
+                suffix
+            };
+
+            let line_group = &mut self.content[gi];
+            line_group.insert_line(li + 1, Line::from(suffix));
+
+            self.compute_length();
+            self.recompute_first_lines();
+            self.dirty = true;
+        }
     }
 
     /// Returns the buffer length.
