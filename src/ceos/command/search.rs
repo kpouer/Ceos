@@ -45,6 +45,7 @@ impl Renderer for Search {
         textarea: &TextAreaProperties,
         line: usize,
         drawing_pos: Pos2,
+        _has_focus: bool,
     ) {
         let line = &textarea.buffer[line];
         if let Some(offset) = line.content().find(&self.pattern) {

@@ -47,8 +47,8 @@ impl<'a> TextPane<'a> {
 
 impl Widget for TextPane<'_> {
     fn ui(self, ui: &mut Ui) -> Response {
-        let available_size = ui.available_size();
-        ui.horizontal_top(|ui| {
+        let response = ui.horizontal_top(|ui| {
+            // remove the spacing between the gutter and the text area
             ui.spacing_mut().item_spacing = Vec2::ZERO;
             let gutter_width = self.textarea_properties.gutter_width();
 
@@ -82,6 +82,13 @@ impl Widget for TextPane<'_> {
                     .ui(ui)
                 });
 
+            if scroll_result_textarea.inner.clicked()
+                || scroll_result_textarea.inner.dragged()
+                || scroll_result_textarea.inner.drag_started()
+            {
+                ui.memory_mut(|m| m.request_focus(scroll_result_textarea.inner.id));
+            }
+
             let mut offset = scroll_result_textarea.state.offset;
             if offset != old_scroll_offset {
                 offset.y = if scroll_result_gutter.state.offset.y != self.textarea_properties.scroll_offset.y {
@@ -95,8 +102,9 @@ impl Widget for TextPane<'_> {
                     self.textarea_properties.scroll_offset = offset;
                 }
             }
-        });
-        let (_, response) = ui.allocate_exact_size(available_size, egui::Sense::click_and_drag());
+            scroll_result_textarea.inner
+        }).inner;
+        ui.allocate_rect(response.rect, egui::Sense::hover());
         response
     }
 }

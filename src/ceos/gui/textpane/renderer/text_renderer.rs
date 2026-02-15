@@ -24,6 +24,7 @@ impl Renderer for TextRenderer {
         textarea: &TextAreaProperties,
         line: usize,
         mut drawing_pos: Pos2,
+        _has_focus: bool,
     ) {
         let text = textarea.buffer.line_text(line);
         if text.trim().is_empty() {

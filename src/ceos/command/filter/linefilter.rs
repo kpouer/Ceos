@@ -54,13 +54,14 @@ impl Renderer for LineFilter {
         &self,
         ui: &mut Ui,
         theme: &Theme,
-        textarea: &TextAreaProperties,
+        textarea_properties: &TextAreaProperties,
         line: usize,
         drawing_pos: Pos2,
+        _has_focus: bool,
     ) {
-        let line = &textarea.buffer[line];
+        let line = &textarea_properties.buffer[line];
         if !self.accept(line) {
-            let bottom_right = Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea.line_height);
+            let bottom_right = Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea_properties.line_height);
             let line_rect = Rect::from_min_max(drawing_pos, bottom_right);
             let painter = ui.painter();
             painter.rect(

@@ -18,7 +18,11 @@ impl Renderer for CaretRenderer {
         textarea_properties: &TextAreaProperties,
         line: usize,
         drawing_pos: Pos2,
+        has_focus: bool,
     ) {
+        if !has_focus {
+            return;
+        }
         let now = ui.ctx().input(|i| i.time);
         let time_since_last_edit = now - self.last_change;
         if textarea_properties.caret_position.line == line {

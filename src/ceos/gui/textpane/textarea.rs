@@ -6,7 +6,6 @@ use egui::Event::{MouseWheel, Zoom};
 use egui::{Context, InputState, Response, Ui, Widget};
 use log::info;
 
-// use crate::ceos::buffer::buffer::TextRange;
 use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::command::Command;
 use crate::ceos::command::search::Search;
@@ -24,8 +23,10 @@ use crate::event::Event::{ClearCommand, NewFont, OpenFile, SetCommand};
 pub(crate) struct TextArea<'a> {
     textarea_properties: &'a mut TextAreaProperties,
     current_command: &'a Option<Box<dyn Command + Send + Sync + 'static>>,
+    // The rectangle on screen occupied by the text area
     drawing_rect: Rect,
-    rect: Rect,
+    // the rectangle that is drawn in the viewport
+    virtual_rect: Rect,
     theme: &'a Theme,
     sender: &'a Sender<Event>,
     search: &'a Search,
@@ -36,7 +37,7 @@ impl<'a> TextArea<'a> {
         textarea_properties: &'a mut TextAreaProperties,
         current_command: &'a Option<Box<dyn Command + Send + Sync + 'static>>,
         drawing_rect: Rect,
-        rect: Rect,
+        virtual_rect: Rect,
         theme: &'a Theme,
         sender: &'a Sender<Event>,
         search: &'a Search,
@@ -45,7 +46,7 @@ impl<'a> TextArea<'a> {
             textarea_properties,
             current_command,
             drawing_rect,
-            rect,
+            virtual_rect,
             theme,
             sender,
             search,
@@ -66,7 +67,7 @@ impl Widget for &mut TextArea<'_> {
         self.handle_interaction(rect, &mut response);
 
         if ui.is_rect_visible(rect) {
-            self.paint_content(ui);
+            self.paint_content(ui, response.has_focus());
         }
 
         response
@@ -120,6 +121,7 @@ impl TextArea<'_> {
 
     fn handle_click(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
         let _ = self.sender.send(ClearCommand);
+        response.request_focus();
         self.update_caret_position(rect, pointer_pos);
         response.mark_changed();
     }
@@ -187,7 +189,7 @@ impl TextArea<'_> {
         let _ = self.sender.send(SetCommand(format!("{start}..{end}")));
     }
 
-    fn paint_content(&mut self, ui: &mut Ui) {
+    fn paint_content(&mut self, ui: &mut Ui, has_focus: bool) {
         ui.painter().rect(
             self.drawing_rect,
             0.0,
@@ -197,8 +199,8 @@ impl TextArea<'_> {
         );
         ui.set_height(self.textarea_properties.text_height());
         let mut drawing_pos = Pos2::new(ui.max_rect().left(), ui.clip_rect().top());
-        self.handle_input(ui.ctx(), self.drawing_rect.left_top());
-        let row_range = self.textarea_properties.get_row_range_for_rect(self.rect);
+        self.handle_input(ui.ctx(), self.drawing_rect.left_top(), has_focus);
+        let row_range = self.textarea_properties.get_row_range_for_rect(self.virtual_rect);
         // Ensure the buffer has decompressed the groups needed for the visible range
         self.textarea_properties
             .buffer
@@ -206,7 +208,7 @@ impl TextArea<'_> {
         row_range.into_iter().for_each(|line| {
             if self.search.has_results() {
                 self.search
-                    .paint_line(ui, self.theme, self.textarea_properties, line, drawing_pos);
+                    .paint_line(ui, self.theme, self.textarea_properties, line, drawing_pos, has_focus);
             }
             if let Some(filter_renderer) = &self.current_command {
                 filter_renderer.paint_line(
@@ -215,6 +217,7 @@ impl TextArea<'_> {
                     self.textarea_properties,
                     line,
                     drawing_pos,
+                    has_focus,
                 );
             }
 
@@ -224,6 +227,7 @@ impl TextArea<'_> {
                 self.textarea_properties,
                 line,
                 drawing_pos,
+                has_focus,
             );
 
             drawing_pos.y += self.textarea_properties.line_height;
@@ -257,11 +261,11 @@ impl TextArea<'_> {
         Position { column, line }
     }
 
-    fn handle_input(&mut self, ctx: &Context, top_left: Pos2) {
+    fn handle_input(&mut self, ctx: &Context, top_left: Pos2, has_focus: bool) {
         let mut caret_position = self.textarea_properties.caret_position;
         let mut scroll_offset = self.textarea_properties.scroll_offset;
         let line_height = self.textarea_properties.line_height;
-        let rect_height = self.rect.height();
+        let rect_height = self.virtual_rect.height();
         let line_count = self.textarea_properties.buffer.line_count();
 
         ctx.input(|i| {
@@ -276,22 +280,24 @@ impl TextArea<'_> {
                 // textarea_properties.caret_position = Position { column, line };
             }
 
-            i.events.iter().for_each(|event| match event {
-                egui::Event::Key {
-                    key,
-                    pressed: true,
-                    repeat: _,
-                    modifiers: _,
-                    ..
-                } => self.handle_key_event(&mut caret_position, line_count, i, key),
-                MouseWheel {
-                    unit: _,
-                    delta,
-                    modifiers: _,
-                } => self.handle_mouse_wheel(i, delta),
-                Zoom(delta) => self.handle_zoom(*delta),
-                _ => {}
-            });
+            if has_focus {
+                i.events.iter().for_each(|event| match event {
+                    egui::Event::Key {
+                        key,
+                        pressed: true,
+                        repeat: _,
+                        modifiers: _,
+                        ..
+                    } => self.handle_key_event(&mut caret_position, line_count, i, key),
+                    MouseWheel {
+                        unit: _,
+                        delta,
+                        modifiers: _,
+                    } => self.handle_mouse_wheel(i, delta),
+                    Zoom(delta) => self.handle_zoom(*delta),
+                    _ => {}
+                });
+            }
         });
 
         if self.textarea_properties.caret_position != caret_position {
@@ -306,7 +312,7 @@ impl TextArea<'_> {
             }
 
             let caret_x = caret_position.column as f32 * self.textarea_properties.char_width;
-            let rect_width = self.rect.width();
+            let rect_width = self.virtual_rect.width();
             if caret_x < scroll_offset.x {
                 scroll_offset.x = caret_x;
             } else if caret_x + self.textarea_properties.char_width > scroll_offset.x + rect_width {
@@ -447,6 +453,6 @@ impl TextArea<'_> {
     }
 
     fn visible_line_count(&self) -> usize {
-        (self.rect.height() / self.textarea_properties.line_height) as usize
+        (self.virtual_rect.height() / self.textarea_properties.line_height) as usize
     }
 }

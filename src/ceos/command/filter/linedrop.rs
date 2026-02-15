@@ -39,12 +39,13 @@ impl Renderer for LineDrop {
         &self,
         ui: &mut Ui,
         theme: &Theme,
-        textarea: &TextAreaProperties,
+        textarea_properties: &TextAreaProperties,
         line: usize,
         drawing_pos: Pos2,
+        _has_focus: bool,
     ) {
         if self.range.contains(line + 1) {
-            let bottom_right = Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea.line_height);
+            let bottom_right = Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea_properties.line_height);
             let line_rect = Rect::from_min_max(drawing_pos, bottom_right);
             let painter = ui.painter();
             painter.rect(

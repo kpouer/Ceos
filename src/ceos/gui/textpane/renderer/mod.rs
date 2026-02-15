@@ -21,6 +21,7 @@ pub(crate) trait Renderer: Debug {
         textarea_properties: &TextAreaProperties,
         line: usize,
         drawing_pos: Pos2,
+        has_focus: bool,
     );
 
     fn set_font_id(&mut self, _font_id: &FontId) {}

@@ -11,10 +11,11 @@ impl Renderer for SelectionRenderer {
     fn paint_line(
         &self,
         ui: &mut egui::Ui,
-        _: &Theme,
+        _theme: &Theme,
         textarea_properties: &TextAreaProperties,
         line: usize,
         drawing_pos: Pos2,
+        _has_focus: bool,
     ) {
         if let Some(selection) = &textarea_properties.selection
         {

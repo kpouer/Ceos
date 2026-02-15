@@ -35,11 +35,12 @@ impl Renderer for ColumnFilter {
         &self,
         ui: &mut Ui,
         theme: &Theme,
-        textarea: &TextAreaProperties,
+        textarea_properties: &TextAreaProperties,
         _: usize,
         drawing_pos: Pos2,
+        _has_focus: bool,
     ) {
-        let char_width = tools::char_width(textarea.font_id.clone(), ui);
+        let char_width = tools::char_width(textarea_properties.font_id.clone(), ui);
         let end_x = match self.range.end {
             Some(end) => end as f32 * char_width,
             None => ui.max_rect().width(),
@@ -48,7 +49,7 @@ impl Renderer for ColumnFilter {
             drawing_pos.x + self.range.start as f32 * char_width,
             drawing_pos.y,
         );
-        let bottom_right = Pos2::new(drawing_pos.x + end_x, drawing_pos.y + textarea.line_height);
+        let bottom_right = Pos2::new(drawing_pos.x + end_x, drawing_pos.y + textarea_properties.line_height);
         let line_rect = Rect::from_min_max(top_left, bottom_right);
         let painter = ui.painter();
         painter.rect(
