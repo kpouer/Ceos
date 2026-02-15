@@ -82,13 +82,6 @@ impl Widget for TextPane<'_> {
                     .ui(ui)
                 });
 
-            if scroll_result_textarea.inner.clicked()
-                || scroll_result_textarea.inner.dragged()
-                || scroll_result_textarea.inner.drag_started()
-            {
-                ui.memory_mut(|m| m.request_focus(scroll_result_textarea.inner.id));
-            }
-
             let mut offset = scroll_result_textarea.state.offset;
             if offset != old_scroll_offset {
                 offset.y = if scroll_result_gutter.state.offset.y != self.textarea_properties.scroll_offset.y {
