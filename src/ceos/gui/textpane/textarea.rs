@@ -12,6 +12,7 @@ use crate::ceos::command::search::Search;
 use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::renderer::Renderer;
+use crate::ceos::gui::textpane::renderer::caret_renderer::CaretRenderer;
 use crate::ceos::gui::textpane::selection::Selection;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
@@ -56,7 +57,9 @@ impl<'a> TextArea<'a> {
 
 impl Widget for &mut TextArea<'_> {
     fn ui(self, ui: &mut egui::Ui) -> Response {
-        let text_bounds = self.textarea_properties.text_bounds();
+        let mut text_bounds = self.textarea_properties.text_bounds();
+        text_bounds.x = self.virtual_rect.width().max(text_bounds.x);
+        text_bounds.y = self.virtual_rect.height().max(text_bounds.y);
         let (rect, mut response) =
             ui.allocate_exact_size(text_bounds, egui::Sense::click_and_drag());
 
@@ -200,15 +203,36 @@ impl TextArea<'_> {
         ui.set_height(self.textarea_properties.text_height());
         let mut drawing_pos = Pos2::new(ui.max_rect().left(), ui.clip_rect().top());
         self.handle_input(ui.ctx(), self.drawing_rect.left_top(), has_focus);
-        let row_range = self.textarea_properties.get_row_range_for_rect(self.virtual_rect);
+        let row_range = self
+            .textarea_properties
+            .get_row_range_for_rect(self.virtual_rect);
+        if row_range.is_empty() {
+            if has_focus {
+                CaretRenderer::default().paint_line(
+                    ui,
+                    self.theme,
+                    self.textarea_properties,
+                    0,
+                    drawing_pos,
+                    true,
+                );
+            }
+            return;
+        }
         // Ensure the buffer has decompressed the groups needed for the visible range
         self.textarea_properties
             .buffer
             .prepare_range_for_read(row_range.clone());
         row_range.into_iter().for_each(|line| {
             if self.search.has_results() {
-                self.search
-                    .paint_line(ui, self.theme, self.textarea_properties, line, drawing_pos, has_focus);
+                self.search.paint_line(
+                    ui,
+                    self.theme,
+                    self.textarea_properties,
+                    line,
+                    drawing_pos,
+                    has_focus,
+                );
             }
             if let Some(filter_renderer) = &self.current_command {
                 filter_renderer.paint_line(
@@ -237,7 +261,23 @@ impl TextArea<'_> {
 
 impl TextArea<'_> {
     fn update_caret_position(&mut self, rect: Rect, pos: &Pos2) {
-        self.textarea_properties.caret_position = self.build_position(rect, pos);
+        // ensure the new caret position is within the bounds of the text area
+        let new_caret_position = if self.textarea_properties.buffer.line_count() == 0 {
+            Position::ZERO
+        } else {
+            let mut new_caret_position = self.build_position(rect, pos);
+            new_caret_position.line = new_caret_position
+                .line
+                .min(self.textarea_properties.buffer.line_count());
+            new_caret_position.column = new_caret_position.column.min(
+                self.textarea_properties
+                    .buffer
+                    .line_text(new_caret_position.line)
+                    .len(),
+            );
+            new_caret_position
+        };
+        self.textarea_properties.caret_position = new_caret_position;
     }
 
     /// ```rust
