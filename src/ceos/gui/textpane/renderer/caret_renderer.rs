@@ -6,9 +6,7 @@ use egui::Rect;
 use egui::text_selection::visuals::paint_text_cursor;
 
 #[derive(Debug, Default)]
-pub(crate) struct CaretRenderer {
-    last_change: f64,
-}
+pub(crate) struct CaretRenderer;
 
 impl Renderer for CaretRenderer {
     fn paint_line(
@@ -20,19 +18,17 @@ impl Renderer for CaretRenderer {
         drawing_pos: Pos2,
         has_focus: bool,
     ) {
-        if !has_focus {
+        if !has_focus || textarea_properties.caret_position.line != line {
             return;
         }
+
         let now = ui.ctx().input(|i| i.time);
-        let time_since_last_edit = now - self.last_change;
-        if textarea_properties.caret_position.line == line {
-            let x = drawing_pos.x
-                + textarea_properties.caret_position.column as f32 * textarea_properties.char_width;
-            let rect = Rect::from([
-                Pos2::new(x, drawing_pos.y),
-                Pos2::new(x, drawing_pos.y + textarea_properties.line_height),
-            ]);
-            paint_text_cursor(ui, ui.painter(), rect, time_since_last_edit);
-        }
+        let x = drawing_pos.x
+            + textarea_properties.caret_position.column as f32 * textarea_properties.char_width;
+        let rect = Rect::from([
+            Pos2::new(x, drawing_pos.y),
+            Pos2::new(x, drawing_pos.y + textarea_properties.line_height),
+        ]);
+        paint_text_cursor(ui, ui.painter(), rect, now);
     }
 }
