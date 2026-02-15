@@ -4,6 +4,7 @@ use egui::{Response, Ui, Widget};
 
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 
+#[derive(Debug)]
 pub(crate) struct Gutter<'a> {
     textarea_properties: &'a TextAreaProperties,
     drawing_rect: Rect,
