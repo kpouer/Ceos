@@ -15,3 +15,14 @@ impl TextRange {
         self.start_line == self.end_line && self.start_column == self.end_column
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_text_range_is_empty() {
+        let range = TextRange::new(0, 0, 0, 0);
+        assert!(range.is_empty());
+    }
+}
