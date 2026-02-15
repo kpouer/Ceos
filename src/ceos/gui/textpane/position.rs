@@ -6,6 +6,10 @@ pub(crate) struct Position {
     pub(crate) column: usize,
 }
 
+impl Position {
+    pub(crate) const ZERO: Position = Position { line: 0, column: 0 };
+}
+
 impl Display for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "line: {}, column: {}", self.line, self.column)
