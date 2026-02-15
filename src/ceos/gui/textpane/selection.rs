@@ -9,6 +9,13 @@ pub(crate) struct Selection {
     pub(crate) end: Position,
 }
 
+impl Selection {
+    pub(crate) fn new(start: Position, end: Position) -> Self {
+        debug_assert!(start <= end);
+        Self { start, end }
+    }
+}
+
 impl From<&Selection> for TextRange {
     fn from(selection: &Selection) -> TextRange {
         TextRange::new(
