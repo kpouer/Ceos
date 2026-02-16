@@ -1,5 +1,7 @@
 use crate::ceos::buffer::buffer::Buffer;
+use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::gui::textpane::gutter;
+use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::renderer::caret_renderer::CaretRenderer;
 use crate::ceos::gui::textpane::renderer::renderer_manager::{
@@ -8,14 +10,13 @@ use crate::ceos::gui::textpane::renderer::renderer_manager::{
 use crate::ceos::gui::textpane::renderer::selection_renderer::SelectionRenderer;
 use crate::ceos::gui::textpane::renderer::text_renderer::TextRenderer;
 use crate::ceos::gui::textpane::selection::Selection;
+use crate::event::Event;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::FontId;
 use log::info;
 use std::cmp;
 use std::ops::Range;
 use std::sync::mpsc::Sender;
-use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
-use crate::event::Event;
 
 pub(crate) const DEFAULT_LINE_HEIGHT: f32 = 16.0;
 
@@ -134,5 +135,82 @@ impl TextAreaProperties {
             self.buffer.line_count(),
         );
         min_row..max_row
+    }
+
+    pub(crate) fn handle_text(&mut self, text: &String) {
+        self.delete_selection();
+        for ch in text.chars() {
+            if ch == '\r' || ch == '\x08' || ch == '\x7f' {
+                continue;
+            }
+            self.buffer
+                .insert_char(self.caret_position.line, self.caret_position.column, ch);
+            if ch == '\n' {
+                self.caret_position.line += 1;
+                self.caret_position.column = 0;
+            } else {
+                self.caret_position.column += 1;
+            }
+        }
+    }
+
+    /// Delete the selection content if there is one.
+    pub(crate) fn delete_selection(&mut self) {
+        if let Some(selection) = self.selection.take() {
+            self.buffer.delete_range(TextRange::from(&selection));
+            self.caret_position = selection.start;
+        }
+    }
+
+    pub(crate) fn input_backspace(&mut self) {
+        if self.selection.is_some() {
+            self.delete_selection();
+            return;
+        }
+
+        if self.caret_position.column > 0 {
+            let range = TextRange::new(
+                self.caret_position.line,
+                self.caret_position.column - 1,
+                self.caret_position.line,
+                self.caret_position.column,
+            );
+            self.buffer.delete_range(range);
+            self.caret_position.column -= 1;
+        } else if self.caret_position.line > 0 {
+            let prev_line_idx = self.caret_position.line - 1;
+            let prev_line_len = self.buffer.line_text(prev_line_idx).len();
+            let range = TextRange::new(prev_line_idx, prev_line_len, self.caret_position.line, 0);
+            self.buffer.delete_range(range);
+            self.caret_position.line = prev_line_idx;
+            self.caret_position.column = prev_line_len;
+        }
+    }
+
+    pub(crate) fn input_delete(&mut self) {
+        if self.selection.is_some() {
+            self.delete_selection();
+            return;
+        }
+
+        let line_len = self.buffer.line_text(self.caret_position.line).len();
+        let line_count = self.buffer.line_count();
+        if self.caret_position.column < line_len {
+            let range = TextRange::new(
+                self.caret_position.line,
+                self.caret_position.column,
+                self.caret_position.line,
+                self.caret_position.column + 1,
+            );
+            self.buffer.delete_range(range);
+        } else if self.caret_position.line + 1 < line_count {
+            let range = TextRange::new(
+                self.caret_position.line,
+                line_len,
+                self.caret_position.line + 1,
+                0,
+            );
+            self.buffer.delete_range(range);
+        }
     }
 }

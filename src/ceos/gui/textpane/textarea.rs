@@ -298,14 +298,14 @@ impl TextArea<'_> {
     }
 
     fn handle_input(&mut self, ctx: &Context, top_left: Pos2, has_focus: bool) {
-        let mut caret_position = self.textarea_properties.caret_position;
         let mut scroll_offset = self.textarea_properties.scroll_offset;
         let line_height = self.textarea_properties.line_height;
         let rect_height = self.virtual_rect.height();
-        let line_count = self.textarea_properties.buffer.line_count();
 
+        let old_caret_position = self.textarea_properties.caret_position;
         ctx.input(|i| {
             self.handle_dropped_file(i);
+
             if i.pointer.primary_clicked()
                 && let Some(mut pos) = i.pointer.latest_pos()
             {
@@ -324,26 +324,8 @@ impl TextArea<'_> {
                         repeat: _,
                         modifiers: _,
                         ..
-                    } => self.handle_key_event(&mut caret_position, line_count, i, key),
-                    egui::Event::Text(text) => {
-                        self.delete_selection();
-                        for ch in text.chars() {
-                            if ch == '\r' || ch == '\x08' || ch == '\x7f' {
-                                continue;
-                            }
-                            self.textarea_properties.buffer.insert_char(
-                                caret_position.line,
-                                caret_position.column,
-                                ch,
-                            );
-                            if ch == '\n' {
-                                caret_position.line += 1;
-                                caret_position.column = 0;
-                            } else {
-                                caret_position.column += 1;
-                            }
-                        }
-                    }
+                    } => self.handle_key_event(i, key),
+                    egui::Event::Text(text) => self.textarea_properties.handle_text(text),
                     MouseWheel {
                         unit: _,
                         delta,
@@ -355,18 +337,16 @@ impl TextArea<'_> {
             }
         });
 
-        if self.textarea_properties.caret_position != caret_position {
-            self.textarea_properties.caret_position = caret_position;
-
-            // S'assurer que le curseur est visible après le déplacement
-            let caret_y = caret_position.line as f32 * line_height;
+        if old_caret_position != self.textarea_properties.caret_position {
+            let caret_y = self.textarea_properties.caret_position.line as f32 * line_height;
             if caret_y < scroll_offset.y {
                 scroll_offset.y = caret_y;
             } else if caret_y + line_height > scroll_offset.y + rect_height {
                 scroll_offset.y = caret_y + line_height - rect_height;
             }
 
-            let caret_x = caret_position.column as f32 * self.textarea_properties.char_width;
+            let caret_x = self.textarea_properties.caret_position.column as f32
+                * self.textarea_properties.char_width;
             let rect_width = self.virtual_rect.width();
             if caret_x < scroll_offset.x {
                 scroll_offset.x = caret_x;
@@ -378,135 +358,94 @@ impl TextArea<'_> {
         }
     }
 
-    /// Delete the selection content if there is one.
-    fn delete_selection(&mut self) {
-        if let Some(selection) = self.textarea_properties.selection.take() {
-            self.textarea_properties.buffer.delete_range(TextRange::from(&selection));
-            self.textarea_properties.caret_position = selection.start;
-        }
-    }
-
-    fn handle_key_event(
-        &mut self,
-        caret_position: &mut Position,
-        line_count: usize,
-        i: &InputState,
-        key: &egui::Key,
-    ) {
+    fn handle_key_event(&mut self, i: &InputState, key: &egui::Key) {
         match key {
             egui::Key::Home => {
+                self.textarea_properties.selection = None;
                 if Self::is_control_pressed(i) {
-                    caret_position.line = 0;
-                    caret_position.column = 0;
+                    self.textarea_properties.caret_position = Position::ZERO;
                 } else {
-                    caret_position.column = 0;
+                    self.textarea_properties.caret_position.column = 0;
                 }
             }
             egui::Key::End => {
+                self.textarea_properties.selection = None;
                 if Self::is_control_pressed(i) {
-                    caret_position.line = line_count.saturating_sub(1);
+                    let line_count = self.textarea_properties.buffer.line_count();
+                    self.textarea_properties.caret_position.line = line_count.saturating_sub(1);
                 }
                 let line_text = self
                     .textarea_properties
                     .buffer
-                    .line_text(caret_position.line);
-                caret_position.column = line_text.len();
+                    .line_text(self.textarea_properties.caret_position.line);
+                self.textarea_properties.caret_position.column = line_text.len();
             }
             egui::Key::ArrowLeft => {
-                caret_position.column = caret_position.column.saturating_sub(1);
+                self.textarea_properties.caret_position.column = self
+                    .textarea_properties
+                    .caret_position
+                    .column
+                    .saturating_sub(1);
             }
             egui::Key::ArrowRight => {
-                caret_position.column = self
+                self.textarea_properties.caret_position.column = self
                     .textarea_properties
                     .buffer
-                    .line_text(caret_position.line)
+                    .line_text(self.textarea_properties.caret_position.line)
                     .len()
-                    .min(caret_position.column.saturating_add(1));
+                    .min(
+                        self.textarea_properties
+                            .caret_position
+                            .column
+                            .saturating_add(1),
+                    );
             }
             egui::Key::ArrowUp => {
-                caret_position.line = caret_position.line.saturating_sub(1);
-                self.textarea_properties.set_first_line(caret_position.line);
+                self.textarea_properties.caret_position.line = self
+                    .textarea_properties
+                    .caret_position
+                    .line
+                    .saturating_sub(1);
+                self.textarea_properties
+                    .set_first_line(self.textarea_properties.caret_position.line);
             }
             egui::Key::ArrowDown => {
-                caret_position.line = self
+                self.textarea_properties.caret_position.line = self
                     .textarea_properties
                     .buffer
                     .line_count()
-                    .min(caret_position.line + 1);
-                self.textarea_properties.set_first_line(caret_position.line);
+                    .min(self.textarea_properties.caret_position.line + 1);
+                self.textarea_properties
+                    .set_first_line(self.textarea_properties.caret_position.line);
             }
             egui::Key::PageUp => {
                 let visible_lines = self.visible_line_count();
-                if caret_position.line > visible_lines {
-                    caret_position.line -= visible_lines;
+                if self.textarea_properties.caret_position.line > visible_lines {
+                    self.textarea_properties.caret_position.line -= visible_lines;
                 } else {
-                    caret_position.line = 0;
+                    self.textarea_properties.caret_position.line = 0;
                 }
-                self.textarea_properties.set_first_line(caret_position.line);
+                self.textarea_properties
+                    .set_first_line(self.textarea_properties.caret_position.line);
             }
             egui::Key::PageDown => {
                 let visible_lines = self.visible_line_count();
-                caret_position.line =
-                    (caret_position.line + visible_lines).min(line_count.saturating_sub(1));
-                self.textarea_properties.set_first_line(caret_position.line);
-            }
-            egui::Key::Delete | egui::Key::Backspace => {
-                if self.textarea_properties.selection.is_some() {
-                   self.delete_selection();
-                } else if *key == egui::Key::Backspace {
-                    if caret_position.column > 0 {
-                        let range = TextRange::new(
-                            caret_position.line,
-                            caret_position.column - 1,
-                            caret_position.line,
-                            caret_position.column,
-                        );
-                        self.textarea_properties.buffer.delete_range(range);
-                        caret_position.column -= 1;
-                    } else if caret_position.line > 0 {
-                        let prev_line_idx = caret_position.line - 1;
-                        let prev_line_len = self
-                            .textarea_properties
-                            .buffer
-                            .line_text(prev_line_idx)
-                            .len();
-                        let range =
-                            TextRange::new(prev_line_idx, prev_line_len, caret_position.line, 0);
-                        self.textarea_properties.buffer.delete_range(range);
-                        caret_position.line = prev_line_idx;
-                        caret_position.column = prev_line_len;
-                    }
-                } else if *key == egui::Key::Delete {
-                    let line_len = self
-                        .textarea_properties
-                        .buffer
-                        .line_text(caret_position.line)
-                        .len();
-                    if caret_position.column < line_len {
-                        let range = TextRange::new(
-                            caret_position.line,
-                            caret_position.column,
-                            caret_position.line,
-                            caret_position.column + 1,
-                        );
-                        self.textarea_properties.buffer.delete_range(range);
-                    } else if caret_position.line + 1 < line_count {
-                        let range = TextRange::new(
-                            caret_position.line,
-                            line_len,
-                            caret_position.line + 1,
-                            0,
-                        );
-                        self.textarea_properties.buffer.delete_range(range);
-                    }
-                }
-            }
-            egui::Key::Enter => {
+                let line_count = self.textarea_properties.buffer.line_count();
+                self.textarea_properties.caret_position.line =
+                    (self.textarea_properties.caret_position.line + visible_lines)
+                        .min(line_count.saturating_sub(1));
                 self.textarea_properties
-                    .buffer
-                    .insert_newline(caret_position.line, caret_position.column);
-                caret_position.line += 1;
-                caret_position.column = 0;
+                    .set_first_line(self.textarea_properties.caret_position.line);
+            }
+            egui::Key::Delete => self.textarea_properties.input_delete(),
+            egui::Key::Backspace => self.textarea_properties.input_backspace(),
+            egui::Key::Enter => {
+                self.textarea_properties.buffer.insert_newline(
+                    self.textarea_properties.caret_position.line,
+                    self.textarea_properties.caret_position.column,
+                );
+                self.textarea_properties.caret_position.line += 1;
+                self.textarea_properties.caret_position.column = 0;
             }
             _ => {}
         }
