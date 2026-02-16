@@ -283,6 +283,9 @@ impl Ceos {
             if ui.button("Save").clicked() {
                 self.save_file();
             }
+            if ui.button("Save as...").clicked() {
+                self.save_as();
+            }
             if ui.button("Close").clicked() {
                 self.sender.send(BufferClosed).unwrap();
             }
@@ -513,7 +516,6 @@ impl Ceos {
         if self.textarea_properties.buffer.dirty
             && let Some(path) = &self.textarea_properties.buffer.path
         {
-            let path = path.clone();
             // Préparer un snapshot des lignes à écrire pour l'écriture en thread
             let mut total_size: usize = 0;
             let mut lines: Vec<Vec<u8>> = Vec::new();
@@ -527,6 +529,8 @@ impl Ceos {
             }
 
             let sender = self.sender.clone();
+
+            let path = path.clone();
             thread::spawn(move || {
                 // Démarrer la progression
                 let _ = sender.send(Event::BufferSavingStarted(path.clone(), total_size));
@@ -561,10 +565,21 @@ impl Ceos {
         }
     }
 
-    fn write(file: &mut LineWriter<File>, text: &[u8]) {
-        match file.write_all(text) {
-            Ok(_) => {}
-            Err(err) => error!("{err}"),
+    pub(crate) fn save_as(&mut self) {
+        info!("save as");
+        let mut dialog = rfd::FileDialog::new().set_directory("./");
+        if let Some(path) = &self.textarea_properties.buffer.path {
+            if let Some(parent) = path.parent() {
+                dialog = dialog.set_directory(parent);
+            }
+            if let Some(file_name) = path.file_name() {
+                dialog = dialog.set_file_name(file_name.to_string_lossy());
+            }
+        }
+
+        if let Some(path) = dialog.save_file() {
+            self.textarea_properties.buffer.set_path(path);
+            self.save_file();
         }
     }
 }

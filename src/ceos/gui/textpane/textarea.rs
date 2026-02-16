@@ -6,7 +6,6 @@ use egui::Event::{MouseWheel, Zoom};
 use egui::{Context, InputState, Response, Ui, Widget};
 use log::info;
 
-use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::command::Command;
 use crate::ceos::command::search::Search;
 use crate::ceos::gui::textpane::interaction_mode::InteractionMode;

@@ -72,6 +72,12 @@ impl Buffer {
         Ok(buffer)
     }
 
+    pub(crate) fn set_path(&mut self, path: PathBuf) {
+        info!("set path to {path:?}");
+        self.path = Some(path);
+        self.dirty = true;
+    }
+
     fn load_buffer(&mut self) -> Result<(), io::Error> {
         let path = self.path.as_ref().expect("buffer has no path");
         let file = File::open(path)?;
