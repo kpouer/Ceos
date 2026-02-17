@@ -96,9 +96,15 @@ impl TextArea<'_> {
         }
     }
 
-    fn handle_double_click(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
+    fn handle_click(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
         let _ = self.sender.send(ClearCommand);
+        response.request_focus();
         self.update_caret_position(rect, pointer_pos);
+        response.mark_changed();
+    }
+
+    fn handle_double_click(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
+        self.handle_click(rect, response, pointer_pos);
         let caret_position = self.textarea_properties.caret_position;
         let text = self
             .textarea_properties
@@ -118,14 +124,6 @@ impl TextArea<'_> {
                 column: end_col,
             },
         ));
-        response.mark_changed();
-    }
-
-    fn handle_click(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
-        let _ = self.sender.send(ClearCommand);
-        response.request_focus();
-        self.update_caret_position(rect, pointer_pos);
-        response.mark_changed();
     }
 
     fn handle_drag_start(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
