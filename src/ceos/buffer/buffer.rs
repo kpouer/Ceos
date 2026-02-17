@@ -66,7 +66,7 @@ impl Buffer {
     ) -> Result<Self, std::io::Error> {
         let mut buffer = Self {
             path: Some(path),
-            ..Self::new_empty_buffer(sender)
+            ..Self::new_with_group_size(sender, DEFAULT_GROUP_SIZE)
         };
 
         buffer.load_buffer()?;
