@@ -41,7 +41,7 @@ impl TextAreaProperties {
         renderer_manager.add_renderer(SELECTION_LAYER, Box::new(SelectionRenderer {}));
         renderer_manager.add_renderer(CARET_LAYER, Box::new(CaretRenderer::default()));
         Self {
-            buffer: Buffer::new(sender),
+            buffer: Buffer::new_empty_buffer(sender),
             renderer_manager,
             line_height: DEFAULT_LINE_HEIGHT,
             font_id,

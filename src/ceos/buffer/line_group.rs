@@ -23,12 +23,10 @@ pub(crate) struct LineGroup {
 
 impl LineGroup {
     pub(crate) fn new(first_line: usize, group_size: usize) -> Self {
-        let mut lines = Vec::with_capacity(group_size);
-        lines.push(Line::default());
         Self {
-            lines: Some(lines),
+            lines: Some(Vec::with_capacity(group_size)),
             compressed: None,
-            line_count: 1,
+            line_count: 0,
             length: 0,
             max_line_length: 0,
             first_line,
@@ -400,6 +398,7 @@ impl Index<usize> for LineGroup {
             .lines
             .as_deref()
             .unwrap_or_else(|| panic!("index called on empty group"));
+        debug_assert!(index < lines.len());
         &lines[index]
     }
 }

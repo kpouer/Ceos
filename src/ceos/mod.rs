@@ -120,7 +120,7 @@ impl Ceos {
             }
             BufferClosed => self
                 .textarea_properties
-                .set_buffer(Buffer::new(self.sender.clone())),
+                .set_buffer(Buffer::new_empty_buffer(self.sender.clone())),
             GotoLine(goto) => goto.execute(&mut self.textarea_properties),
             NewFont(font_id) => self.textarea_properties.set_font_id(font_id),
             Event::OperationStarted(label, length) => {
@@ -174,7 +174,7 @@ impl Ceos {
     pub(crate) fn execute_command(&mut self) {
         if let Some(command) = self.current_command.take() {
             info!("Execute command {}", command);
-            let mut tmp_buffer = Buffer::new(self.sender.clone());
+            let mut tmp_buffer = Buffer::new_empty_buffer(self.sender.clone());
             std::mem::swap(&mut tmp_buffer, &mut self.textarea_properties.buffer);
             let sender = self.sender.clone();
             std::thread::spawn(move || {

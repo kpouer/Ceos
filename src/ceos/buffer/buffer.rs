@@ -32,8 +32,10 @@ pub(crate) struct Buffer {
 const FILTERING: &str = "Filtering...";
 
 impl Buffer {
-    pub(crate) fn new(sender: Sender<Event>) -> Self {
-        Self::new_with_group_size(sender, DEFAULT_GROUP_SIZE)
+    pub(crate) fn new_empty_buffer(sender: Sender<Event>) -> Self {
+        let mut buffer = Self::new_with_group_size(sender, DEFAULT_GROUP_SIZE);
+        buffer.push_line("");
+        buffer
     }
 
     pub(crate) fn new_from_string(sender: Sender<Event>, text: &str, group_size: usize) -> Self {
@@ -64,7 +66,7 @@ impl Buffer {
     ) -> Result<Self, std::io::Error> {
         let mut buffer = Self {
             path: Some(path),
-            ..Self::new(sender)
+            ..Self::new_empty_buffer(sender)
         };
 
         buffer.load_buffer()?;
