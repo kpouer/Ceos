@@ -3,7 +3,7 @@ use std::sync::mpsc::Sender;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::{FontId, Stroke, StrokeKind};
 use egui::Event::{MouseWheel, Zoom};
-use egui::{Context, InputState, Response, Ui, Widget};
+use egui::{Context, EventFilter, InputState, Key, Response, Ui, Widget};
 use log::info;
 
 use crate::ceos::command::Command;
@@ -300,6 +300,7 @@ impl TextArea<'_> {
         let rect_height = self.virtual_rect.height();
 
         let old_caret_position = self.textarea_properties.caret_position;
+
         ctx.input(|i| {
             self.handle_dropped_file(i);
 
@@ -322,7 +323,6 @@ impl TextArea<'_> {
                         modifiers: _,
                         ..
                     } => self.handle_key_event(i, key),
-                    egui::Event::Text(text) => self.textarea_properties.handle_text(text),
                     MouseWheel {
                         unit: _,
                         delta,
@@ -333,6 +333,23 @@ impl TextArea<'_> {
                 });
             }
         });
+        if has_focus {
+            let event_filter = EventFilter::default();
+            let mut events = ctx.input(|i| i.filtered_events(&event_filter));
+
+            for event in events {
+                match event {
+                    egui::Event::Copy => {
+                        println!("docopy");
+                        self.textarea_properties.copy(ctx);
+                    }
+                    egui::Event::Paste(text) | egui::Event::Text(text) => {
+                        self.textarea_properties.handle_text(&text)
+                    }
+                    _ => {}
+                }
+            }
+        }
 
         if old_caret_position != self.textarea_properties.caret_position {
             let caret_y = self.textarea_properties.caret_position.line as f32 * line_height;

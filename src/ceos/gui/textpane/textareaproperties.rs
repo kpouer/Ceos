@@ -13,12 +13,14 @@ use crate::ceos::gui::textpane::selection::Selection;
 use crate::event::Event;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::FontId;
-use log::info;
+use log::{debug, info};
 use std::cmp;
 use std::ops::Range;
 use std::sync::mpsc::Sender;
+use egui::Ui;
 
 pub(crate) const DEFAULT_LINE_HEIGHT: f32 = 16.0;
+pub(crate) const MAX_COPY_SIZE: usize = 10 * 1024 * 1024;
 
 #[derive(Debug)]
 pub(crate) struct TextAreaProperties {
@@ -159,6 +161,33 @@ impl TextAreaProperties {
         if let Some(selection) = self.selection.take() {
             self.buffer.delete_range(TextRange::from(&selection));
             self.caret_position = selection.start;
+        }
+    }
+
+    pub(crate) fn copy(&self, ctx: &egui::Context) {
+        info!("copy");
+        if let Some(selection) = &self.selection {
+            let mut text = String::with_capacity(5000);
+            let start_line = selection.start.line;
+            let end_line = selection.end.line;
+
+            for line_idx in start_line..=end_line {
+                let line_text = self.buffer.line_text(line_idx);
+                let start_col = if line_idx == start_line { selection.start.column } else { 0 };
+                let end_col = if line_idx == end_line { selection.end.column } else { line_text.len() };
+
+                text.push_str(&line_text[start_col..end_col]);
+                if line_idx < end_line {
+                    text.push('\n');
+                }
+                if text.len() > MAX_COPY_SIZE {
+                    // todo do a real egui thing
+                    info!("Copy aborted: selection size {} exceeds limit {}", text.len(), MAX_COPY_SIZE);
+                    return;
+                }
+            }
+            debug!("About to copy: {text}");
+            ctx.copy_text(text);
         }
     }
 
