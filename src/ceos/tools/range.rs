@@ -20,12 +20,10 @@ impl TryFrom<&str> for Range {
                 return Ok(Range { start, end: None });
             }
         } else {
-            let tokens: Vec<&str> = command.split(SEPARATOR).collect();
-            if tokens.len() == 2
-                && let Ok(start) = tokens.first().unwrap().parse::<usize>()
-                && let Ok(end) = tokens.get(1).unwrap().parse::<usize>()
-            {
-                return Range::new(start, end);
+            if let Some((start, end)) = command.split_once(SEPARATOR) {
+                if let (Ok(start), Ok(end)) = (start.parse::<usize>(), end.parse::<usize>()) {
+                    return Range::new(start, end);
+                }
             }
         }
         Err(())
