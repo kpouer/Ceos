@@ -339,10 +339,8 @@ impl TextArea<'_> {
 
             for event in events {
                 match event {
-                    egui::Event::Copy => {
-                        println!("docopy");
-                        self.textarea_properties.copy(ctx);
-                    }
+                    egui::Event::Copy => self.textarea_properties.copy(ctx),
+                    egui::Event::Cut => self.textarea_properties.cut(ctx),
                     egui::Event::Paste(text) | egui::Event::Text(text) => {
                         self.textarea_properties.handle_text(&text)
                     }

@@ -191,6 +191,11 @@ impl TextAreaProperties {
         }
     }
 
+    pub(crate) fn cut(&mut self, ctx: &egui::Context) {
+        self.copy(ctx);
+        self.delete_selection();
+    }
+
     pub(crate) fn input_backspace(&mut self) {
         if self.selection.is_some() {
             self.delete_selection();
