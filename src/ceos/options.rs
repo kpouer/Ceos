@@ -73,10 +73,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn default_roundtrip() {
+    fn default_roundtrip() -> Result<(), Box<dyn std::error::Error>> {
         let o = Options::default();
-        let s = toml::to_string(&o).unwrap();
-        let back: Options = toml::from_str(&s).unwrap();
+        let s = toml::to_string(&o)?;
+        let back: Options = toml::from_str(&s)?;
         assert_eq!(o.compression, back.compression);
+        Ok(())
     }
 }
