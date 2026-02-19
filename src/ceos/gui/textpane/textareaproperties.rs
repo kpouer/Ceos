@@ -17,7 +17,6 @@ use log::{debug, info};
 use std::cmp;
 use std::ops::Range;
 use std::sync::mpsc::Sender;
-use egui::Ui;
 
 pub(crate) const DEFAULT_LINE_HEIGHT: f32 = 16.0;
 pub(crate) const MAX_COPY_SIZE: usize = 10 * 1024 * 1024;

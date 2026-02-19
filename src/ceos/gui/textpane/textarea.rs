@@ -335,7 +335,7 @@ impl TextArea<'_> {
         });
         if has_focus {
             let event_filter = EventFilter::default();
-            let mut events = ctx.input(|i| i.filtered_events(&event_filter));
+            let events = ctx.input(|i| i.filtered_events(&event_filter));
 
             for event in events {
                 match event {
