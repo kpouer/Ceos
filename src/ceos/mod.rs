@@ -513,56 +513,63 @@ impl Ceos {
 
     fn save_file(&mut self) {
         info!("save_file");
-        if self.textarea_properties.buffer.dirty
-            && let Some(path) = &self.textarea_properties.buffer.path
-        {
-            // Préparer un snapshot des lignes à écrire pour l'écriture en thread
-            let mut total_size: usize = 0;
-            let mut lines: Vec<Vec<u8>> = Vec::new();
-            for group in self.textarea_properties.buffer.line_groups() {
-                let cow = group.lines();
-                for line in cow.as_ref().iter() {
-                    let bytes: Vec<u8> = line.content().as_bytes().to_vec();
-                    total_size += bytes.len() + 1; // +1 pour le saut de ligne
-                    lines.push(bytes);
+        if !self.textarea_properties.buffer.dirty {
+            return;
+        }
+
+        match &self.textarea_properties.buffer.path {
+            None => self.save_as(),
+            Some(path) => self.save_to_path(path),
+        }
+        self.textarea_properties.buffer.dirty = false;
+    }
+
+    fn save_to_path(&self, path: &PathBuf) {
+        let mut total_size: usize = 0;
+        let mut lines: Vec<Vec<u8>> = Vec::new();
+        for group in self.textarea_properties.buffer.line_groups() {
+            let cow = group.lines();
+            for line in cow.as_ref().iter() {
+                let bytes: Vec<u8> = line.content().as_bytes().to_vec();
+                total_size += bytes.len() + 1; // +1 pour le saut de ligne
+                lines.push(bytes);
+            }
+        }
+
+        let sender = self.sender.clone();
+
+        let path = path.clone();
+        thread::spawn(move || {
+            // Démarrer la progression
+            let _ = sender.send(Event::BufferSavingStarted(path.clone(), total_size));
+            match File::create(&path) {
+                Ok(file) => {
+                    let mut file = LineWriter::new(file);
+                    let mut current: usize = 0;
+                    for bytes in lines.iter() {
+                        if let Err(err) = file.write_all(bytes) {
+                            error!("{err}");
+                            let _ = sender.send(Event::BufferSaveFailed(path.clone()));
+                            return;
+                        }
+                        if let Err(err) = file.write_all(b"\n") {
+                            error!("{err}");
+                            let _ = sender.send(Event::BufferSaveFailed(path.clone()));
+                            return;
+                        }
+                        current += bytes.len() + 1;
+                        let _ =
+                            sender.send(Event::BufferSaving(path.clone(), current, total_size));
+                    }
+                    // Fin de progression
+                    let _ = sender.send(Event::BufferSaved(path.clone()));
+                }
+                Err(err) => {
+                    error!("Unable to save file {path:?} becaues {err}");
+                    let _ = sender.send(Event::BufferSaveFailed(path.clone()));
                 }
             }
-
-            let sender = self.sender.clone();
-
-            let path = path.clone();
-            thread::spawn(move || {
-                // Démarrer la progression
-                let _ = sender.send(Event::BufferSavingStarted(path.clone(), total_size));
-                match File::create(&path) {
-                    Ok(file) => {
-                        let mut file = LineWriter::new(file);
-                        let mut current: usize = 0;
-                        for bytes in lines.iter() {
-                            if let Err(err) = file.write_all(bytes) {
-                                error!("{err}");
-                                let _ = sender.send(Event::BufferSaveFailed(path.clone()));
-                                return;
-                            }
-                            if let Err(err) = file.write_all(b"\n") {
-                                error!("{err}");
-                                let _ = sender.send(Event::BufferSaveFailed(path.clone()));
-                                return;
-                            }
-                            current += bytes.len() + 1;
-                            let _ =
-                                sender.send(Event::BufferSaving(path.clone(), current, total_size));
-                        }
-                        // Fin de progression
-                        let _ = sender.send(Event::BufferSaved(path.clone()));
-                    }
-                    Err(err) => {
-                        error!("Unable to save file {path:?} becaues {err}");
-                        let _ = sender.send(Event::BufferSaveFailed(path.clone()));
-                    }
-                }
-            });
-        }
+        });
     }
 
     pub(crate) fn save_as(&mut self) {
@@ -578,8 +585,9 @@ impl Ceos {
         }
 
         if let Some(path) = dialog.save_file() {
+            self.save_to_path(&path);
             self.textarea_properties.buffer.set_path(path);
-            self.save_file();
+            self.textarea_properties.buffer.dirty = false;
         }
     }
 }
