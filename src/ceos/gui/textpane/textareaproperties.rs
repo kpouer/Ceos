@@ -195,6 +195,38 @@ impl TextAreaProperties {
         self.delete_selection();
     }
 
+    pub(crate) fn go_to_start_of_buffer(&mut self) {
+        self.selection = None;
+        self.caret_position = Position::ZERO;
+    }
+
+    pub(crate) fn go_to_start_of_line(&mut self) {
+        self.selection = None;
+        self.caret_position.column = 0;
+    }
+
+    pub(crate) fn go_to_end_of_line(&mut self) {
+        self.selection = None;
+        let current_line_length = self.buffer.line_text(self.caret_position.line);
+        self.caret_position.column = current_line_length.len().saturating_sub(1);
+    }
+
+    pub(crate) fn go_to_end_of_buffer(&mut self) {
+        self.selection = None;
+        let current_line_length = self.buffer.line_text(self.buffer.line_count() - 1);
+        self.caret_position.line = self.buffer.line_count().saturating_sub(1);
+        self.caret_position.column = current_line_length.len().saturating_sub(1);
+    }
+
+    pub(crate) fn input_enter(&mut self) {
+        self.buffer.insert_newline(
+            self.caret_position.line,
+            self.caret_position.column,
+        );
+        self.caret_position.line += 1;
+        self.caret_position.column = 0;
+    }
+
     pub(crate) fn input_backspace(&mut self) {
         if self.selection.is_some() {
             self.delete_selection();

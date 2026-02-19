@@ -412,6 +412,13 @@ impl Buffer {
         }
     }
 
+    pub(crate) fn line_length(&self, line: usize) -> usize {
+        if let Some((gi, li)) = self.find_group_index(line) {
+            return self.content[gi][li].len();
+        }
+        0
+    }
+
     /// Returns the text of the line at the given index.
     /// The given index is 0-based
     pub(crate) fn line_text(&self, line: usize) -> &str {

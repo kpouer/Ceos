@@ -66,7 +66,7 @@ impl Widget for &mut TextArea<'_> {
             ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::Text);
         }
 
-        self.handle_interaction(rect, &mut response);
+        self.handle_mouse_interaction(rect, &mut response);
 
         if ui.is_rect_visible(rect) {
             self.paint_content(ui, response.has_focus());
@@ -79,7 +79,7 @@ impl Widget for &mut TextArea<'_> {
 const DRAG_STARTED_ID: &str = "drag_started";
 
 impl TextArea<'_> {
-    fn handle_interaction(&mut self, rect: Rect, response: &mut Response) {
+    fn handle_mouse_interaction(&mut self, rect: Rect, response: &mut Response) {
         let Some(pointer_pos) = response.interact_pointer_pos() else {
             return;
         };
@@ -254,9 +254,7 @@ impl TextArea<'_> {
             drawing_pos.y += self.textarea_properties.line_height;
         });
     }
-}
 
-impl TextArea<'_> {
     fn update_caret_position(&mut self, rect: Rect, pos: &Pos2) {
         // ensure the new caret position is within the bounds of the text area
 
@@ -373,24 +371,19 @@ impl TextArea<'_> {
     fn handle_key_event(&mut self, i: &InputState, key: &egui::Key) {
         match key {
             egui::Key::Home => {
-                self.textarea_properties.selection = None;
                 if Self::is_control_pressed(i) {
-                    self.textarea_properties.caret_position = Position::ZERO;
+                    self.textarea_properties.go_to_start_of_buffer();
                 } else {
-                    self.textarea_properties.caret_position.column = 0;
+                    self.textarea_properties.go_to_start_of_line();
                 }
             }
             egui::Key::End => {
                 self.textarea_properties.selection = None;
                 if Self::is_control_pressed(i) {
-                    let line_count = self.textarea_properties.buffer.line_count();
-                    self.textarea_properties.caret_position.line = line_count.saturating_sub(1);
+                    self.textarea_properties.go_to_end_of_buffer();
+                } else {
+                    self.textarea_properties.go_to_end_of_line();
                 }
-                let line_text = self
-                    .textarea_properties
-                    .buffer
-                    .line_text(self.textarea_properties.caret_position.line);
-                self.textarea_properties.caret_position.column = line_text.len();
             }
             egui::Key::ArrowLeft => {
                 self.textarea_properties.caret_position.column = self
@@ -403,14 +396,8 @@ impl TextArea<'_> {
                 self.textarea_properties.caret_position.column = self
                     .textarea_properties
                     .buffer
-                    .line_text(self.textarea_properties.caret_position.line)
-                    .len()
-                    .min(
-                        self.textarea_properties
-                            .caret_position
-                            .column
-                            .saturating_add(1),
-                    );
+                    .line_length(self.textarea_properties.caret_position.line)
+                    .min(self.textarea_properties.caret_position.column + 1);
             }
             egui::Key::ArrowUp => {
                 self.textarea_properties.caret_position.line = self
@@ -451,14 +438,7 @@ impl TextArea<'_> {
             }
             egui::Key::Delete => self.textarea_properties.input_delete(),
             egui::Key::Backspace => self.textarea_properties.input_backspace(),
-            egui::Key::Enter => {
-                self.textarea_properties.buffer.insert_newline(
-                    self.textarea_properties.caret_position.line,
-                    self.textarea_properties.caret_position.column,
-                );
-                self.textarea_properties.caret_position.line += 1;
-                self.textarea_properties.caret_position.column = 0;
-            }
+            egui::Key::Enter => self.textarea_properties.input_enter(),
             _ => {}
         }
     }
