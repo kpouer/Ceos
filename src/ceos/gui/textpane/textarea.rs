@@ -3,8 +3,7 @@ use std::sync::mpsc::Sender;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::{FontId, Stroke, StrokeKind};
 use egui::Event::{MouseWheel, Zoom};
-use egui::{Context, EventFilter, InputState, KeyboardShortcut, Response, Ui, Widget};
-use log::info;
+use egui::{Context, EventFilter, InputState, KeyboardShortcut, Modifiers, Response, Ui, Widget};
 
 use crate::ceos::command::Command;
 use crate::ceos::command::search::Search;
@@ -304,21 +303,17 @@ impl TextArea<'_> {
 
         let old_caret_position = self.textarea_properties.caret_position;
 
-        ctx.input_mut(|mut i| {
-            self.handle_dropped_file(i);
+        ctx.input(|i| self.handle_dropped_file(i));
+        if has_focus {
+            let event_filter = EventFilter {
+                vertical_arrows: true,
+                horizontal_arrows: true,
+                ..Default::default()
+            };
+            let events = ctx.input(|i| i.filtered_events(&event_filter));
 
-            if i.pointer.primary_clicked()
-                && let Some(mut pos) = i.pointer.latest_pos()
-            {
-                pos.x -= top_left.x;
-                pos.y -= top_left.y;
-                let position = self.textarea_properties.point_to_text_position(pos);
-                info!("point to {position}, topleft {top_left}, pos {pos}");
-                // textarea_properties.caret_position = Position { column, line };
-            }
-
-            if has_focus {
-                i.events.iter().for_each(|event| match event {
+            for event in events {
+                match event {
                     egui::Event::Key {
                         pressed: true,
                         repeat: _,
@@ -326,28 +321,19 @@ impl TextArea<'_> {
                         modifiers,
                         ..
                     } => {
-                        let shortcut = KeyboardShortcut::new(*modifiers, *key);
+                        let shortcut = KeyboardShortcut::new(modifiers, key);
                         if let Some(action) = self.keyboard_handler.get_action(&shortcut) {
-                            let mut action_context = ActionContext::new(&mut self.textarea_properties);
+                            let mut action_context =
+                                ActionContext::new(&mut self.textarea_properties);
                             action.execute(&mut action_context);
                         }
                     }
                     MouseWheel {
                         unit: _,
                         delta,
-                        modifiers: _,
-                    } => self.handle_mouse_wheel(i, delta),
-                    Zoom(delta) => self.handle_zoom(*delta),
-                    _ => {}
-                });
-            }
-        });
-        if has_focus {
-            let event_filter = EventFilter::default();
-            let events = ctx.input(|i| i.filtered_events(&event_filter));
-
-            for event in events {
-                match event {
+                        modifiers,
+                    } => self.handle_mouse_wheel(&modifiers, &delta),
+                    Zoom(delta) => self.handle_zoom(delta),
                     egui::Event::Copy => self.textarea_properties.copy(ctx),
                     egui::Event::Cut => self.textarea_properties.cut(ctx),
                     egui::Event::Paste(text) | egui::Event::Text(text) => {
@@ -387,13 +373,13 @@ impl TextArea<'_> {
         }
     }
 
-    fn handle_mouse_wheel(&self, input_state: &InputState, delta: &Vec2) {
+    fn handle_mouse_wheel(&self, modifiers: &Modifiers, delta: &Vec2) {
         #[cfg(target_os = "macos")]
-        if input_state.modifiers.command {
+        if modifiers.command {
             self.zoom(delta.y);
         }
         #[cfg(not(target_os = "macos"))]
-        if input_state.modifiers.ctrl {
+        if modifiers.ctrl {
             self.zoom(delta.y);
         }
     }
