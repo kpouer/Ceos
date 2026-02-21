@@ -3,11 +3,13 @@ use std::sync::mpsc::Sender;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::{FontId, Stroke, StrokeKind};
 use egui::Event::{MouseWheel, Zoom};
-use egui::{Context, EventFilter, InputState, Key, Response, Ui, Widget};
+use egui::{Context, EventFilter, InputState, KeyboardShortcut, Response, Ui, Widget};
 use log::info;
 
 use crate::ceos::command::Command;
 use crate::ceos::command::search::Search;
+use crate::ceos::gui::action::action_context::ActionContext;
+use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
 use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::renderer::Renderer;
@@ -30,6 +32,7 @@ pub(crate) struct TextArea<'a> {
     theme: &'a Theme,
     sender: &'a Sender<Event>,
     search: &'a Search,
+    keyboard_handler: &'a KeyboardHandler,
 }
 
 impl<'a> TextArea<'a> {
@@ -41,6 +44,7 @@ impl<'a> TextArea<'a> {
         theme: &'a Theme,
         sender: &'a Sender<Event>,
         search: &'a Search,
+        keyboard_handler: &'a KeyboardHandler,
     ) -> Self {
         Self {
             textarea_properties,
@@ -50,6 +54,7 @@ impl<'a> TextArea<'a> {
             theme,
             sender,
             search,
+            keyboard_handler,
         }
     }
 }
@@ -299,7 +304,7 @@ impl TextArea<'_> {
 
         let old_caret_position = self.textarea_properties.caret_position;
 
-        ctx.input(|i| {
+        ctx.input_mut(|mut i| {
             self.handle_dropped_file(i);
 
             if i.pointer.primary_clicked()
@@ -315,12 +320,18 @@ impl TextArea<'_> {
             if has_focus {
                 i.events.iter().for_each(|event| match event {
                     egui::Event::Key {
-                        key,
                         pressed: true,
                         repeat: _,
-                        modifiers: _,
+                        key,
+                        modifiers,
                         ..
-                    } => self.handle_key_event(i, key),
+                    } => {
+                        let shortcut = KeyboardShortcut::new(*modifiers, *key);
+                        if let Some(action) = self.keyboard_handler.get_action(&shortcut) {
+                            let mut action_context = ActionContext::new(&mut self.textarea_properties);
+                            action.execute(&mut action_context);
+                        }
+                    }
                     MouseWheel {
                         unit: _,
                         delta,
@@ -365,77 +376,6 @@ impl TextArea<'_> {
             }
 
             self.textarea_properties.scroll_offset = scroll_offset;
-        }
-    }
-
-    fn handle_key_event(&mut self, i: &InputState, key: &egui::Key) {
-        match key {
-            egui::Key::Home => {
-                if Self::is_control_pressed(i) {
-                    self.textarea_properties.go_to_start_of_buffer();
-                } else {
-                    self.textarea_properties.go_to_start_of_line();
-                }
-            }
-            egui::Key::End => {
-                self.textarea_properties.selection = None;
-                if Self::is_control_pressed(i) {
-                    self.textarea_properties.go_to_end_of_buffer();
-                } else {
-                    self.textarea_properties.go_to_end_of_line();
-                }
-            }
-            egui::Key::ArrowLeft => self.textarea_properties.go_to_prev_char(),
-            egui::Key::ArrowRight => self.textarea_properties.go_to_next_char(),
-            egui::Key::ArrowUp => {
-                self.textarea_properties.caret_position.line = self
-                    .textarea_properties
-                    .caret_position
-                    .line
-                    .saturating_sub(1);
-                self.textarea_properties
-                    .set_first_line(self.textarea_properties.caret_position.line);
-            }
-            egui::Key::ArrowDown => {
-                self.textarea_properties.caret_position.line = self
-                    .textarea_properties
-                    .buffer
-                    .line_count()
-                    .min(self.textarea_properties.caret_position.line + 1);
-                self.textarea_properties
-                    .set_first_line(self.textarea_properties.caret_position.line);
-            }
-            egui::Key::PageUp => {
-                let visible_lines = self.visible_line_count();
-                if self.textarea_properties.caret_position.line > visible_lines {
-                    self.textarea_properties.caret_position.line -= visible_lines;
-                } else {
-                    self.textarea_properties.caret_position.line = 0;
-                }
-                self.textarea_properties
-                    .set_first_line(self.textarea_properties.caret_position.line);
-            }
-            egui::Key::PageDown => {
-                let visible_lines = self.visible_line_count();
-                let line_count = self.textarea_properties.buffer.line_count();
-                self.textarea_properties.caret_position.line =
-                    (self.textarea_properties.caret_position.line + visible_lines)
-                        .min(line_count.saturating_sub(1));
-                self.textarea_properties
-                    .set_first_line(self.textarea_properties.caret_position.line);
-            }
-            egui::Key::Delete => self.textarea_properties.input_delete(),
-            egui::Key::Backspace => self.textarea_properties.input_backspace(),
-            egui::Key::Enter => self.textarea_properties.input_enter(),
-            _ => {}
-        }
-    }
-
-    fn is_control_pressed(i: &InputState) -> bool {
-        if cfg!(target_os = "macos") {
-            i.modifiers.command
-        } else {
-            i.modifiers.ctrl
         }
     }
 

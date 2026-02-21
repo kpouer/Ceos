@@ -9,6 +9,7 @@ use gutter::Gutter;
 use std::sync::mpsc::Sender;
 use textarea::TextArea;
 use textareaproperties::TextAreaProperties;
+use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
 
 pub(crate) mod gutter;
 mod position;
@@ -21,6 +22,7 @@ pub(crate) mod interaction_mode;
 #[derive(Debug)]
 pub(crate) struct TextPane<'a> {
     textarea_properties: &'a mut TextAreaProperties,
+    keyboard_handler: &'a KeyboardHandler,
     current_command: &'a Option<Box<dyn Command + Send + Sync + 'static>>,
     search: &'a Search,
     theme: &'a Theme,
@@ -30,6 +32,7 @@ pub(crate) struct TextPane<'a> {
 impl<'a> TextPane<'a> {
     pub(crate) const fn new(
         textarea_properties: &'a mut TextAreaProperties,
+        keyboard_handler: &'a KeyboardHandler,
         current_command: &'a Option<Box<dyn Command + Send + Sync + 'static>>,
         theme: &'a Theme,
         sender: &'a Sender<Event>,
@@ -37,6 +40,7 @@ impl<'a> TextPane<'a> {
     ) -> Self {
         Self {
             textarea_properties,
+            keyboard_handler,
             current_command,
             theme,
             sender,
@@ -78,6 +82,7 @@ impl Widget for TextPane<'_> {
                         self.theme,
                         self.sender,
                         self.search,
+                        self.keyboard_handler,
                     )
                     .ui(ui)
                 });

@@ -4,3 +4,4 @@ pub(crate) mod searchpanel;
 pub(crate) mod textpane;
 pub(crate) mod theme;
 pub(crate) mod tools;
+pub(crate) mod action;

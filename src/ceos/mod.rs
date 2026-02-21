@@ -24,6 +24,7 @@ use std::io::{LineWriter, Write};
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
+use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
 
 pub(crate) mod buffer;
 pub(crate) mod command;
@@ -36,6 +37,7 @@ mod tools;
 #[derive(Debug)]
 pub(crate) struct Ceos {
     textarea_properties: TextAreaProperties,
+    keyboard_handler: KeyboardHandler,
     sender: Sender<Event>,
     receiver: Receiver<Event>,
     command_buffer: String,
@@ -58,6 +60,7 @@ impl Default for Ceos {
             sender: user_input_sender.clone(),
             receiver: user_input_receiver,
             textarea_properties: TextAreaProperties::new(user_input_sender),
+            keyboard_handler: KeyboardHandler::new(),
             command_buffer: String::new(),
             current_command: None,
             frame_history: Default::default(),
@@ -243,6 +246,7 @@ impl eframe::App for Ceos {
                 self.before_frame();
                 TextPane::new(
                     &mut self.textarea_properties,
+                    &self.keyboard_handler,
                     &self.current_command,
                     &self.theme,
                     &self.sender,
