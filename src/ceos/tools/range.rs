@@ -19,12 +19,10 @@ impl TryFrom<&str> for Range {
             if let Ok(start) = stripped.parse::<usize>() {
                 return Ok(Range { start, end: None });
             }
-        } else {
-            if let Some((start, end)) = command.split_once(SEPARATOR) {
-                if let (Ok(start), Ok(end)) = (start.parse::<usize>(), end.parse::<usize>()) {
-                    return Range::new(start, end);
-                }
-            }
+        } else if let Some((start, end)) = command.split_once(SEPARATOR)
+            && let (Ok(start), Ok(end)) = (start.parse::<usize>(), end.parse::<usize>())
+        {
+            return Range::new(start, end);
         }
         Err(())
     }

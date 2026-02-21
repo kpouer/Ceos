@@ -40,7 +40,7 @@ impl TextAreaProperties {
         let mut renderer_manager = RendererManager::default();
         renderer_manager.add_renderer(TEXT_LAYER, Box::new(TextRenderer::new(font_id.clone())));
         renderer_manager.add_renderer(SELECTION_LAYER, Box::new(SelectionRenderer {}));
-        renderer_manager.add_renderer(CARET_LAYER, Box::new(CaretRenderer::default()));
+        renderer_manager.add_renderer(CARET_LAYER, Box::new(CaretRenderer));
         Self {
             buffer: Buffer::new_empty_buffer(sender),
             renderer_manager,
@@ -138,7 +138,7 @@ impl TextAreaProperties {
         min_row..max_row
     }
 
-    pub(crate) fn handle_text(&mut self, text: &String) {
+    pub(crate) fn handle_text(&mut self, text: &str) {
         self.delete_selection();
         for ch in text.chars() {
             if ch == '\r' || ch == '\x08' || ch == '\x7f' {

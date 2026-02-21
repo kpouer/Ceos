@@ -21,7 +21,7 @@ use humansize::{DECIMAL, format_size_i};
 use log::{debug, error, info, warn};
 use std::fs::File;
 use std::io::{LineWriter, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
@@ -528,7 +528,7 @@ impl Ceos {
         self.textarea_properties.buffer.dirty = false;
     }
 
-    fn save_to_path(&self, path: &PathBuf) {
+    fn save_to_path(&self, path: &Path) {
         let mut total_size: usize = 0;
         let mut lines: Vec<Vec<u8>> = Vec::new();
         for group in self.textarea_properties.buffer.line_groups() {
@@ -542,7 +542,7 @@ impl Ceos {
 
         let sender = self.sender.clone();
 
-        let path = path.clone();
+        let path = path.to_path_buf();
         thread::spawn(move || {
             // Démarrer la progression
             let _ = sender.send(Event::BufferSavingStarted(path.clone(), total_size));

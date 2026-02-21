@@ -219,7 +219,7 @@ impl TextArea<'_> {
             .get_row_range_for_rect(self.virtual_rect);
         if row_range.is_empty() {
             if has_focus {
-                CaretRenderer::default().paint_line(
+                CaretRenderer.paint_line(
                     ui,
                     self.theme,
                     self.textarea_properties,
@@ -334,7 +334,7 @@ impl TextArea<'_> {
                         let shortcut = KeyboardShortcut::new(modifiers, key);
                         if let Some(action) = self.keyboard_handler.get_action(&shortcut) {
                             let mut action_context =
-                                ActionContext::new(&mut self.textarea_properties);
+                                ActionContext::new(self.textarea_properties);
                             action.execute(&mut action_context);
                         }
                         ctx.input_mut(|i| i.consume_shortcut(&shortcut));
