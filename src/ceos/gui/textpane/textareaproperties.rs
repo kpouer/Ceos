@@ -297,3 +297,349 @@ impl TextAreaProperties {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::mpsc;
+
+    fn create_test_textarea() -> TextAreaProperties {
+        let (sender, _receiver) = mpsc::channel();
+        TextAreaProperties::new(sender)
+    }
+
+    #[test]
+    fn test_go_to_prev_char_within_line() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.buffer.insert_char(0, 2, 'c');
+        textarea.caret_position = Position { line: 0, column: 2 };
+
+        textarea.go_to_prev_char();
+
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 1);
+    }
+
+    #[test]
+    fn test_go_to_prev_char_to_previous_line() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.buffer.insert_char(0, 2, 'c');
+        textarea.buffer.insert_newline(0, 3);
+        textarea.buffer.insert_char(1, 0, 'x');
+        textarea.caret_position = Position { line: 1, column: 0 };
+
+        textarea.go_to_prev_char();
+
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 2);
+    }
+
+    #[test]
+    fn test_go_to_prev_char_at_start_of_buffer() {
+        let mut textarea = create_test_textarea();
+        textarea.caret_position = Position { line: 0, column: 0 };
+
+        textarea.go_to_prev_char();
+
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 0);
+    }
+
+    #[test]
+    fn test_go_to_next_char_within_line() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.buffer.insert_char(0, 2, 'c');
+        textarea.caret_position = Position { line: 0, column: 0 };
+
+        textarea.go_to_next_char();
+
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 1);
+    }
+
+    #[test]
+    fn test_go_to_next_char_to_next_line() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.buffer.insert_char(0, 2, 'c');
+        textarea.buffer.insert_newline(0, 3);
+        textarea.buffer.insert_char(1, 0, 'x');
+        textarea.caret_position = Position { line: 0, column: 3 };
+
+        textarea.go_to_next_char();
+
+        assert_eq!(textarea.caret_position.line, 1);
+        assert_eq!(textarea.caret_position.column, 0);
+    }
+
+    #[test]
+    fn test_go_to_next_char_at_end_of_buffer() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.caret_position = Position { line: 0, column: 2 };
+
+        textarea.go_to_next_char();
+
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 2);
+    }
+
+    #[test]
+    fn test_handle_text_single_char() {
+        let mut textarea = create_test_textarea();
+        textarea.caret_position = Position { line: 0, column: 0 };
+
+        textarea.handle_text("a");
+
+        assert_eq!(textarea.buffer.line_text(0), "a");
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 1);
+    }
+
+    #[test]
+    fn test_handle_text_with_newline() {
+        let mut textarea = create_test_textarea();
+        textarea.caret_position = Position { line: 0, column: 0 };
+
+        textarea.handle_text("ab\ncd");
+
+        assert_eq!(textarea.buffer.line_text(0), "ab");
+        assert_eq!(textarea.buffer.line_text(1), "cd");
+        assert_eq!(textarea.caret_position.line, 1);
+        assert_eq!(textarea.caret_position.column, 2);
+    }
+
+    #[test]
+    fn test_handle_text_filters_control_chars() {
+        let mut textarea = create_test_textarea();
+        textarea.caret_position = Position { line: 0, column: 0 };
+
+        textarea.handle_text("a\rb\x08c\x7fd");
+
+        assert_eq!(textarea.buffer.line_text(0), "abcd");
+        assert_eq!(textarea.caret_position.column, 4);
+    }
+
+    #[test]
+    fn test_delete_selection_with_selection() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.buffer.insert_char(0, 2, 'c');
+        textarea.selection = Some(Selection {
+            start: Position { line: 0, column: 0 },
+            end: Position { line: 0, column: 2 },
+        });
+
+        textarea.delete_selection();
+
+        assert_eq!(textarea.buffer.line_text(0), "c");
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 0);
+        assert!(textarea.selection.is_none());
+    }
+
+    #[test]
+    fn test_delete_selection_no_selection() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.selection = None;
+
+        textarea.delete_selection();
+
+        assert_eq!(textarea.buffer.line_text(0), "ab");
+    }
+
+    #[test]
+    fn test_go_to_start_of_buffer() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_newline(0, 1);
+        textarea.buffer.insert_char(1, 0, 'b');
+        textarea.caret_position = Position { line: 1, column: 1 };
+        textarea.selection = Some(Selection {
+            start: Position { line: 0, column: 0 },
+            end: Position { line: 1, column: 1 },
+        });
+
+        textarea.go_to_start_of_buffer();
+
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 0);
+        assert!(textarea.selection.is_none());
+    }
+
+    #[test]
+    fn test_go_to_start_of_line() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.buffer.insert_char(0, 2, 'c');
+        textarea.caret_position = Position { line: 0, column: 2 };
+
+        textarea.go_to_start_of_line();
+
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 0);
+        assert!(textarea.selection.is_none());
+    }
+
+    #[test]
+    fn test_go_to_end_of_line() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.buffer.insert_char(0, 2, 'c');
+        textarea.caret_position = Position { line: 0, column: 0 };
+
+        textarea.go_to_end_of_line();
+
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 2);
+        assert!(textarea.selection.is_none());
+    }
+
+    #[test]
+    fn test_go_to_end_of_buffer() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_newline(0, 1);
+        textarea.buffer.insert_char(1, 0, 'b');
+        textarea.buffer.insert_char(1, 1, 'c');
+        textarea.caret_position = Position { line: 0, column: 0 };
+
+        textarea.go_to_end_of_buffer();
+
+        assert_eq!(textarea.caret_position.line, 1);
+        assert_eq!(textarea.caret_position.column, 1);
+        assert!(textarea.selection.is_none());
+    }
+
+    #[test]
+    fn test_input_enter() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.caret_position = Position { line: 0, column: 1 };
+
+        textarea.input_enter();
+
+        assert_eq!(textarea.buffer.line_text(0), "a");
+        assert_eq!(textarea.buffer.line_text(1), "b");
+        assert_eq!(textarea.caret_position.line, 1);
+        assert_eq!(textarea.caret_position.column, 0);
+    }
+
+    #[test]
+    fn test_input_backspace_within_line() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.buffer.insert_char(0, 2, 'c');
+        textarea.caret_position = Position { line: 0, column: 2 };
+
+        textarea.input_backspace();
+
+        assert_eq!(textarea.buffer.line_text(0), "ac");
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 1);
+    }
+
+    #[test]
+    fn test_input_backspace_at_line_start() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.buffer.insert_newline(0, 2);
+        textarea.buffer.insert_char(1, 0, 'c');
+        textarea.caret_position = Position { line: 1, column: 0 };
+
+        textarea.input_backspace();
+
+        assert_eq!(textarea.buffer.line_text(0), "abc");
+        assert_eq!(textarea.buffer.line_count(), 1);
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 2);
+    }
+
+    #[test]
+    fn test_input_backspace_with_selection() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.buffer.insert_char(0, 2, 'c');
+        textarea.caret_position = Position { line: 0, column: 2 };
+        textarea.selection = Some(Selection {
+            start: Position { line: 0, column: 0 },
+            end: Position { line: 0, column: 2 },
+        });
+
+        textarea.input_backspace();
+
+        assert_eq!(textarea.buffer.line_text(0), "c");
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 0);
+        assert!(textarea.selection.is_none());
+    }
+
+    #[test]
+    fn test_input_delete_within_line() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.buffer.insert_char(0, 2, 'c');
+        textarea.caret_position = Position { line: 0, column: 1 };
+
+        textarea.input_delete();
+
+        assert_eq!(textarea.buffer.line_text(0), "ac");
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 1);
+    }
+
+    #[test]
+    fn test_input_delete_at_line_end() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.buffer.insert_newline(0, 2);
+        textarea.buffer.insert_char(1, 0, 'c');
+        textarea.caret_position = Position { line: 0, column: 2 };
+
+        textarea.input_delete();
+
+        assert_eq!(textarea.buffer.line_text(0), "abc");
+        assert_eq!(textarea.buffer.line_count(), 1);
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 2);
+    }
+
+    #[test]
+    fn test_input_delete_with_selection() {
+        let mut textarea = create_test_textarea();
+        textarea.buffer.insert_char(0, 0, 'a');
+        textarea.buffer.insert_char(0, 1, 'b');
+        textarea.buffer.insert_char(0, 2, 'c');
+        textarea.caret_position = Position { line: 0, column: 0 };
+        textarea.selection = Some(Selection {
+            start: Position { line: 0, column: 0 },
+            end: Position { line: 0, column: 2 },
+        });
+
+        textarea.input_delete();
+
+        assert_eq!(textarea.buffer.line_text(0), "c");
+        assert_eq!(textarea.caret_position.line, 0);
+        assert_eq!(textarea.caret_position.column, 0);
+        assert!(textarea.selection.is_none());
+    }
+}

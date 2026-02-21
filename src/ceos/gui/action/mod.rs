@@ -20,9 +20,7 @@ impl Action {
             Action::Save => {
                 info!("Save action triggered");
             }
-            Action::GoToPrevCharacter => {
-                context.textarea_properties.go_to_prev_char();
-            }
+            Action::GoToPrevCharacter => context.textarea_properties.go_to_prev_char(),
             Action::GoToNextCharacter => {
                 context.textarea_properties.go_to_next_char();
             }
