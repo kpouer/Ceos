@@ -72,6 +72,16 @@ impl Widget for &mut TextArea<'_> {
 
         self.handle_mouse_interaction(rect, &mut response);
 
+        if response.has_focus() {
+            ui.memory_mut(|m| m.set_focus_lock_filter(response.id, EventFilter {
+                vertical_arrows: true,
+                horizontal_arrows: true,
+                tab: true,
+                ..Default::default()
+            }));
+            self.handle_input(ui.ctx(), rect.min, true);
+        }
+
         if ui.is_rect_visible(rect) {
             self.paint_content(ui, response.has_focus());
         }
@@ -296,7 +306,7 @@ impl TextArea<'_> {
         Position { column, line }
     }
 
-    fn handle_input(&mut self, ctx: &Context, top_left: Pos2, has_focus: bool) {
+    fn handle_input(&mut self, ctx: &Context, _top_left: Pos2, has_focus: bool) {
         let mut scroll_offset = self.textarea_properties.scroll_offset;
         let line_height = self.textarea_properties.line_height;
         let rect_height = self.virtual_rect.height();
@@ -327,6 +337,7 @@ impl TextArea<'_> {
                                 ActionContext::new(&mut self.textarea_properties);
                             action.execute(&mut action_context);
                         }
+                        ctx.input_mut(|i| i.consume_shortcut(&shortcut));
                     }
                     MouseWheel {
                         unit: _,
