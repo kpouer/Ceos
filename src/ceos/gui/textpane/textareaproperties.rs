@@ -195,6 +195,24 @@ impl TextAreaProperties {
         self.delete_selection();
     }
 
+    pub(crate) fn go_to_prev_char(&mut self) {
+        if self.caret_position.column > 0 {
+            self.caret_position.column -= 1;
+        } else if self.caret_position.line > 0 {
+            self.caret_position.line -= 1;
+            self.caret_position.column = self.buffer.line_length(self.caret_position.line).saturating_sub(1);
+        }
+    }
+
+    pub(crate) fn go_to_next_char(&mut self) {
+        if self.caret_position.column < self.buffer.line_length(self.caret_position.line) {
+            self.caret_position.column += 1;
+        } else if self.caret_position.line < self.buffer.line_count() - 1 {
+            self.caret_position.line += 1;
+            self.caret_position.column = 0;
+        }
+    }
+
     pub(crate) fn go_to_start_of_buffer(&mut self) {
         self.selection = None;
         self.caret_position = Position::ZERO;

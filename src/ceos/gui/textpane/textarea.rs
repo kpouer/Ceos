@@ -385,20 +385,8 @@ impl TextArea<'_> {
                     self.textarea_properties.go_to_end_of_line();
                 }
             }
-            egui::Key::ArrowLeft => {
-                self.textarea_properties.caret_position.column = self
-                    .textarea_properties
-                    .caret_position
-                    .column
-                    .saturating_sub(1);
-            }
-            egui::Key::ArrowRight => {
-                self.textarea_properties.caret_position.column = self
-                    .textarea_properties
-                    .buffer
-                    .line_length(self.textarea_properties.caret_position.line)
-                    .min(self.textarea_properties.caret_position.column + 1);
-            }
+            egui::Key::ArrowLeft => self.textarea_properties.go_to_prev_char(),
+            egui::Key::ArrowRight => self.textarea_properties.go_to_next_char(),
             egui::Key::ArrowUp => {
                 self.textarea_properties.caret_position.line = self
                     .textarea_properties
