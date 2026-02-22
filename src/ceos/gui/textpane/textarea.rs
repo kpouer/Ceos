@@ -348,7 +348,7 @@ impl TextArea<'_> {
                     egui::Event::Copy => self.textarea_properties.copy(ctx),
                     egui::Event::Cut => self.textarea_properties.cut(ctx),
                     egui::Event::Paste(text) | egui::Event::Text(text) => {
-                        self.textarea_properties.handle_text(&text)
+                        self.textarea_properties.replace_selection(&text)
                     }
                     _ => {}
                 }

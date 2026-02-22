@@ -138,7 +138,7 @@ impl TextAreaProperties {
         min_row..max_row
     }
 
-    pub(crate) fn handle_text(&mut self, text: &str) {
+    pub(crate) fn replace_selection(&mut self, text: &str) {
         self.delete_selection();
         for ch in text.chars() {
             if ch == '\r' || ch == '\x08' || ch == '\x7f' {
@@ -397,7 +397,7 @@ mod tests {
         let mut textarea = create_test_textarea();
         textarea.caret_position = Position { line: 0, column: 0 };
 
-        textarea.handle_text("a");
+        textarea.replace_selection("a");
 
         assert_eq!(textarea.buffer.line_text(0), "a");
         assert_eq!(textarea.caret_position.line, 0);
@@ -409,7 +409,7 @@ mod tests {
         let mut textarea = create_test_textarea();
         textarea.caret_position = Position { line: 0, column: 0 };
 
-        textarea.handle_text("ab\ncd");
+        textarea.replace_selection("ab\ncd");
 
         assert_eq!(textarea.buffer.line_text(0), "ab");
         assert_eq!(textarea.buffer.line_text(1), "cd");
@@ -422,7 +422,7 @@ mod tests {
         let mut textarea = create_test_textarea();
         textarea.caret_position = Position { line: 0, column: 0 };
 
-        textarea.handle_text("a\rb\x08c\x7fd");
+        textarea.replace_selection("a\rb\x08c\x7fd");
 
         assert_eq!(textarea.buffer.line_text(0), "abcd");
         assert_eq!(textarea.caret_position.column, 4);
