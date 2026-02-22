@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use egui::KeyboardShortcut;
 use crate::ceos::gui::action::Action;
-use crate::ceos::gui::action::action_context::ActionContext;
 
 #[derive(Debug)]
 pub(crate) struct KeyboardHandler {
@@ -19,23 +18,6 @@ impl KeyboardHandler {
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::Home), Action::GoToBufferStart);
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::End), Action::GoToBufferEnd);
         Self { shortcuts }
-    }
-
-    pub(crate) fn execute(&self, event: &egui::Event, context: &mut ActionContext) -> bool {
-        if let egui::Event::Key {
-            key,
-            modifiers,
-            pressed: true,
-            ..
-        } = event
-        {
-            let shortcut = KeyboardShortcut::new(*modifiers, *key);
-            if let Some(action) = self.shortcuts.get(&shortcut) {
-                action.execute(context);
-                return true;
-            }
-        }
-        false
     }
 
     pub(crate) fn get_action(&self, keyboard_shortcut: &KeyboardShortcut) -> Option<&Action> {
