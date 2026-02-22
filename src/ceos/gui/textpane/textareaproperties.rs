@@ -341,37 +341,21 @@ mod tests {
         assert_eq!(textarea.caret_position, expected_position);
     }
 
-    #[test]
-    fn test_go_to_next_char_within_line() {
-        let mut textarea = create_test_textarea("abc");
-        textarea.caret_position = Position::ZERO;
+    #[rstest]
+    #[case("abc", Position::ZERO, Position { line: 0, column: 1 })]//test_go_to_next_char_within_line
+    #[case("abc\nx", Position { line: 0, column: 3 }, Position { line: 1, column: 0 })]//test_go_to_next_char_to_next_line
+    #[case("ab", Position { line: 0, column: 2 }, Position { line: 0, column: 2 })]//test_go_to_next_char_at_end_of_buffer
+    fn test_go_to_next_char(
+        #[case] text: &str,
+        #[case] start_position: Position,
+        #[case] expected_position: Position,
+    ) {
+        let mut textarea = create_test_textarea(text);
+        textarea.caret_position = start_position;
 
         textarea.go_to_next_char();
 
-        assert_eq!(textarea.caret_position.line, 0);
-        assert_eq!(textarea.caret_position.column, 1);
-    }
-
-    #[test]
-    fn test_go_to_next_char_to_next_line() {
-        let mut textarea = create_test_textarea("abc\nx");
-        textarea.caret_position = Position { line: 0, column: 3 };
-
-        textarea.go_to_next_char();
-
-        assert_eq!(textarea.caret_position.line, 1);
-        assert_eq!(textarea.caret_position.column, 0);
-    }
-
-    #[test]
-    fn test_go_to_next_char_at_end_of_buffer() {
-        let mut textarea = create_test_textarea("ab");
-        textarea.caret_position = Position { line: 0, column: 2 };
-
-        textarea.go_to_next_char();
-
-        assert_eq!(textarea.caret_position.line, 0);
-        assert_eq!(textarea.caret_position.column, 2);
+        assert_eq!(textarea.caret_position, expected_position);
     }
 
     #[test]
