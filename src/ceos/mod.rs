@@ -76,7 +76,7 @@ impl Default for Ceos {
 }
 
 impl Ceos {
-    pub(crate) fn process_event(&mut self, ctx: &Context, event: Event) {
+    pub(crate) fn process_event(&mut self, _ctx: &Context, event: Event) {
         match event {
             Event::ClearCommand => {
                 self.clear_command();
