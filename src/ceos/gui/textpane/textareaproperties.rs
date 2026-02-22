@@ -172,8 +172,16 @@ impl TextAreaProperties {
 
             for line_idx in start_line..=end_line {
                 let line_text = self.buffer.line_text(line_idx);
-                let start_col = if line_idx == start_line { selection.start.column } else { 0 };
-                let end_col = if line_idx == end_line { selection.end.column } else { line_text.len() };
+                let start_col = if line_idx == start_line {
+                    selection.start.column
+                } else {
+                    0
+                };
+                let end_col = if line_idx == end_line {
+                    selection.end.column
+                } else {
+                    line_text.len()
+                };
 
                 text.push_str(&line_text[start_col..end_col]);
                 if line_idx < end_line {
@@ -181,7 +189,11 @@ impl TextAreaProperties {
                 }
                 if text.len() > MAX_COPY_SIZE {
                     // todo do a real egui thing
-                    info!("Copy aborted: selection size {} exceeds limit {}", text.len(), MAX_COPY_SIZE);
+                    info!(
+                        "Copy aborted: selection size {} exceeds limit {}",
+                        text.len(),
+                        MAX_COPY_SIZE
+                    );
                     return;
                 }
             }
@@ -200,7 +212,10 @@ impl TextAreaProperties {
             self.caret_position.column -= 1;
         } else if self.caret_position.line > 0 {
             self.caret_position.line -= 1;
-            self.caret_position.column = self.buffer.line_length(self.caret_position.line).saturating_sub(1);
+            self.caret_position.column = self
+                .buffer
+                .line_length(self.caret_position.line)
+                .saturating_sub(1);
         }
     }
 
@@ -237,10 +252,8 @@ impl TextAreaProperties {
     }
 
     pub(crate) fn input_enter(&mut self) {
-        self.buffer.insert_newline(
-            self.caret_position.line,
-            self.caret_position.column,
-        );
+        self.buffer
+            .insert_newline(self.caret_position.line, self.caret_position.column);
         self.caret_position.line += 1;
         self.caret_position.column = 0;
     }
@@ -301,6 +314,7 @@ impl TextAreaProperties {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
     use std::sync::mpsc;
 
     fn create_test_textarea(text: &str) -> TextAreaProperties {
@@ -310,36 +324,21 @@ mod tests {
         textarea
     }
 
-    #[test]
-    fn test_go_to_prev_char_within_line() {
-        let mut textarea = create_test_textarea("abc");
-        textarea.caret_position = Position { line: 0, column: 2 };
+    #[rstest]
+    #[case("abc", Position { line: 0, column: 2 }, Position { line: 0, column: 1 })]//test_go_to_prev_char_within_line
+    #[case("abc\nx", Position { line: 1, column: 0 }, Position { line: 0, column: 2 })]//test_go_to_prev_char_to_previous_line
+    #[case("", Position::ZERO, Position::ZERO)]//test_go_to_prev_char_at_start_of_buffer
+    fn test_go_to_prev_char(
+        #[case] text: &str,
+        #[case] start_position: Position,
+        #[case] expected_position: Position,
+    ) {
+        let mut textarea = create_test_textarea(text);
+        textarea.caret_position = start_position;
 
         textarea.go_to_prev_char();
 
-        assert_eq!(textarea.caret_position.line, 0);
-        assert_eq!(textarea.caret_position.column, 1);
-    }
-
-    #[test]
-    fn test_go_to_prev_char_to_previous_line() {
-        let mut textarea = create_test_textarea("abc\nx");
-        textarea.caret_position = Position { line: 1, column: 0 };
-
-        textarea.go_to_prev_char();
-
-        assert_eq!(textarea.caret_position.line, 0);
-        assert_eq!(textarea.caret_position.column, 2);
-    }
-
-    #[test]
-    fn test_go_to_prev_char_at_start_of_buffer() {
-        let mut textarea = create_test_textarea("");
-        textarea.caret_position = Position::ZERO;
-
-        textarea.go_to_prev_char();
-
-        assert_eq!(textarea.caret_position,Position::ZERO);
+        assert_eq!(textarea.caret_position, expected_position);
     }
 
     #[test]
