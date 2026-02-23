@@ -225,6 +225,26 @@ impl TextAreaProperties {
         }
     }
 
+    pub(crate) fn go_to_prev_line(&mut self) {
+        if self.caret_position.line > 0 {
+            self.caret_position.line -= 1;
+            self.caret_position.column = self
+                .caret_position
+                .column
+                .min(self.buffer.line_length(self.caret_position.line));
+        }
+    }
+
+    pub(crate) fn go_to_next_line(&mut self) {
+        if self.caret_position.line < self.buffer.line_count() {
+            self.caret_position.line += 1;
+            self.caret_position.column = self
+                .caret_position
+                .column
+                .min(self.buffer.line_length(self.caret_position.line));
+        }
+    }
+
     pub(crate) fn go_to_start_of_buffer(&mut self) {
         self.selection = None;
         self.caret_position = Position::ZERO;
