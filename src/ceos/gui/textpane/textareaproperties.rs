@@ -212,10 +212,7 @@ impl TextAreaProperties {
             self.caret_position.column -= 1;
         } else if self.caret_position.line > 0 {
             self.caret_position.line -= 1;
-            self.caret_position.column = self
-                .buffer
-                .line_length(self.caret_position.line)
-                .saturating_sub(1);
+            self.caret_position.column = self.buffer.line_length(self.caret_position.line);
         }
     }
 
@@ -325,9 +322,9 @@ mod tests {
     }
 
     #[rstest]
-    #[case("abc", Position { line: 0, column: 2 }, Position { line: 0, column: 1 })]//test_go_to_prev_char_within_line
-    #[case("abc\nx", Position { line: 1, column: 0 }, Position { line: 0, column: 2 })]//test_go_to_prev_char_to_previous_line
-    #[case("", Position::ZERO, Position::ZERO)]//test_go_to_prev_char_at_start_of_buffer
+    #[case("abc", Position { line: 0, column: 2 }, Position { line: 0, column: 1 })] //test_go_to_prev_char_within_line
+    #[case("abc\nx", Position { line: 1, column: 0 }, Position { line: 0, column: 3 })] //test_go_to_prev_char_to_previous_line
+    #[case("", Position::ZERO, Position::ZERO)] //test_go_to_prev_char_at_start_of_buffer
     fn test_go_to_prev_char(
         #[case] text: &str,
         #[case] start_position: Position,
@@ -342,9 +339,9 @@ mod tests {
     }
 
     #[rstest]
-    #[case("abc", Position::ZERO, Position { line: 0, column: 1 })]//test_go_to_next_char_within_line
-    #[case("abc\nx", Position { line: 0, column: 3 }, Position { line: 1, column: 0 })]//test_go_to_next_char_to_next_line
-    #[case("ab", Position { line: 0, column: 2 }, Position { line: 0, column: 2 })]//test_go_to_next_char_at_end_of_buffer
+    #[case("abc", Position::ZERO, Position { line: 0, column: 1 })] //test_go_to_next_char_within_line
+    #[case("abc\nx", Position { line: 0, column: 3 }, Position { line: 1, column: 0 })] //test_go_to_next_char_to_next_line
+    #[case("ab", Position { line: 0, column: 2 }, Position { line: 0, column: 2 })] //test_go_to_next_char_at_end_of_buffer
     fn test_go_to_next_char(
         #[case] text: &str,
         #[case] start_position: Position,
