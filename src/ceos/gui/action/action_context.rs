@@ -5,6 +5,7 @@ pub(crate) struct ActionContext<'a> {
 }
 
 impl<'a> ActionContext<'a> {
+    #[inline]
     pub(crate) fn new(textarea_properties: &'a mut TextAreaProperties) -> Self {
         Self {
             textarea_properties,
