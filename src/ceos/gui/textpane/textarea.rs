@@ -73,12 +73,17 @@ impl Widget for &mut TextArea<'_> {
         self.handle_mouse_interaction(rect, &mut response);
 
         if response.has_focus() {
-            ui.memory_mut(|m| m.set_focus_lock_filter(response.id, EventFilter {
-                vertical_arrows: true,
-                horizontal_arrows: true,
-                tab: true,
-                ..Default::default()
-            }));
+            ui.memory_mut(|m| {
+                m.set_focus_lock_filter(
+                    response.id,
+                    EventFilter {
+                        vertical_arrows: true,
+                        horizontal_arrows: true,
+                        tab: true,
+                        ..Default::default()
+                    },
+                )
+            });
             self.handle_input(ui.ctx(), rect.min, true);
         }
 
@@ -321,7 +326,6 @@ impl TextArea<'_> {
                 ..Default::default()
             };
             let events = ctx.input(|i| i.filtered_events(&event_filter));
-
             for event in events {
                 match event {
                     egui::Event::Key {
@@ -333,8 +337,7 @@ impl TextArea<'_> {
                     } => {
                         let shortcut = KeyboardShortcut::new(modifiers, key);
                         if let Some(action) = self.keyboard_handler.get_action(&shortcut) {
-                            let mut action_context =
-                                ActionContext::new(self.textarea_properties);
+                            let mut action_context = ActionContext::new(self.textarea_properties);
                             action.execute(&mut action_context);
                         }
                         ctx.input_mut(|i| i.consume_shortcut(&shortcut));
@@ -347,11 +350,14 @@ impl TextArea<'_> {
                     Zoom(delta) => self.handle_zoom(delta),
                     egui::Event::Copy => self.textarea_properties.copy(ctx),
                     egui::Event::Cut => self.textarea_properties.cut(ctx),
-                    egui::Event::Paste(text) | egui::Event::Text(text) => {
+                    egui::Event::Paste(text) => self.textarea_properties.replace_selection(&text),
+                    egui::Event::Text(text) => {
+                        println!("text {}", text);
                         self.textarea_properties.replace_selection(&text)
                     }
                     _ => {}
                 }
+                ctx.input_mut(|i| i.events.clear());
             }
         }
 

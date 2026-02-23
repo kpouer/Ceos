@@ -15,6 +15,9 @@ impl KeyboardHandler {
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::ArrowRight), Action::GoToNextCharacter);
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::ArrowUp), Action::GoToNextLine);
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::ArrowDown), Action::GoToNextLine);
+        shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::Enter), Action::Enter);
+        shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::Backspace), Action::Backspace);
+        shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::Delete), Action::Delete);
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::Home), Action::GoToLineStart);
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::End), Action::GoToLineEnd);
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::Home), Action::GoToBufferStart);
