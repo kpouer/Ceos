@@ -1,4 +1,4 @@
-use log::debug;
+use log::{debug, error};
 use logos::Logos;
 
 use crate::ceos::syntax::chunk::Chunk;
@@ -50,13 +50,17 @@ impl<'a> Tokenizer<'a> {
 }
 
 fn push_item<'a>(chunks: &mut Vec<Chunk<'a>>, item: Chunk<'a>) {
-    if !eventually_merge(chunks, &item) {
+    if !try_merge(chunks, &item) {
+        // if the token is not merged, then we push it to the list
         chunks.push(item)
     }
 }
 
-fn eventually_merge(chunks: &mut [Chunk], chunk: &Chunk) -> bool {
-    let last = chunks.last_mut().unwrap();
+fn try_merge(chunks: &mut [Chunk], chunk: &Chunk) -> bool {
+    let Some(last) = chunks.last_mut() else {
+        error!("chunks is empty, cannot merge tokens");
+        return false;
+    };
     if last.token == chunk.token {
         last.merge(chunk);
         return true;
