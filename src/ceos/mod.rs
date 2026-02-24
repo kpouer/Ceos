@@ -1,6 +1,7 @@
 use crate::ceos::command::Command;
 use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::command::search::Search;
+use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
 use crate::ceos::gui::frame_history::FrameHistory;
 use crate::ceos::gui::helppanel::HelpPanel;
 use crate::ceos::gui::searchpanel::SearchPanel;
@@ -15,6 +16,8 @@ use buffer::buffer::Buffer;
 use eframe::Frame;
 use eframe::emath::Align;
 use egui::{Context, Key, Layout, ProgressBar, Ui, Visuals, Widget};
+use flate2::Compression;
+use flate2::write::GzEncoder;
 use gui::textpane::textareaproperties::TextAreaProperties;
 use gui::theme::Theme;
 use humansize::{DECIMAL, format_size_i};
@@ -24,7 +27,6 @@ use std::io::{LineWriter, Write};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
-use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
 
 pub(crate) mod buffer;
 pub(crate) mod command;
@@ -546,25 +548,61 @@ impl Ceos {
         thread::spawn(move || {
             // Démarrer la progression
             let _ = sender.send(Event::BufferSavingStarted(path.clone(), total_size));
+
+            // Détecter si le fichier doit être compressé en gzip
+            let is_gzip = path
+                .extension()
+                .and_then(|ext| ext.to_str())
+                .map(|ext| ext.eq_ignore_ascii_case("gz"))
+                .unwrap_or(false);
+
             match File::create(&path) {
                 Ok(file) => {
-                    let mut file = LineWriter::new(file);
-                    let mut current: usize = 0;
-                    for bytes in lines.iter() {
-                        if let Err(err) = file.write_all(bytes) {
-                            error!("{err}");
-                            let _ = sender.send(Event::BufferSaveFailed(path.clone()));
+                    if is_gzip {
+                        let encoder = GzEncoder::new(file, Compression::default());
+                        let mut writer = LineWriter::new(encoder);
+
+                        if Self::write_lines(
+                            total_size,
+                            &mut lines,
+                            &sender,
+                            &path,
+                            &mut writer,
+                        ) {
+                            // todo maybe an error ?
                             return;
                         }
-                        if let Err(err) = file.write_all(b"\n") {
-                            error!("{err}");
-                            let _ = sender.send(Event::BufferSaveFailed(path.clone()));
+
+                        // Finaliser l'encodeur gzip
+                        match writer.into_inner() {
+                            Ok(encoder) => {
+                                if let Err(err) = encoder.finish() {
+                                    error!("Error finishing gzip compression: {err}");
+                                    let _ = sender.send(Event::BufferSaveFailed(path.clone()));
+                                    return;
+                                }
+                            }
+                            Err(err) => {
+                                error!("Error flushing writer: {err}");
+                                let _ = sender.send(Event::BufferSaveFailed(path.clone()));
+                                return;
+                            }
+                        }
+                    } else {
+                        let mut writer = LineWriter::new(file);
+
+                        if Self::write_lines(
+                            total_size,
+                            &mut lines,
+                            &sender,
+                            &path,
+                            &mut writer,
+                        ) {
+                            // todo maybe an error ?
                             return;
                         }
-                        current += bytes.len() + 1;
-                        let _ =
-                            sender.send(Event::BufferSaving(path.clone(), current, total_size));
                     }
+
                     // Fin de progression
                     let _ = sender.send(Event::BufferSaved(path.clone()));
                 }
@@ -574,6 +612,31 @@ impl Ceos {
                 }
             }
         });
+    }
+
+    fn write_lines(
+        total_size: usize,
+        lines: &Vec<Vec<u8>>,
+        sender: &Sender<Event>,
+        path: &Path,
+        writer: &mut impl Write,
+    ) -> bool {
+        let mut current = 0;
+        for bytes in lines.iter() {
+            if let Err(err) = writer.write_all(bytes) {
+                error!("{err}");
+                let _ = sender.send(Event::BufferSaveFailed(path.to_path_buf()));
+                return true;
+            }
+            if let Err(err) = writer.write_all(b"\n") {
+                error!("{err}");
+                let _ = sender.send(Event::BufferSaveFailed(path.to_path_buf()));
+                return true;
+            }
+            current += bytes.len() + 1;
+            let _ = sender.send(Event::BufferSaving(path.to_path_buf(), current, total_size));
+        }
+        false
     }
 
     pub(crate) fn save_as(&mut self) {
