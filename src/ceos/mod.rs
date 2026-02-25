@@ -184,10 +184,10 @@ impl Ceos {
             let sender = self.sender.clone();
             std::thread::spawn(move || {
                 command.execute(&mut tmp_buffer);
-                sender.send(Event::BufferLoaded(tmp_buffer)).unwrap();
+                let _ = sender.send(Event::BufferLoaded(tmp_buffer));
             });
         } else if let Ok(command) = Event::try_from(self.command_buffer.as_str()) {
-            self.sender.send(command).unwrap();
+            let _ = self.sender.send(command);
         }
     }
 }
@@ -293,7 +293,7 @@ impl Ceos {
                 self.save_as();
             }
             if ui.button("Close").clicked() {
-                self.sender.send(BufferClosed).unwrap();
+                let _ = self.sender.send(BufferClosed);
             }
             if ui.button("Quit").clicked() {
                 info!("Quit");
@@ -413,9 +413,8 @@ impl Ceos {
                     );
                     if response.changed() {
                         if self.try_search() {
-                            self.sender
-                                .send(GotoLine(Goto::new(self.search_panel.search.line())))
-                                .unwrap();
+                            let _ = self.sender
+                                .send(GotoLine(Goto::new(self.search_panel.search.line())));
                         } else {
                             self.try_filter_command();
                         }
@@ -562,7 +561,7 @@ impl Ceos {
 
                         if Self::write_lines(
                             total_size,
-                            &mut lines,
+                            &lines,
                             &sender,
                             &path,
                             &mut writer,
@@ -591,7 +590,7 @@ impl Ceos {
 
                         if Self::write_lines(
                             total_size,
-                            &mut lines,
+                            &lines,
                             &sender,
                             &path,
                             &mut writer,
@@ -614,7 +613,7 @@ impl Ceos {
 
     fn write_lines(
         total_size: usize,
-        lines: &Vec<Vec<u8>>,
+        lines: &[Vec<u8>],
         sender: &Sender<Event>,
         path: &Path,
         writer: &mut impl Write,
