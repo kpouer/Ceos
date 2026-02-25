@@ -7,12 +7,15 @@ use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::event::Event;
 use log::{debug, info};
 use std::sync::mpsc::Sender;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Debug)]
 pub(crate) struct CommandState {
     sender: Sender<Event>,
     command_buffer: String,
     current_filter_command: Option<Box<dyn Command + Send + Sync + 'static>>,
+    filter_command_in_flight: Arc<AtomicBool>,
 }
 
 impl CommandState {
@@ -21,11 +24,10 @@ impl CommandState {
             sender,
             command_buffer: String::new(),
             current_filter_command: None,
+            filter_command_in_flight: Arc::new(AtomicBool::new(false)),
         }
     }
-}
 
-impl CommandState {
     pub(crate) fn clear_command(&mut self) {
         self.command_buffer = String::new();
         self.current_filter_command = None;
@@ -72,19 +74,36 @@ impl CommandState {
             self.execute_command(textarea_properties, command);
         } else if let Ok(command) = Event::try_from(self.command_buffer.as_str()) {
             let _ = self.sender.send(command);
+            self.clear_command();
         }
-        self.clear_command();
     }
 
-    pub(crate) fn execute_command(&mut self, textarea_properties: &mut TextAreaProperties, command: Box<dyn Command + Send + Sync>) {
-        info!("Execute command {}", command);
+    pub(crate) fn execute_command(
+        &mut self,
+        textarea_properties: &mut TextAreaProperties,
+        command: Box<dyn Command + Send + Sync>,
+    ) {
+        if self
+            .filter_command_in_flight
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            info!("Command already in flight, ignoring");
+            return;
+        }
+
+        info!("Execute command {command}");
         let sender = self.sender.clone();
         let mut tmp_buffer = Buffer::new_empty_buffer(self.sender.clone());
         std::mem::swap(&mut tmp_buffer, &mut textarea_properties.buffer);
-        // now the real buffer is sent to the command to be executed
+
+        let in_flight = Arc::clone(&self.filter_command_in_flight);
+
         std::thread::spawn(move || {
             command.execute(&mut tmp_buffer);
             let _ = sender.send(Event::BufferLoaded(tmp_buffer));
+            in_flight.store(false, Ordering::Release);
         });
+        self.clear_command();
     }
 }
