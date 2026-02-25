@@ -1,6 +1,6 @@
-use crate::ceos::command::Command;
 use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::command::search::Search;
+use crate::ceos::command_state::CommandState;
 use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
 use crate::ceos::gui::frame_history::FrameHistory;
 use crate::ceos::gui::helppanel::HelpPanel;
@@ -21,7 +21,7 @@ use flate2::write::GzEncoder;
 use gui::textpane::textareaproperties::TextAreaProperties;
 use gui::theme::Theme;
 use humansize::{DECIMAL, format_size_i};
-use log::{debug, error, info, warn};
+use log::{error, info, warn};
 use std::fs::File;
 use std::io::{LineWriter, Write};
 use std::path::{Path, PathBuf};
@@ -30,6 +30,7 @@ use std::thread;
 
 pub(crate) mod buffer;
 pub(crate) mod command;
+mod command_state;
 pub(crate) mod gui;
 mod options;
 mod progress_manager;
@@ -42,8 +43,7 @@ pub(crate) struct Ceos {
     keyboard_handler: KeyboardHandler,
     sender: Sender<Event>,
     receiver: Receiver<Event>,
-    command_buffer: String,
-    current_command: Option<Box<dyn Command + Send + Sync + 'static>>,
+    command_state: CommandState,
     frame_history: FrameHistory,
     search_panel: SearchPanel,
     theme: Theme,
@@ -61,10 +61,9 @@ impl Default for Ceos {
         Self {
             sender: user_input_sender.clone(),
             receiver: user_input_receiver,
-            textarea_properties: TextAreaProperties::new(user_input_sender),
+            textarea_properties: TextAreaProperties::new(user_input_sender.clone()),
             keyboard_handler: KeyboardHandler::new(),
-            command_buffer: String::new(),
-            current_command: None,
+            command_state: CommandState::new(user_input_sender),
             frame_history: Default::default(),
             search_panel,
             theme: Theme::default(),
@@ -81,14 +80,13 @@ impl Ceos {
     pub(crate) fn process_event(&mut self, _ctx: &Context, event: Event) {
         match event {
             Event::ClearCommand => {
-                self.clear_command();
+                self.command_state.clear_command();
             }
             Event::ShowHelp => {
                 self.show_help = true;
             }
             Event::SetCommand(command) => {
-                self.command_buffer = command;
-                self.try_filter_command();
+                self.command_state.set_command_buffer(command);
             }
             Event::OpenFile(path) => self.open_file(path),
             Event::BufferLoadingStarted(path, size) => {
@@ -139,56 +137,13 @@ impl Ceos {
         }
     }
 
-    fn clear_command(&mut self) {
-        self.command_buffer = String::new();
-        self.current_command = None;
-    }
-
     pub(crate) fn try_search(&mut self) -> bool {
-        if let Ok(mut search) = Search::try_from(self.command_buffer.as_str()) {
+        if let Ok(mut search) = Search::try_from(self.command_state.command_buffer()) {
             search.init(&self.textarea_properties.buffer);
             self.search_panel.search = search;
             return true;
         }
         false
-    }
-
-    pub(crate) fn try_filter_command(&mut self) {
-        let command_str = self.command_buffer.as_str();
-        if let Ok(command) =
-            crate::ceos::command::filter::linefilter::LineFilter::try_from(command_str)
-        {
-            self.current_command = Some(Box::new(command));
-        } else if let Ok(command) =
-            crate::ceos::command::filter::columnfilter::ColumnFilter::try_from(command_str)
-        {
-            self.current_command = Some(Box::new(command));
-        } else if let Ok(command) =
-            crate::ceos::command::filter::linedrop::LineDrop::try_from(command_str)
-        {
-            self.current_command = Some(Box::new(command));
-        } else {
-            self.current_command = None;
-        }
-
-        if let Some(command) = &self.current_command {
-            debug!("Found command {}", command);
-        }
-    }
-
-    pub(crate) fn execute_command(&mut self) {
-        if let Some(command) = self.current_command.take() {
-            info!("Execute command {}", command);
-            let mut tmp_buffer = Buffer::new_empty_buffer(self.sender.clone());
-            std::mem::swap(&mut tmp_buffer, &mut self.textarea_properties.buffer);
-            let sender = self.sender.clone();
-            std::thread::spawn(move || {
-                command.execute(&mut tmp_buffer);
-                let _ = sender.send(Event::BufferLoaded(tmp_buffer));
-            });
-        } else if let Ok(command) = Event::try_from(self.command_buffer.as_str()) {
-            let _ = self.sender.send(command);
-        }
     }
 }
 
@@ -249,7 +204,7 @@ impl eframe::App for Ceos {
                 TextPane::new(
                     &mut self.textarea_properties,
                     &self.keyboard_handler,
-                    &self.current_command,
+                    self.command_state.current_command_mut(),
                     &self.theme,
                     &self.sender,
                     &self.search_panel.search,
@@ -261,7 +216,7 @@ impl eframe::App for Ceos {
 
 impl Ceos {
     fn before_frame(&mut self) {
-        if let Some(command) = &mut self.current_command {
+        if let Some(command) = &mut self.command_state.current_command_mut() {
             command.before_frame();
         }
         self.textarea_properties.renderer_manager.before_frame();
@@ -409,14 +364,15 @@ impl Ceos {
                     ui.label("Command: ");
                     let response = ui.add_sized(
                         ui.available_size(),
-                        egui::TextEdit::singleline(&mut self.command_buffer),
+                        egui::TextEdit::singleline(self.command_state.command_buffer_mut()),
                     );
                     if response.changed() {
                         if self.try_search() {
-                            let _ = self.sender
+                            let _ = self
+                                .sender
                                 .send(GotoLine(Goto::new(self.search_panel.search.line())));
                         } else {
-                            self.try_filter_command();
+                            self.command_state.try_filter_command();
                         }
                     }
                 });
@@ -436,8 +392,8 @@ impl Ceos {
         }
         #[allow(clippy::collapsible_if)]
         if ui.input(|i| i.key_pressed(Key::Enter)) {
-            self.execute_command();
-            self.command_buffer.clear();
+            self.command_state
+                .execute_command(&mut self.textarea_properties);
         } else if ui.input(|i| i.key_pressed(Key::W) && i.modifiers.ctrl) {
             let _ = self.sender.send(BufferClosed);
         } else if ui.input(|i| i.key_pressed(Key::O) && i.modifiers.ctrl) {
@@ -486,7 +442,7 @@ impl Ceos {
                             .set_interaction_mode(InteractionMode::Column);
                     }
                     InteractionMode::Column => {
-                        self.clear_command();
+                        self.command_state.clear_command();
                         self.textarea_properties
                             .set_interaction_mode(InteractionMode::Selection)
                     }
@@ -508,7 +464,9 @@ impl Ceos {
         thread::spawn(move || {
             let _ = sender.send(BufferClosed);
             match Buffer::new_from_file(path, sender.clone()) {
-                Ok(buffer) => { let _ = sender.send(BufferLoaded(buffer)); },
+                Ok(buffer) => {
+                    let _ = sender.send(BufferLoaded(buffer));
+                }
                 Err(e) => warn!("{:?}", e),
             }
         });
@@ -559,13 +517,7 @@ impl Ceos {
                         let encoder = GzEncoder::new(file, Compression::default());
                         let mut writer = LineWriter::new(encoder);
 
-                        if Self::write_lines(
-                            total_size,
-                            &lines,
-                            &sender,
-                            &path,
-                            &mut writer,
-                        ) {
+                        if Self::write_lines(total_size, &lines, &sender, &path, &mut writer) {
                             // todo maybe an error ?
                             return;
                         }
@@ -588,13 +540,7 @@ impl Ceos {
                     } else {
                         let mut writer = LineWriter::new(file);
 
-                        if Self::write_lines(
-                            total_size,
-                            &lines,
-                            &sender,
-                            &path,
-                            &mut writer,
-                        ) {
+                        if Self::write_lines(total_size, &lines, &sender, &path, &mut writer) {
                             // todo maybe an error ?
                             return;
                         }

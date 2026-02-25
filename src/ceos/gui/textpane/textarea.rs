@@ -18,7 +18,6 @@ use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::{FontId, Stroke, StrokeKind};
 use egui::Event::{MouseWheel, Zoom};
 use egui::{Context, EventFilter, InputState, KeyboardShortcut, Modifiers, Response, Ui, Widget};
-use log::error;
 
 #[derive(Debug)]
 pub(crate) struct TextArea<'a> {
