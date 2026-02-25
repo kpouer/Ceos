@@ -499,9 +499,7 @@ impl Ceos {
     pub(crate) fn browse_open_file(&self) {
         info!("Browse open file");
         if let Some(path) = rfd::FileDialog::new().set_directory("./").pick_file() {
-            let path = path.into_os_string();
-            let path = path.to_str().unwrap();
-            self.open_file(path.into());
+            self.open_file(path);
         }
     }
 
