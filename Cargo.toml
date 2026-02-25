@@ -22,3 +22,7 @@ toml = "0.8"
 
 [dev-dependencies]
 rstest = "0.26.1"
+
+[lints.clippy]
+unwrap_used = "deny"
+#expect_used = "deny"
