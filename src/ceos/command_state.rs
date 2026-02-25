@@ -6,9 +6,9 @@ use crate::ceos::command::filter::linefilter::LineFilter;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::event::Event;
 use log::{debug, info};
-use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::Sender;
 
 #[derive(Debug)]
 pub(crate) struct CommandState {
@@ -100,10 +100,17 @@ impl CommandState {
         let in_flight = Arc::clone(&self.filter_command_in_flight);
 
         std::thread::spawn(move || {
+            let _reset = InFlightReset(in_flight);
             command.execute(&mut tmp_buffer);
             let _ = sender.send(Event::BufferLoaded(tmp_buffer));
-            in_flight.store(false, Ordering::Release);
         });
         self.clear_command();
+    }
+}
+
+struct InFlightReset(Arc<AtomicBool>);
+impl Drop for InFlightReset {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Release);
     }
 }
