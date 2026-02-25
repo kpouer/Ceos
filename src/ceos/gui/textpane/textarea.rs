@@ -350,10 +350,7 @@ impl TextArea<'_> {
                     egui::Event::Copy => self.textarea_properties.copy(ctx),
                     egui::Event::Cut => self.textarea_properties.cut(ctx),
                     egui::Event::Paste(text) => self.textarea_properties.replace_selection(&text),
-                    egui::Event::Text(text) => {
-                        println!("text {}", text);
-                        self.textarea_properties.replace_selection(&text)
-                    }
+                    egui::Event::Text(text) => self.textarea_properties.replace_selection(&text),
                     _ => {}
                 }
                 ctx.input_mut(|i| i.events.clear());
