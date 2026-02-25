@@ -393,7 +393,7 @@ impl Ceos {
         #[allow(clippy::collapsible_if)]
         if ui.input(|i| i.key_pressed(Key::Enter)) {
             self.command_state
-                .execute_command(&mut self.textarea_properties);
+                .execute(&mut self.textarea_properties);
         } else if ui.input(|i| i.key_pressed(Key::W) && i.modifiers.ctrl) {
             let _ = self.sender.send(BufferClosed);
         } else if ui.input(|i| i.key_pressed(Key::O) && i.modifiers.ctrl) {

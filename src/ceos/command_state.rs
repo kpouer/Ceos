@@ -67,20 +67,24 @@ impl CommandState {
         }
     }
 
-    pub(crate) fn execute_command(&mut self, textarea_properties: &mut TextAreaProperties) {
+    pub(crate) fn execute(&mut self, textarea_properties: &mut TextAreaProperties) {
         if let Some(command) = self.current_filter_command.take() {
-            info!("Execute command {}", command);
-            let sender = self.sender.clone();
-            let mut tmp_buffer = Buffer::new_empty_buffer(self.sender.clone());
-            std::mem::swap(&mut tmp_buffer, &mut textarea_properties.buffer);
-            // now the real buffer is sent to the command to be executed
-            std::thread::spawn(move || {
-                command.execute(&mut tmp_buffer);
-                let _ = sender.send(Event::BufferLoaded(tmp_buffer));
-            });
+            self.execute_command(textarea_properties, command);
         } else if let Ok(command) = Event::try_from(self.command_buffer.as_str()) {
             let _ = self.sender.send(command);
         }
         self.clear_command();
+    }
+
+    pub(crate) fn execute_command(&mut self, textarea_properties: &mut TextAreaProperties, command: Box<dyn Command + Send + Sync>) {
+        info!("Execute command {}", command);
+        let sender = self.sender.clone();
+        let mut tmp_buffer = Buffer::new_empty_buffer(self.sender.clone());
+        std::mem::swap(&mut tmp_buffer, &mut textarea_properties.buffer);
+        // now the real buffer is sent to the command to be executed
+        std::thread::spawn(move || {
+            command.execute(&mut tmp_buffer);
+            let _ = sender.send(Event::BufferLoaded(tmp_buffer));
+        });
     }
 }
