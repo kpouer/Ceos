@@ -507,9 +507,9 @@ impl Ceos {
         info!("Open file {path:?}");
         let sender = self.sender.clone();
         thread::spawn(move || {
-            sender.send(BufferClosed).unwrap();
+            let _ = sender.send(BufferClosed);
             match Buffer::new_from_file(path, sender.clone()) {
-                Ok(buffer) => sender.send(BufferLoaded(buffer)).unwrap(),
+                Ok(buffer) => { let _ = sender.send(BufferLoaded(buffer)); },
                 Err(e) => warn!("{:?}", e),
             }
         });

@@ -116,7 +116,7 @@ impl TextArea<'_> {
     }
 
     fn handle_click(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
-        self.send_event(ClearCommand);
+        let _ = self.sender.send(ClearCommand);
         response.request_focus();
         self.update_caret_position(rect, pointer_pos);
         response.mark_changed();
@@ -205,7 +205,7 @@ impl TextArea<'_> {
             .x_to_column(pointer_pos.x - rect.left());
         let start = column.min(drag_start_position.column);
         let end = column.max(drag_start_position.column);
-        self.send_event(SetCommand(format!("{start}..{end}")));
+        let _ = self.sender.send(SetCommand(format!("{start}..{end}")));
     }
 
     fn paint_content(&mut self, ui: &mut Ui, has_focus: bool) {
@@ -386,7 +386,7 @@ impl TextArea<'_> {
         if let Some(file) = i.raw.dropped_files.first()
             && let Some(path) = &file.path
         {
-            self.send_event(OpenFile(path.to_owned()));
+            let _ = self.sender.send(OpenFile(path.to_owned()));
         }
     }
 
@@ -416,7 +416,7 @@ impl TextArea<'_> {
             return;
         }
 
-        self.send_event(NewFont(FontId::new(
+        let _ = self.sender.send(NewFont(FontId::new(
             new_font_size,
             egui::FontFamily::Monospace,
         )));
@@ -425,12 +425,5 @@ impl TextArea<'_> {
     #[inline]
     fn visible_line_count(&self) -> usize {
         (self.virtual_rect.height() / self.textarea_properties.line_height) as usize
-    }
-
-    #[inline]
-    fn send_event(&self, event: Event) {
-        if let Err(e) = self.sender.send(event) {
-            error!("failed to send event");
-        }
     }
 }
