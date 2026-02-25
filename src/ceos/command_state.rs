@@ -12,7 +12,7 @@ use std::sync::mpsc::Sender;
 pub(crate) struct CommandState {
     sender: Sender<Event>,
     command_buffer: String,
-    current_command: Option<Box<dyn Command + Send + Sync + 'static>>,
+    current_filter_command: Option<Box<dyn Command + Send + Sync + 'static>>,
 }
 
 impl CommandState {
@@ -20,7 +20,7 @@ impl CommandState {
         Self {
             sender,
             command_buffer: String::new(),
-            current_command: None,
+            current_filter_command: None,
         }
     }
 }
@@ -28,7 +28,7 @@ impl CommandState {
 impl CommandState {
     pub(crate) fn clear_command(&mut self) {
         self.command_buffer = String::new();
-        self.current_command = None;
+        self.current_filter_command = None;
     }
 
     pub(crate) fn set_command_buffer(&mut self, command: String) {
@@ -47,28 +47,28 @@ impl CommandState {
     pub(crate) fn current_command_mut(
         &mut self,
     ) -> &mut Option<Box<dyn Command + Send + Sync + 'static>> {
-        &mut self.current_command
+        &mut self.current_filter_command
     }
 
     pub(crate) fn try_filter_command(&mut self) {
         let command_str = self.command_buffer.as_str();
         if let Ok(command) = LineFilter::try_from(command_str) {
-            self.current_command = Some(Box::new(command));
+            self.current_filter_command = Some(Box::new(command));
         } else if let Ok(command) = ColumnFilter::try_from(command_str) {
-            self.current_command = Some(Box::new(command));
+            self.current_filter_command = Some(Box::new(command));
         } else if let Ok(command) = LineDrop::try_from(command_str) {
-            self.current_command = Some(Box::new(command));
+            self.current_filter_command = Some(Box::new(command));
         } else {
-            self.current_command = None;
+            self.current_filter_command = None;
         }
 
-        if let Some(command) = &self.current_command {
+        if let Some(command) = &self.current_filter_command {
             debug!("Found command {}", command);
         }
     }
 
     pub(crate) fn execute_command(&mut self, textarea_properties: &mut TextAreaProperties) {
-        if let Some(command) = self.current_command.take() {
+        if let Some(command) = self.current_filter_command.take() {
             info!("Execute command {}", command);
             let sender = self.sender.clone();
             let mut tmp_buffer = Buffer::new_empty_buffer(self.sender.clone());
