@@ -8,7 +8,7 @@ use log::debug;
 
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::line::Line;
-use crate::ceos::command::Command;
+use crate::ceos::command::{Action, Command};
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
@@ -63,6 +63,9 @@ impl Renderer for ColumnFilter {
 }
 
 impl Command for ColumnFilter {
+}
+
+impl Action for ColumnFilter {
     fn execute(&self, buffer: &mut Buffer) {
         let line_count = buffer.line_count();
         let new_length = buffer.filter_line_mut(|line| self.apply_to_line(line));

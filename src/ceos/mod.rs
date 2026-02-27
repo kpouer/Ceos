@@ -1,6 +1,7 @@
 use crate::ceos::command::direct::goto::Goto;
+use crate::ceos::command::save_action::SaveAction;
 use crate::ceos::command::search::Search;
-use crate::ceos::command_state::CommandState;
+use crate::ceos::command_manager::CommandManager;
 use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
 use crate::ceos::gui::frame_history::FrameHistory;
 use crate::ceos::gui::helppanel::HelpPanel;
@@ -16,21 +17,17 @@ use buffer::buffer::Buffer;
 use eframe::Frame;
 use eframe::emath::Align;
 use egui::{Context, Key, Layout, ProgressBar, Ui, Visuals, Widget};
-use flate2::Compression;
-use flate2::write::GzEncoder;
 use gui::textpane::textareaproperties::TextAreaProperties;
 use gui::theme::Theme;
 use humansize::{DECIMAL, format_size_i};
-use log::{error, info, warn};
-use std::fs::File;
-use std::io::{LineWriter, Write};
-use std::path::{Path, PathBuf};
+use log::{info, warn};
+use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 
 pub(crate) mod buffer;
 pub(crate) mod command;
-mod command_state;
+mod command_manager;
 pub(crate) mod gui;
 mod options;
 mod progress_manager;
@@ -43,7 +40,7 @@ pub(crate) struct Ceos {
     keyboard_handler: KeyboardHandler,
     sender: Sender<Event>,
     receiver: Receiver<Event>,
-    command_state: CommandState,
+    command_manager: CommandManager,
     frame_history: FrameHistory,
     search_panel: SearchPanel,
     theme: Theme,
@@ -63,7 +60,7 @@ impl Default for Ceos {
             receiver: user_input_receiver,
             textarea_properties: TextAreaProperties::new(user_input_sender.clone()),
             keyboard_handler: KeyboardHandler::new(),
-            command_state: CommandState::new(user_input_sender),
+            command_manager: CommandManager::new(user_input_sender),
             frame_history: Default::default(),
             search_panel,
             theme: Theme::default(),
@@ -80,13 +77,13 @@ impl Ceos {
     pub(crate) fn process_event(&mut self, _ctx: &Context, event: Event) {
         match event {
             Event::ClearCommand => {
-                self.command_state.clear_command();
+                self.command_manager.clear_command();
             }
             Event::ShowHelp => {
                 self.show_help = true;
             }
             Event::SetCommand(command) => {
-                self.command_state.set_command_buffer(command);
+                self.command_manager.set_command_buffer(command);
             }
             Event::OpenFile(path) => self.open_file(path),
             Event::BufferLoadingStarted(path, size) => {
@@ -138,7 +135,7 @@ impl Ceos {
     }
 
     pub(crate) fn try_search(&mut self) -> bool {
-        if let Ok(mut search) = Search::try_from(self.command_state.command_buffer()) {
+        if let Ok(mut search) = Search::try_from(self.command_manager.command_buffer()) {
             search.init(&self.textarea_properties.buffer);
             self.search_panel.search = search;
             return true;
@@ -204,7 +201,7 @@ impl eframe::App for Ceos {
                 TextPane::new(
                     &mut self.textarea_properties,
                     &self.keyboard_handler,
-                    self.command_state.current_command_mut(),
+                    self.command_manager.current_command_mut(),
                     &self.theme,
                     &self.sender,
                     &self.search_panel.search,
@@ -216,7 +213,7 @@ impl eframe::App for Ceos {
 
 impl Ceos {
     fn before_frame(&mut self) {
-        if let Some(command) = &mut self.command_state.current_command_mut() {
+        if let Some(command) = &mut self.command_manager.current_command_mut() {
             command.before_frame();
         }
         self.textarea_properties.renderer_manager.before_frame();
@@ -364,7 +361,7 @@ impl Ceos {
                     ui.label("Command: ");
                     let response = ui.add_sized(
                         ui.available_size(),
-                        egui::TextEdit::singleline(self.command_state.command_buffer_mut()),
+                        egui::TextEdit::singleline(self.command_manager.command_buffer_mut()),
                     );
                     if response.changed() {
                         if self.try_search() {
@@ -372,7 +369,7 @@ impl Ceos {
                                 .sender
                                 .send(GotoLine(Goto::new(self.search_panel.search.line())));
                         } else {
-                            self.command_state.try_filter_command();
+                            self.command_manager.try_filter_command();
                         }
                     }
                 });
@@ -392,8 +389,7 @@ impl Ceos {
         }
         #[allow(clippy::collapsible_if)]
         if ui.input(|i| i.key_pressed(Key::Enter)) {
-            self.command_state
-                .execute(&mut self.textarea_properties);
+            self.command_manager.execute(&mut self.textarea_properties);
         } else if ui.input(|i| i.key_pressed(Key::W) && i.modifiers.ctrl) {
             let _ = self.sender.send(BufferClosed);
         } else if ui.input(|i| i.key_pressed(Key::O) && i.modifiers.ctrl) {
@@ -442,7 +438,7 @@ impl Ceos {
                             .set_interaction_mode(InteractionMode::Column);
                     }
                     InteractionMode::Column => {
-                        self.command_state.clear_command();
+                        self.command_manager.clear_command();
                         self.textarea_properties
                             .set_interaction_mode(InteractionMode::Selection)
                     }
@@ -478,108 +474,14 @@ impl Ceos {
             return;
         }
 
-        match &self.textarea_properties.buffer.path {
+        match self.textarea_properties.buffer.path.to_owned() {
             None => self.save_as(),
-            Some(path) => self.save_to_path(path),
+            Some(path) => self.command_manager.execute_action(
+                &mut self.textarea_properties,
+                Box::new(SaveAction::new(self.sender.clone(), path)),
+            ),
         }
         self.textarea_properties.buffer.dirty = false;
-    }
-
-    fn save_to_path(&self, path: &Path) {
-        let mut total_size: usize = 0;
-        let mut lines: Vec<Vec<u8>> = Vec::new();
-        for group in self.textarea_properties.buffer.line_groups() {
-            let cow = group.lines();
-            for line in cow.as_ref().iter() {
-                let bytes: Vec<u8> = line.content().as_bytes().to_vec();
-                total_size += bytes.len() + 1; // +1 pour le saut de ligne
-                lines.push(bytes);
-            }
-        }
-
-        let sender = self.sender.clone();
-
-        let path = path.to_path_buf();
-        thread::spawn(move || {
-            // Démarrer la progression
-            let _ = sender.send(Event::BufferSavingStarted(path.clone(), total_size));
-
-            // Détecter si le fichier doit être compressé en gzip
-            let is_gzip = path
-                .extension()
-                .and_then(|ext| ext.to_str())
-                .map(|ext| ext.eq_ignore_ascii_case("gz"))
-                .unwrap_or(false);
-
-            match File::create(&path) {
-                Ok(file) => {
-                    if is_gzip {
-                        let encoder = GzEncoder::new(file, Compression::default());
-                        let mut writer = LineWriter::new(encoder);
-
-                        if Self::write_lines(total_size, &lines, &sender, &path, &mut writer) {
-                            // todo maybe an error ?
-                            return;
-                        }
-
-                        // Finaliser l'encodeur gzip
-                        match writer.into_inner() {
-                            Ok(encoder) => {
-                                if let Err(err) = encoder.finish() {
-                                    error!("Error finishing gzip compression: {err}");
-                                    let _ = sender.send(Event::BufferSaveFailed(path.clone()));
-                                    return;
-                                }
-                            }
-                            Err(err) => {
-                                error!("Error flushing writer: {err}");
-                                let _ = sender.send(Event::BufferSaveFailed(path.clone()));
-                                return;
-                            }
-                        }
-                    } else {
-                        let mut writer = LineWriter::new(file);
-
-                        if Self::write_lines(total_size, &lines, &sender, &path, &mut writer) {
-                            // todo maybe an error ?
-                            return;
-                        }
-                    }
-
-                    // Fin de progression
-                    let _ = sender.send(Event::BufferSaved(path.clone()));
-                }
-                Err(err) => {
-                    error!("Unable to save file {path:?} becaues {err}");
-                    let _ = sender.send(Event::BufferSaveFailed(path.clone()));
-                }
-            }
-        });
-    }
-
-    fn write_lines(
-        total_size: usize,
-        lines: &[Vec<u8>],
-        sender: &Sender<Event>,
-        path: &Path,
-        writer: &mut impl Write,
-    ) -> bool {
-        let mut current = 0;
-        for bytes in lines.iter() {
-            if let Err(err) = writer.write_all(bytes) {
-                error!("{err}");
-                let _ = sender.send(Event::BufferSaveFailed(path.to_path_buf()));
-                return true;
-            }
-            if let Err(err) = writer.write_all(b"\n") {
-                error!("{err}");
-                let _ = sender.send(Event::BufferSaveFailed(path.to_path_buf()));
-                return true;
-            }
-            current += bytes.len() + 1;
-            let _ = sender.send(Event::BufferSaving(path.to_path_buf(), current, total_size));
-        }
-        false
     }
 
     pub(crate) fn save_as(&mut self) {
@@ -595,7 +497,10 @@ impl Ceos {
         }
 
         if let Some(path) = dialog.save_file() {
-            self.save_to_path(&path);
+            self.command_manager.execute_action(
+                &mut self.textarea_properties,
+                Box::new(SaveAction::new(self.sender.clone(), path.clone())),
+            );
             self.textarea_properties.buffer.set_path(path);
             self.textarea_properties.buffer.dirty = false;
         }

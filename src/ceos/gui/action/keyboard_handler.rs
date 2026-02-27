@@ -13,7 +13,7 @@ impl KeyboardHandler {
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::S), Action::Save);
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::ArrowLeft), Action::GoToPrevCharacter);
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::ArrowRight), Action::GoToNextCharacter);
-        shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::ArrowUp), Action::GoToNextLine);
+        shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::ArrowUp), Action::GoToPrevLine);
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::ArrowDown), Action::GoToNextLine);
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::Enter), Action::Enter);
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::Backspace), Action::Backspace);

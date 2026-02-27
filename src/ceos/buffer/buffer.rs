@@ -38,6 +38,7 @@ impl Buffer {
         buffer
     }
 
+    #[cfg(test)]
     pub(crate) fn new_from_string(sender: Sender<Event>, text: &str, group_size: usize) -> Self {
         let mut buffer = Self::new_with_group_size(sender, group_size);
 

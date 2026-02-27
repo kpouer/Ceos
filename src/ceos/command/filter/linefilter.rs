@@ -7,7 +7,7 @@ use std::time::Instant;
 
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::line::Line;
-use crate::ceos::command::Command;
+use crate::ceos::command::{Action, Command};
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
@@ -76,6 +76,9 @@ impl Renderer for LineFilter {
 }
 
 impl Command for LineFilter {
+}
+
+impl Action for LineFilter {
     fn execute(&self, buffer: &mut Buffer) {
         let start = Instant::now();
         let line_count = buffer.line_count();

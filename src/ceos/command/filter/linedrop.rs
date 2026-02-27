@@ -7,7 +7,7 @@ use egui::{StrokeKind, Ui};
 use log::info;
 
 use crate::ceos::buffer::buffer::Buffer;
-use crate::ceos::command::Command;
+use crate::ceos::command::{Action, Command};
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
@@ -59,7 +59,7 @@ impl Renderer for LineDrop {
     }
 }
 
-impl Command for LineDrop {
+impl Action for LineDrop {
     fn execute(&self, buffer: &mut Buffer) {
         let line_count = buffer.line_count();
         let new_length = if let Some(end) = self.range.end {
@@ -76,6 +76,9 @@ impl Command for LineDrop {
     }
 }
 
+impl Command for LineDrop {
+}
+
 impl Display for LineDrop {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "LineDrop '{}:{:?}'", self.range.start, self.range.end)
@@ -85,7 +88,7 @@ impl Display for LineDrop {
 #[cfg(test)]
 mod tests {
     use crate::ceos::buffer::buffer::Buffer;
-    use crate::ceos::command::Command;
+    use crate::ceos::command::{Action, Command};
     use crate::ceos::command::filter::linedrop::LineDrop;
 
     const CONTENT: &str = "1 delete me\n\

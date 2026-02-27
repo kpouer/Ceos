@@ -1,5 +1,5 @@
 use crate::ceos::buffer::buffer::Buffer;
-use crate::ceos::command::Command;
+use crate::ceos::command::{Action, Command};
 use crate::ceos::command::filter::columnfilter::ColumnFilter;
 use crate::ceos::command::filter::linedrop::LineDrop;
 use crate::ceos::command::filter::linefilter::LineFilter;
@@ -11,20 +11,20 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Sender;
 
 #[derive(Debug)]
-pub(crate) struct CommandState {
+pub(crate) struct CommandManager {
     sender: Sender<Event>,
     command_buffer: String,
     current_filter_command: Option<Box<dyn Command + Send + Sync + 'static>>,
-    filter_command_in_flight: Arc<AtomicBool>,
+    action_in_flight: Arc<AtomicBool>,
 }
 
-impl CommandState {
-    pub(crate) fn new(sender: Sender<Event>) -> CommandState {
+impl CommandManager {
+    pub(crate) fn new(sender: Sender<Event>) -> CommandManager {
         Self {
             sender,
             command_buffer: String::new(),
             current_filter_command: None,
-            filter_command_in_flight: Arc::new(AtomicBool::new(false)),
+            action_in_flight: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -71,37 +71,38 @@ impl CommandState {
 
     pub(crate) fn execute(&mut self, textarea_properties: &mut TextAreaProperties) {
         if let Some(command) = self.current_filter_command.take() {
-            self.execute_command(textarea_properties, command);
+            self.execute_action(textarea_properties, command);
         } else if let Ok(command) = Event::try_from(self.command_buffer.as_str()) {
             let _ = self.sender.send(command);
             self.clear_command();
         }
     }
 
-    pub(crate) fn execute_command(
+    pub(crate) fn execute_action(
         &mut self,
         textarea_properties: &mut TextAreaProperties,
-        command: Box<dyn Command + Send + Sync>,
+        action: Box<dyn Action + Send + Sync>,
     ) {
         if self
-            .filter_command_in_flight
+            .action_in_flight
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .is_err()
         {
-            info!("Command already in flight, ignoring");
+            info!("Another action already in flight, ignoring");
             return;
         }
 
-        info!("Execute command {command}");
+        info!("Execute action {action:?}");
         let sender = self.sender.clone();
         let mut tmp_buffer = Buffer::new_empty_buffer(self.sender.clone());
         std::mem::swap(&mut tmp_buffer, &mut textarea_properties.buffer);
 
-        let in_flight = Arc::clone(&self.filter_command_in_flight);
+        let in_flight = Arc::clone(&self.action_in_flight);
 
         std::thread::spawn(move || {
             let _reset = InFlightReset(in_flight);
-            command.execute(&mut tmp_buffer);
+            action.execute(&mut tmp_buffer);
+            // send a BufferLoadRequest to restore original buffer
             let _ = sender.send(Event::BufferLoaded(tmp_buffer));
         });
         self.clear_command();
