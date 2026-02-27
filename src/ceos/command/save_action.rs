@@ -77,7 +77,7 @@ impl Action for SaveAction {
                     let encoder = GzEncoder::new(file, Compression::default());
                     let mut writer = LineWriter::new(encoder);
 
-                    if self.write_lines(&buffer, &mut writer) {
+                    if self.write_lines(buffer, &mut writer) {
                         // todo maybe an error ?
                         return;
                     }
@@ -100,7 +100,7 @@ impl Action for SaveAction {
                 } else {
                     let mut writer = LineWriter::new(file);
 
-                    if self.write_lines(&buffer, &mut writer) {
+                    if self.write_lines(buffer, &mut writer) {
                         // todo maybe an error ?
                         return;
                     }
