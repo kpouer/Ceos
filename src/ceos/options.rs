@@ -25,30 +25,23 @@ impl Options {
             match fs::read_to_string(&path) {
                 Ok(text) => match toml::from_str::<Options>(&text) {
                     Ok(opts) => {
-                        info!("Options chargées depuis {:?}", path);
+                        info!("Options loaded from {path:?}");
                         opts
                     }
                     Err(e) => {
-                        warn!(
-                            "Fichier de configuration invalide {:?}, utilisation des valeurs par défaut: {}",
-                            path, e
-                        );
+                        warn!("Invalid configuration file {path:?}, using défaut values: {e}");
                         Options::default()
                     }
                 },
                 Err(e) => {
-                    warn!(
-                        "Impossible de lire {:?}, utilisation des valeurs par défaut: {}",
-                        path, e
-                    );
+                    warn!("Unable to read {path:?}, using default values: {e}");
                     Options::default()
                 }
             }
         } else {
             let opts = Options::default();
-            // Essayer de créer un fichier initial pour l'utilisateur
             if let Err(e) = opts.save() {
-                warn!("Impossible de créer {:?}: {}", path, e);
+                warn!("Unable to create {path:?}: {e}");
             }
             opts
         }
@@ -63,7 +56,7 @@ impl Options {
         let toml_text = toml::to_string_pretty(self)
             .map_err(|e| Error::other(format!("{}", e)))?;
         fs::write(&path, toml_text)?;
-        info!("Options enregistrées dans {:?}", path);
+        info!("Options saved into {path:?}");
         Ok(())
     }
 }
