@@ -1,6 +1,7 @@
 pub(crate) mod frame_history;
 pub(crate) mod helppanel;
 pub(crate) mod searchpanel;
+pub(crate) mod options_dialog;
 pub(crate) mod search_widget;
 pub(crate) mod textpane;
 pub(crate) mod theme;

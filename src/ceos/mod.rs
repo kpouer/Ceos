@@ -6,6 +6,7 @@ use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
 use crate::ceos::gui::frame_history::FrameHistory;
 use crate::ceos::gui::helppanel::HelpPanel;
 use crate::ceos::gui::searchpanel::SearchPanel;
+use crate::ceos::gui::options_dialog::OptionsDialog;
 use crate::ceos::gui::search_widget::SearchWidget;
 use crate::ceos::gui::textpane::TextPane;
 use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
@@ -188,7 +189,11 @@ impl eframe::App for Ceos {
         }
 
         self.build_menu_panel(ctx);
-        self.build_options_window(ctx);
+        OptionsDialog::new().ui(
+            ctx,
+            &mut self.options,
+            &mut self.widget_status.show_options,
+        );
         if self.widget_status.show_help {
             HelpPanel::show(ctx, &mut self.widget_status.show_help);
         }
@@ -330,25 +335,6 @@ impl Ceos {
                 self.textarea_properties.buffer.compress_all_groups();
             }
         });
-    }
-
-    fn build_options_window(&mut self, ctx: &Context) {
-        let mut open = self.widget_status.show_options;
-        egui::Window::new("Options")
-            .open(&mut open)
-            .resizable(true)
-            .show(ctx, |ui| {
-                ui.vertical(|ui| {
-                    ui.heading("Paramètres");
-                    let response = ui.checkbox(&mut self.options.compression, "Compression");
-                    if response.changed()
-                        && let Err(e) = self.options.save()
-                    {
-                        warn!("Impossible d'enregistrer ceos.toml: {e}");
-                    }
-                });
-            });
-        self.widget_status.show_options = open;
     }
 
     fn set_theme(&mut self, theme: Theme, ctx: &Context) {
