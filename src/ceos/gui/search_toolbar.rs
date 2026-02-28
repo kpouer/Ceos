@@ -12,7 +12,7 @@ pub(crate) struct SearchToolbar {
 impl SearchToolbar {
     pub(crate) fn ui(&mut self, ui: &mut egui::Ui, open: &mut bool) {
         ui.horizontal(|ui| {
-            ui.label("Chercher:");
+            ui.label("Search:");
             let response = ui.text_edit_singleline(&mut self.query);
 
             if response.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Escape)) {
@@ -25,15 +25,19 @@ impl SearchToolbar {
             }
 
             ui.toggle_value(&mut self.case_sensitive, "Cc")
-                .on_hover_text("Respecter la casse");
+                .on_hover_text("Case sensitive");
             ui.toggle_value(&mut self.whole_words, "W")
-                .on_hover_text("Mots entiers");
+                .on_hover_text("Entire words");
             ui.toggle_value(&mut self.is_regex, ".*")
-                .on_hover_text("Expression régulière");
+                .on_hover_text("Regular expression");
 
-            if ui.button("X").clicked() {
-                *open = false;
-            }
+            ui.allocate_ui(ui.available_size(), |ui: &mut egui::Ui| {
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button("X").clicked() {
+                        *open = false;
+                    }
+                });
+            });
         });
     }
 }
