@@ -1,16 +1,15 @@
 use std::collections::HashMap;
 use std::collections::hash_map::Iter;
-
-pub(crate) const BUFFER_LOADING: &str = "_BufferLoading_";
-pub(crate) const BUFFER_SAVING: &str = "_BufferSaving_";
+use crate::progress_operation::ProgressOperation;
 
 #[derive(Default, Debug)]
 pub(crate) struct ProgressManager {
-    pub(crate) progress: HashMap<String, Progress>,
+    pub(crate) progress: HashMap<ProgressOperation, Progress>,
 }
 
 impl ProgressManager {
-    pub(crate) fn add(&mut self, id: String, label: String, max: usize) {
+    pub(crate) fn add(&mut self, id: ProgressOperation, max: usize) {
+        let label = id.to_string();
         self.progress.insert(
             id,
             Progress {
@@ -21,19 +20,19 @@ impl ProgressManager {
         );
     }
 
-    pub(crate) fn update(&mut self, id: &str, current: usize) {
+    pub(crate) fn update(&mut self, id: &ProgressOperation, current: usize) {
         if let Some(progress) = self.progress.get_mut(id) {
             progress.current = current;
         }
     }
 
-    pub(crate) fn increment(&mut self, id: &str, amount: usize) {
+    pub(crate) fn increment(&mut self, id: &ProgressOperation, amount: usize) {
         if let Some(progress) = self.progress.get_mut(id) {
             progress.current += amount;
         }
     }
 
-    pub(crate) fn remove(&mut self, id: &str) {
+    pub(crate) fn remove(&mut self, id: &ProgressOperation) {
         self.progress.remove(id);
     }
 
@@ -41,7 +40,7 @@ impl ProgressManager {
         self.progress.is_empty()
     }
 
-    pub(crate) fn iter(&self) -> Iter<'_, String, Progress> {
+    pub(crate) fn iter(&self) -> Iter<'_, ProgressOperation, Progress> {
         // todo : maybe not very efficient
         self.progress.iter()
     }

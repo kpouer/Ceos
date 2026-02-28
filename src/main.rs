@@ -5,6 +5,7 @@ use crate::ceos::Ceos;
 
 mod ceos;
 mod event;
+mod progress_operation;
 
 const INITIAL_WIDTH: f32 = 1024.0;
 const INITIAL_HEIGHT: f32 = 768.0;

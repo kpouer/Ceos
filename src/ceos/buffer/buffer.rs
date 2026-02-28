@@ -14,6 +14,7 @@ use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
 use log::{info, warn};
+use crate::progress_operation::ProgressOperation;
 
 const DEFAULT_GROUP_SIZE: usize = 1000;
 
@@ -28,8 +29,6 @@ pub(crate) struct Buffer {
     /// The size of the groups used for line compression.
     group_size: usize,
 }
-
-const FILTERING: &str = "Filtering...";
 
 impl Buffer {
     pub(crate) fn new_empty_buffer(sender: Sender<Event>) -> Self {
@@ -310,20 +309,20 @@ impl Buffer {
         F: FnMut(&mut Line) + Clone + Sync,
     {
         let _ = self.sender.send(Event::OperationStarted(
-            FILTERING.to_owned(),
+            ProgressOperation::Filtering,
             self.content.len(),
         ));
         self.content.par_iter_mut().for_each(|line_group| {
             let _ = self
                 .sender
-                .send(Event::OperationIncrement(FILTERING.to_owned(), 1));
+                .send(Event::OperationIncrement(ProgressOperation::Filtering, 1));
             line_group.filter_lines_mut(filter.clone());
         });
         let new_length = self.compute_length();
         self.dirty = true;
         let _ = self
             .sender
-            .send(Event::OperationFinished(FILTERING.to_owned()));
+            .send(Event::OperationFinished(ProgressOperation::Filtering));
         new_length
     }
 
@@ -332,13 +331,13 @@ impl Buffer {
         F: Fn(&Line) -> bool + Sync + Send + Clone,
     {
         let _ = self.sender.send(Event::OperationStarted(
-            FILTERING.to_owned(),
+            ProgressOperation::Filtering,
             self.content.len(),
         ));
         self.content.par_iter_mut().for_each(|line_group| {
             let _ = self
                 .sender
-                .send(Event::OperationIncrement(FILTERING.to_owned(), 1));
+                .send(Event::OperationIncrement(ProgressOperation::Filtering, 1));
             line_group.retain(filter.clone());
         });
         // remove empty groups
@@ -348,7 +347,7 @@ impl Buffer {
         self.dirty = true;
         let _ = self
             .sender
-            .send(Event::OperationFinished(FILTERING.to_owned()));
+            .send(Event::OperationFinished(ProgressOperation::Filtering));
         new_length
     }
 

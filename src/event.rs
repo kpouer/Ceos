@@ -4,6 +4,7 @@ use crate::ceos::command::direct::zoom::Zoom;
 use crate::event::Event::{BufferClosed, GotoLine, NewFont};
 use egui::FontId;
 use std::path::PathBuf;
+use crate::progress_operation::ProgressOperation;
 
 #[derive(Debug)]
 pub(crate) enum Event {
@@ -25,13 +26,13 @@ pub(crate) enum Event {
     /// Clear the current command
     ClearCommand,
     /// An operation started (label, total size)
-    OperationStarted(String, usize),
+    OperationStarted(ProgressOperation, usize),
     /// An operation is progressing (label, current status)
-    OperationProgress(String, usize),
+    OperationProgress(ProgressOperation, usize),
     /// An operation progress increment (label, amount)
-    OperationIncrement(String, usize),
+    OperationIncrement(ProgressOperation, usize),
     /// An operation finished (label)
-    OperationFinished(String),
+    OperationFinished(ProgressOperation),
     /// Show search bar
     ShowSearch,
 }

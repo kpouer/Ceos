@@ -88,8 +88,8 @@ impl Display for LineDrop {
 #[cfg(test)]
 mod tests {
     use crate::ceos::buffer::buffer::Buffer;
-    use crate::ceos::command::{Action, Command};
     use crate::ceos::command::filter::linedrop::LineDrop;
+    use crate::ceos::command::Action;
 
     const CONTENT: &str = "1 delete me\n\
         2 keep me\n\

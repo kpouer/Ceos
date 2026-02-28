@@ -9,6 +9,7 @@ use egui::Ui;
 use log::info;
 use rayon::prelude::*;
 use crate::event::Event;
+use crate::progress_operation::ProgressOperation;
 
 /// Search filter
 #[derive(Default, Debug)]
@@ -66,18 +67,16 @@ impl Renderer for Search {
     }
 }
 
-const SEARCHING_INDEX: &str = "Searching...";
-
 impl Search {
     pub(crate) fn init(&mut self, buffer: &Buffer) {
         let start = Instant::now();
-        let _ = buffer.sender.send(Event::OperationStarted(SEARCHING_INDEX.to_owned(), buffer.line_groups().len()));
+        let _ = buffer.sender.send(Event::OperationStarted(ProgressOperation::Searching, buffer.line_groups().len()));
         let lines: Vec<usize> = buffer
             .line_groups()
             .par_iter()
             .map(|line_group| (line_group.first_line(), line_group.lines()))
             .flat_map(|(first_line, lines)| {
-                let _ = buffer.sender.send(Event::OperationIncrement(SEARCHING_INDEX.to_owned(), 1));
+                let _ = buffer.sender.send(Event::OperationIncrement(ProgressOperation::Searching, 1));
                 lines
                     .iter()
                     .enumerate()
@@ -86,7 +85,7 @@ impl Search {
             })
             .collect();
         self.lines = lines;
-        let _ = buffer.sender.send(Event::OperationFinished(SEARCHING_INDEX.to_owned()));
+        let _ = buffer.sender.send(Event::OperationFinished(ProgressOperation::Searching));
         info!("Search took {}ms", start.elapsed().as_millis());
     }
 
