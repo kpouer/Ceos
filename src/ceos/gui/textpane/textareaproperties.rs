@@ -208,6 +208,7 @@ impl TextAreaProperties {
     }
 
     pub(crate) fn go_to_prev_char(&mut self) {
+        self.selection = None;
         if self.caret_position.column > 0 {
             self.caret_position.column -= 1;
         } else if self.caret_position.line > 0 {
@@ -217,6 +218,7 @@ impl TextAreaProperties {
     }
 
     pub(crate) fn go_to_next_char(&mut self) {
+        self.selection = None;
         if self.caret_position.column < self.buffer.line_length(self.caret_position.line) {
             self.caret_position.column += 1;
         } else if self.caret_position.line < self.buffer.line_count() - 1 {
@@ -226,6 +228,7 @@ impl TextAreaProperties {
     }
 
     pub(crate) fn go_to_prev_line(&mut self) {
+        self.selection = None;
         if self.caret_position.line > 0 {
             self.caret_position.line -= 1;
             self.caret_position.column = self
@@ -236,6 +239,7 @@ impl TextAreaProperties {
     }
 
     pub(crate) fn go_to_next_line(&mut self) {
+        self.selection = None;
         if self.caret_position.line < self.buffer.line_count() {
             self.caret_position.line += 1;
             self.caret_position.column = self
@@ -269,6 +273,7 @@ impl TextAreaProperties {
     }
 
     pub(crate) fn input_enter(&mut self) {
+        self.delete_selection();
         self.buffer
             .insert_newline(self.caret_position.line, self.caret_position.column);
         self.caret_position.line += 1;

@@ -275,7 +275,7 @@ impl TextArea<'_> {
 
     fn update_caret_position(&mut self, rect: Rect, pos: &Pos2) {
         // ensure the new caret position is within the bounds of the text area
-
+        self.textarea_properties.selection = None;
         let mut new_caret_position = self.build_position(rect, pos);
         new_caret_position.line = new_caret_position
             .line
