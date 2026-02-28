@@ -126,22 +126,25 @@ impl Search {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     #[test]
-//     fn test_filter() -> Result<(), String> {
-//         let filter = LineFilter::try_from("filter delete")?;
-//         let content = "1 delete me\n\
-//         2 keep me\n\
-//         3 delete me\n\
-//         4 keep me\n";
-//         let mut buffer = Buffer::from(content);
-//         assert_eq!(content.len(), buffer.len());
-//         assert_eq!(4, buffer.line_count());
-//         filter.execute(&mut buffer);
-//         assert_eq!(2, buffer.line_count());
-//         Ok(())
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use crate::ceos::command::Action;
+    use crate::ceos::command::filter::linefilter::LineFilter;
+    use super::*;
+
+    #[test]
+    fn test_filter() -> Result<(), ()> {
+        let filter = LineFilter::try_from("filter delete")?;
+        let content = "1 delete me\n\
+        2 keep me\n\
+        3 delete me\n\
+        4 keep me\n";
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, content, 2);
+        assert_eq!(content.len(), buffer.len());
+        assert_eq!(4, buffer.line_count());
+        filter.execute(&mut buffer);
+        assert_eq!(2, buffer.line_count());
+        Ok(())
+    }
+}
