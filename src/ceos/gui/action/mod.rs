@@ -1,3 +1,4 @@
+use crate::event::Event;
 use log::info;
 
 pub(crate) mod action_context;
@@ -17,6 +18,7 @@ pub(crate) enum Action {
     Enter,
     Backspace,
     Delete,
+    Search,
 }
 
 impl Action {
@@ -34,6 +36,9 @@ impl Action {
             Action::GoToBufferStart => context.textarea_properties.go_to_start_of_buffer(),
             Action::GoToBufferEnd => context.textarea_properties.go_to_end_of_buffer(),
             Action::Save => info!("Save action triggered"),
+            Action::Search => {
+                let _ = context.textarea_properties.buffer.sender.send(Event::ShowSearch);
+            }
         }
     }
 }

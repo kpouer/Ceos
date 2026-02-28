@@ -32,6 +32,8 @@ pub(crate) enum Event {
     OperationIncrement(String, usize),
     /// An operation finished (label)
     OperationFinished(String),
+    /// Show search bar
+    ShowSearch,
 }
 
 impl TryFrom<&str> for Event {

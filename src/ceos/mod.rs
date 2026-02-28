@@ -6,6 +6,7 @@ use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
 use crate::ceos::gui::frame_history::FrameHistory;
 use crate::ceos::gui::helppanel::HelpPanel;
 use crate::ceos::gui::searchpanel::SearchPanel;
+use crate::ceos::gui::search_widget::SearchWidget;
 use crate::ceos::gui::textpane::TextPane;
 use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
 use crate::ceos::options::Options;
@@ -46,9 +47,9 @@ pub(crate) struct Ceos {
     theme: Theme,
     initialized: bool,
     progress_manager: ProgressManager,
-    show_options: bool,
-    show_help: bool,
+    search_widget: SearchWidget,
     options: Options,
+    widget_status: WidgetStatus,
 }
 
 impl Default for Ceos {
@@ -66,9 +67,9 @@ impl Default for Ceos {
             theme: Theme::default(),
             initialized: false,
             progress_manager: Default::default(),
-            show_options: false,
-            show_help: false,
+            search_widget: SearchWidget::new(),
             options: Options::load(),
+            widget_status: WidgetStatus::default(),
         }
     }
 }
@@ -80,7 +81,7 @@ impl Ceos {
                 self.command_manager.clear_command();
             }
             Event::ShowHelp => {
-                self.show_help = true;
+                self.widget_status.show_help = true;
             }
             Event::SetCommand(command) => {
                 self.command_manager.set_command_buffer(command);
@@ -131,6 +132,10 @@ impl Ceos {
                 self.progress_manager.increment(&label, amount)
             }
             Event::OperationFinished(label) => self.progress_manager.remove(&label),
+            Event::ShowSearch => {
+                self.widget_status.show_search = true;
+                self.search_widget.should_focus = true;
+            }
         }
     }
 
@@ -184,8 +189,13 @@ impl eframe::App for Ceos {
 
         self.build_menu_panel(ctx);
         self.build_options_window(ctx);
-        if self.show_help {
-            HelpPanel::show(ctx, &mut self.show_help);
+        if self.widget_status.show_help {
+            HelpPanel::show(ctx, &mut self.widget_status.show_help);
+        }
+        if self.widget_status.show_search {
+            egui::TopBottomPanel::top("search_panel").show(ctx, |ui| {
+                self.search_widget.ui(ui, &mut self.widget_status.show_search);
+            });
         }
         self.build_bottom_panel(ctx);
 
@@ -271,7 +281,7 @@ impl Ceos {
     fn options_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("Options", |ui| {
             if ui.button("Options…").clicked() {
-                self.show_options = true;
+                self.widget_status.show_options = true;
             }
             // Quick toggle directly in the menu as well (optional convenience)
             ui.separator();
@@ -279,7 +289,7 @@ impl Ceos {
             if response.changed()
                 && let Err(e) = self.options.save()
             {
-                warn!("Impossible d'enregistrer ceos.toml: {e}");
+                warn!("Unable to save ceos.toml: {e}");
             }
         });
     }
@@ -323,7 +333,7 @@ impl Ceos {
     }
 
     fn build_options_window(&mut self, ctx: &Context) {
-        let mut open = self.show_options;
+        let mut open = self.widget_status.show_options;
         egui::Window::new("Options")
             .open(&mut open)
             .resizable(true)
@@ -338,7 +348,7 @@ impl Ceos {
                     }
                 });
             });
-        self.show_options = open;
+        self.widget_status.show_options = open;
     }
 
     fn set_theme(&mut self, theme: Theme, ctx: &Context) {
@@ -385,7 +395,7 @@ impl Ceos {
 
     fn handle_keys(&mut self, ui: &Ui) {
         if ui.input(|i| i.key_pressed(Key::Escape)) {
-            self.show_help = false;
+            self.widget_status.show_help = false;
         }
         #[allow(clippy::collapsible_if)]
         if ui.input(|i| i.key_pressed(Key::Enter)) {
@@ -505,4 +515,11 @@ impl Ceos {
             self.textarea_properties.buffer.dirty = false;
         }
     }
+}
+
+#[derive(Debug, Default)]
+struct WidgetStatus {
+    show_search: bool,
+    show_options: bool,
+    show_help: bool,
 }

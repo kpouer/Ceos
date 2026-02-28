@@ -22,6 +22,7 @@ impl KeyboardHandler {
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::End), Action::GoToLineEnd);
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::Home), Action::GoToBufferStart);
         shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::End), Action::GoToBufferEnd);
+        shortcuts.insert(KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::F), Action::Search);
         Self { shortcuts }
     }
 
