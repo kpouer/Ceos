@@ -8,12 +8,12 @@ use egui_extras::{Column, TableBuilder, TableRow};
 use std::sync::mpsc::Sender;
 
 #[derive(Debug)]
-pub(crate) struct SearchPanel {
+pub(crate) struct SearchResultPanel {
     pub(crate) search: Search,
     sender: Sender<Event>,
 }
 
-impl SearchPanel {
+impl SearchResultPanel {
     pub(crate) fn new(sender: Sender<Event>) -> Self {
         Self {
             search: Default::default(),

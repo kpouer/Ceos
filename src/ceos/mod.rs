@@ -5,9 +5,9 @@ use crate::ceos::command_manager::CommandManager;
 use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
 use crate::ceos::gui::frame_history::FrameHistory;
 use crate::ceos::gui::helppanel::HelpPanel;
-use crate::ceos::gui::searchpanel::SearchPanel;
+use crate::ceos::gui::search_result_panel::SearchResultPanel;
 use crate::ceos::gui::options_dialog::OptionsDialog;
-use crate::ceos::gui::search_widget::SearchWidget;
+use crate::ceos::gui::search_toolbar::SearchToolbar;
 use crate::ceos::gui::textpane::TextPane;
 use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
 use crate::ceos::options::Options;
@@ -44,11 +44,11 @@ pub(crate) struct Ceos {
     receiver: Receiver<Event>,
     command_manager: CommandManager,
     frame_history: FrameHistory,
-    search_panel: SearchPanel,
     theme: Theme,
     initialized: bool,
     progress_manager: ProgressManager,
-    search_widget: SearchWidget,
+    search_result_panel: SearchResultPanel,
+    search_toolbar: SearchToolbar,
     options: Options,
     widget_status: WidgetStatus,
 }
@@ -56,7 +56,7 @@ pub(crate) struct Ceos {
 impl Default for Ceos {
     fn default() -> Self {
         let (user_input_sender, user_input_receiver) = channel::<Event>();
-        let search_panel = SearchPanel::new(user_input_sender.clone());
+        let search_panel = SearchResultPanel::new(user_input_sender.clone());
         Self {
             sender: user_input_sender.clone(),
             receiver: user_input_receiver,
@@ -64,11 +64,11 @@ impl Default for Ceos {
             keyboard_handler: KeyboardHandler::new(),
             command_manager: CommandManager::new(user_input_sender),
             frame_history: Default::default(),
-            search_panel,
+            search_result_panel: search_panel,
             theme: Theme::default(),
             initialized: false,
             progress_manager: Default::default(),
-            search_widget: SearchWidget::new(),
+            search_toolbar: SearchToolbar::new(),
             options: Options::load(),
             widget_status: WidgetStatus::default(),
         }
@@ -116,7 +116,7 @@ impl Ceos {
                 self.progress_manager.remove(BUFFER_SAVING);
             }
             BufferLoaded(buffer) => {
-                self.search_panel.search.reset();
+                self.search_result_panel.search.reset();
                 self.progress_manager.remove(BUFFER_LOADING);
                 self.textarea_properties.set_buffer(buffer);
             }
@@ -135,7 +135,7 @@ impl Ceos {
             Event::OperationFinished(label) => self.progress_manager.remove(&label),
             Event::ShowSearch => {
                 self.widget_status.show_search = true;
-                self.search_widget.should_focus = true;
+                self.search_toolbar.should_focus = true;
             }
         }
     }
@@ -143,7 +143,7 @@ impl Ceos {
     pub(crate) fn try_search(&mut self) -> bool {
         if let Ok(mut search) = Search::try_from(self.command_manager.command_buffer()) {
             search.init(&self.textarea_properties.buffer);
-            self.search_panel.search = search;
+            self.search_result_panel.search = search;
             return true;
         }
         false
@@ -199,7 +199,7 @@ impl eframe::App for Ceos {
         }
         if self.widget_status.show_search {
             egui::TopBottomPanel::top("search_panel").show(ctx, |ui| {
-                self.search_widget.ui(ui, &mut self.widget_status.show_search);
+                self.search_toolbar.ui(ui, &mut self.widget_status.show_search);
             });
         }
         self.build_bottom_panel(ctx);
@@ -219,7 +219,7 @@ impl eframe::App for Ceos {
                     self.command_manager.current_command_mut(),
                     &self.theme,
                     &self.sender,
-                    &self.search_panel.search,
+                    &self.search_result_panel.search,
                 )
                 .ui(ui)
             });
@@ -345,7 +345,7 @@ impl Ceos {
 
     fn build_bottom_panel(&mut self, ctx: &Context) {
         let mut bottom = egui::TopBottomPanel::bottom("bottom_panel");
-        if self.search_panel.search.has_results() {
+        if self.search_result_panel.search.has_results() {
             bottom = bottom
                 .max_height(200.0)
                 .default_height(200.0)
@@ -363,7 +363,7 @@ impl Ceos {
                         if self.try_search() {
                             let _ = self
                                 .sender
-                                .send(GotoLine(Goto::new(self.search_panel.search.line())));
+                                .send(GotoLine(Goto::new(self.search_result_panel.search.line())));
                         } else {
                             self.command_manager.try_filter_command();
                         }
@@ -371,8 +371,8 @@ impl Ceos {
                 });
                 self.status_bar(ui);
             });
-            if self.search_panel.search.has_results() {
-                self.search_panel.ui(&self.textarea_properties.buffer, ui);
+            if self.search_result_panel.search.has_results() {
+                self.search_result_panel.ui(&self.textarea_properties.buffer, ui);
             }
             self.frame_history.ui(ui);
             self.handle_keys(ui);
@@ -393,18 +393,18 @@ impl Ceos {
         } else if ui.input(|i| i.key_pressed(Key::S) && i.modifiers.ctrl) {
             self.save_file();
         } else if ui.input(|i| i.key_pressed(Key::F3)) {
-            if self.search_panel.search.has_results() {
-                self.search_panel.search.next();
+            if self.search_result_panel.search.has_results() {
+                self.search_result_panel.search.next();
                 let _ = self
                     .sender
-                    .send(GotoLine(Goto::from(self.search_panel.search.line())));
+                    .send(GotoLine(Goto::from(self.search_result_panel.search.line())));
             }
         } else if ui.input(|i| i.key_pressed(Key::F3) && i.modifiers.shift) {
-            if self.search_panel.search.has_results() {
-                self.search_panel.search.prev();
+            if self.search_result_panel.search.has_results() {
+                self.search_result_panel.search.prev();
                 let _ = self
                     .sender
-                    .send(GotoLine(Goto::from(self.search_panel.search.line())));
+                    .send(GotoLine(Goto::from(self.search_result_panel.search.line())));
             }
         }
     }

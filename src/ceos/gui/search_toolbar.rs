@@ -1,7 +1,7 @@
 use egui;
 
 #[derive(Debug)]
-pub(crate) struct SearchWidget {
+pub(crate) struct SearchToolbar {
     pub(crate) query: String,
     pub(crate) case_sensitive: bool,
     pub(crate) whole_words: bool,
@@ -9,7 +9,7 @@ pub(crate) struct SearchWidget {
     pub(crate) should_focus: bool,
 }
 
-impl SearchWidget {
+impl SearchToolbar {
     pub(crate) fn new() -> Self {
         Self {
             query: String::new(),
