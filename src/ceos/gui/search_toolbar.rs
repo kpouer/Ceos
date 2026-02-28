@@ -1,6 +1,6 @@
 use egui;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(crate) struct SearchToolbar {
     pub(crate) query: String,
     pub(crate) case_sensitive: bool,
@@ -10,16 +10,6 @@ pub(crate) struct SearchToolbar {
 }
 
 impl SearchToolbar {
-    pub(crate) fn new() -> Self {
-        Self {
-            query: String::new(),
-            case_sensitive: false,
-            whole_words: false,
-            is_regex: false,
-            should_focus: false,
-        }
-    }
-
     pub(crate) fn ui(&mut self, ui: &mut egui::Ui, open: &mut bool) {
         ui.horizontal(|ui| {
             ui.label("Chercher:");
