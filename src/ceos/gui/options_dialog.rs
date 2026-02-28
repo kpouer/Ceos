@@ -21,11 +21,11 @@ impl OptionsDialog {
 
     fn content_ui(&self, ui: &mut Ui, options: &mut Options) {
         ui.vertical(|ui| {
-            ui.heading("Paramètres");
+            ui.heading("Settings");
             let response = ui.checkbox(&mut options.compression, "Compression");
             if response.changed() {
                 if let Err(e) = options.save() {
-                    warn!("Impossible d'enregistrer ceos.toml: {e}");
+                    warn!("Unable to save ceos.toml: {e}");
                 }
             }
         });
