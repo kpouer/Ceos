@@ -89,14 +89,17 @@ impl Search {
         info!("Search took {}ms", start.elapsed().as_millis());
     }
 
+    #[inline]
     pub(crate) fn reset(&mut self) {
         *self = Self::default();
     }
 
+    #[inline]
     pub(crate) const fn has_results(&self) -> bool {
         !self.lines.is_empty()
     }
 
+    #[inline]
     pub(crate) const fn next(&mut self) {
         self.index = (self.index + 1) % self.lines.len();
     }
@@ -112,14 +115,17 @@ impl Search {
         }
     }
 
+    #[inline]
     pub(crate) fn line(&self) -> usize {
         self.lines[self.index]
     }
 
+    #[inline]
     pub(crate) fn line_number(&self, index: usize) -> usize {
         self.lines[index]
     }
 
+    #[inline]
     pub(crate) const fn result_count(&self) -> usize {
         self.lines.len()
     }
