@@ -8,25 +8,25 @@ use crate::ceos::gui::helppanel::HelpPanel;
 use crate::ceos::gui::options_dialog::OptionsDialog;
 use crate::ceos::gui::search_result_panel::SearchResultPanel;
 use crate::ceos::gui::search_toolbar::SearchToolbar;
-use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
 use crate::ceos::gui::textpane::TextPane;
+use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
 use crate::ceos::options::Options;
 use crate::ceos::progress_manager::ProgressManager;
-use crate::event::Event::{BufferClosed, BufferLoaded, GotoLine};
 use crate::event::Event;
+use crate::event::Event::{BufferClosed, BufferLoaded, GotoLine};
+use crate::progress_operation::ProgressOperation;
+use Event::NewFont;
 use buffer::buffer::Buffer;
-use eframe::emath::Align;
 use eframe::Frame;
+use eframe::emath::Align;
 use egui::{Context, Key, Layout, ProgressBar, Ui, Visuals, Widget};
 use gui::textpane::textareaproperties::TextAreaProperties;
 use gui::theme::Theme;
-use humansize::{format_size_i, DECIMAL};
+use humansize::{DECIMAL, format_size_i};
 use log::{info, warn};
 use std::path::PathBuf;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
-use Event::NewFont;
-use crate::progress_operation::ProgressOperation;
 
 pub(crate) mod buffer;
 pub(crate) mod command;
@@ -36,6 +36,7 @@ mod options;
 mod progress_manager;
 mod syntax;
 mod tools;
+pub(crate) mod search;
 
 #[derive(Debug)]
 pub(crate) struct Ceos {
@@ -89,22 +90,21 @@ impl Ceos {
                 self.command_manager.set_command_buffer(command);
             }
             Event::OpenFile(path) => self.open_file(path),
-            Event::BufferLoadingStarted(path, size) => {
-                self.progress_manager
-                    .add(ProgressOperation::BufferLoading(Some(path)), size)
-            }
-            Event::BufferLoading(_, current, _) => {
-                self.progress_manager.update(&ProgressOperation::BufferLoading(None), current)
-            }
-            Event::BufferSavingStarted(path, size) => {
-                self.progress_manager
-                    .add(ProgressOperation::BufferSaving(Some(path)), size)
-            }
-            Event::BufferSaving(_, current, _) => {
-                self.progress_manager.update(&ProgressOperation::BufferSaving(None), current)
-            }
+            Event::BufferLoadingStarted(path, size) => self
+                .progress_manager
+                .add(ProgressOperation::BufferLoading(Some(path)), size),
+            Event::BufferLoading(_, current, _) => self
+                .progress_manager
+                .update(&ProgressOperation::BufferLoading(None), current),
+            Event::BufferSavingStarted(path, size) => self
+                .progress_manager
+                .add(ProgressOperation::BufferSaving(Some(path)), size),
+            Event::BufferSaving(_, current, _) => self
+                .progress_manager
+                .update(&ProgressOperation::BufferSaving(None), current),
             Event::BufferSaved(path) => {
-                self.progress_manager.remove(&ProgressOperation::BufferSaving(None));
+                self.progress_manager
+                    .remove(&ProgressOperation::BufferSaving(None));
                 // Marquer le buffer comme non-dirty si c'est le même fichier
                 if let Some(current_path) = &self.textarea_properties.buffer.path
                     && current_path == &path
@@ -114,11 +114,13 @@ impl Ceos {
             }
             Event::BufferSaveFailed(_) => {
                 // Retirer la progression en cas d'échec
-                self.progress_manager.remove(&ProgressOperation::BufferSaving(None));
+                self.progress_manager
+                    .remove(&ProgressOperation::BufferSaving(None));
             }
             BufferLoaded(buffer) => {
                 self.search_result_panel.search.reset();
-                self.progress_manager.remove(&ProgressOperation::BufferLoading(None));
+                self.progress_manager
+                    .remove(&ProgressOperation::BufferLoading(None));
                 self.textarea_properties.set_buffer(buffer);
             }
             BufferClosed => self
@@ -190,17 +192,17 @@ impl eframe::App for Ceos {
         }
 
         self.build_menu_panel(ctx);
-        OptionsDialog::new().ui(
-            ctx,
-            &mut self.options,
-            &mut self.widget_status.show_options,
-        );
+        OptionsDialog::new().ui(ctx, &mut self.options, &mut self.widget_status.show_options);
         if self.widget_status.show_help {
             HelpPanel::show(ctx, &mut self.widget_status.show_help);
         }
         if self.widget_status.show_search {
             egui::TopBottomPanel::top("search_panel").show(ctx, |ui| {
-                self.search_toolbar.ui(ui, &mut self.widget_status.show_search);
+                self.search_toolbar.ui(
+                    ui,
+                    &mut self.widget_status.show_search,
+                    &mut self.textarea_properties,
+                );
             });
         }
         self.build_bottom_panel(ctx);
@@ -373,7 +375,8 @@ impl Ceos {
                 self.status_bar(ui);
             });
             if self.search_result_panel.search.has_results() {
-                self.search_result_panel.ui(&self.textarea_properties.buffer, ui);
+                self.search_result_panel
+                    .ui(&self.textarea_properties.buffer, ui);
             }
             self.frame_history.ui(ui);
             self.handle_keys(ui);

@@ -648,6 +648,7 @@ dependencies = [
  "logos",
  "lz4",
  "rayon",
+ "regex",
  "rfd",
  "rstest",
  "serde",

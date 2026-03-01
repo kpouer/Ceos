@@ -12,9 +12,9 @@ use textareaproperties::TextAreaProperties;
 use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
 
 pub(crate) mod gutter;
-mod position;
+pub(crate) mod position;
 pub(crate) mod renderer;
-mod selection;
+pub(crate) mod selection;
 mod textarea;
 pub(crate) mod textareaproperties;
 pub(crate) mod interaction_mode;
