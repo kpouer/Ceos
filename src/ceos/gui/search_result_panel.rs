@@ -21,7 +21,7 @@ impl SearchResultPanel {
         }
     }
 
-    pub(crate) fn ui(&self, buffer: &Buffer, ui: &mut egui::Ui) {
+    pub(crate) fn ui(&self, buffer: &mut Buffer, ui: &mut egui::Ui) {
         ScrollArea::both().show(ui, |ui| {
             TableBuilder::new(ui)
                 .sense(Sense::click())

@@ -6,6 +6,7 @@ use crate::ceos::search::regex_search_matcher::RegexSearchMatcher;
 use crate::ceos::search::simple_search_matcher::SimpleSearchMatcher;
 use egui;
 use log::info;
+use crate::ceos::buffer::buffer::Buffer;
 
 #[derive(Debug, Default)]
 pub(crate) struct SearchToolbar {
@@ -63,8 +64,7 @@ impl SearchToolbar {
             return Err(());
         }
 
-        let buffer = &textarea_properties.buffer;
-        let line_count = buffer.line_count();
+        let line_count = textarea_properties.buffer.line_count();
         if line_count == 0 {
             return Err(());
         }
@@ -74,7 +74,7 @@ impl SearchToolbar {
         let search_matcher: Box<dyn SearchMatcher> = if self.is_regex {
             Box::new(
                 RegexSearchMatcher::new(&self.query, self.case_sensitive, self.whole_words)
-                    .map_err(|e| ())?,
+                    .map_err(|_| ())?,
             )
         } else {
             Box::new(SimpleSearchMatcher::new(
@@ -84,8 +84,8 @@ impl SearchToolbar {
             ))
         };
 
-        let find_in_line = |line_idx: usize, from_col: usize| -> Option<(usize, usize)> {
-            let line_text = buffer.line_text(line_idx);
+        let find_in_line = |buffer: &mut Buffer, line_idx: usize, from_col: usize| -> Option<(usize, usize)> {
+            let line_text = buffer.line_text_with_decompress(line_idx);
 
             if from_col >= line_text.len() && from_col > 0 {
                 return None;
@@ -102,7 +102,7 @@ impl SearchToolbar {
                 0
             };
 
-            if let Some((start, end)) = find_in_line(line_idx, from_col) {
+            if let Some((start, end)) = find_in_line(&mut textarea_properties.buffer, line_idx, from_col) {
                 self.apply_found_match(textarea_properties, line_idx, start, end);
                 return Err(());
             }
@@ -113,10 +113,10 @@ impl SearchToolbar {
             let to_col = if line_idx == start_pos.line {
                 start_pos.column
             } else {
-                buffer.line_text(line_idx).len()
+                textarea_properties.buffer.line_text(line_idx).len()
             };
 
-            if let Some((start, end)) = find_in_line(line_idx, 0) {
+            if let Some((start, end)) = find_in_line(&mut textarea_properties.buffer, line_idx, 0) {
                 if line_idx < start_pos.line || start <= to_col {
                     self.apply_found_match(textarea_properties, line_idx, start, end);
                     return Err(());

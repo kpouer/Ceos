@@ -393,14 +393,13 @@ impl Index<usize> for LineGroup {
     type Output = Line;
 
     fn index(&self, index: usize) -> &Self::Output {
-        assert!(self.lines.is_some());
-        debug_assert!(index < self.line_count);
-        let lines = self
-            .lines
-            .as_deref()
-            .unwrap_or_else(|| panic!("index called on empty group"));
-        assert!(index < lines.len());
-        &lines[index]
+        assert!(index < self.line_count);
+        match &self.lines {
+            None => panic!("index called on compressed group"),
+            Some(lines) => {
+                &lines[index]
+            }
+        }
     }
 }
 

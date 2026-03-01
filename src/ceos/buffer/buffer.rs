@@ -23,6 +23,8 @@ pub(crate) struct Buffer {
     pub(crate) path: Option<PathBuf>,
     /// the linegroups, the last one is never full. Eventually it is empty
     content: Vec<LineGroup>,
+    /// a decompressed group for temporary access
+    tmp_decompressed_group: usize,
     length: usize,
     pub(crate) dirty: bool,
     pub(crate) sender: Sender<Event>,
@@ -53,6 +55,7 @@ impl Buffer {
         Self {
             path: None,
             content: vec![LineGroup::new(0, group_size)],
+            tmp_decompressed_group: 0,
             length: 0,
             dirty: false,
             sender,
@@ -425,6 +428,21 @@ impl Buffer {
         let (gi, li) = self
             .find_group_index(line)
             .expect("line index out of bounds");
+        self.content[gi][li].content()
+    }
+
+    /// Returns the text of the line at the given index.
+    /// The given index is 0-based
+    pub(crate) fn line_text_with_decompress(&mut self, line: usize) -> &str {
+        let (gi, li) = self
+            .find_group_index(line)
+            .expect("line index out of bounds");
+
+        if self.content[gi].is_compressed() {
+            self.content[self.tmp_decompressed_group].eventually_compress();
+            self.content[gi].eventually_decompress();
+            self.tmp_decompressed_group = gi;
+        }
         self.content[gi][li].content()
     }
 

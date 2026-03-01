@@ -376,7 +376,7 @@ impl Ceos {
             });
             if self.search_result_panel.search.has_results() {
                 self.search_result_panel
-                    .ui(&self.textarea_properties.buffer, ui);
+                    .ui(&mut self.textarea_properties.buffer, ui);
             }
             self.frame_history.ui(ui);
             self.handle_keys(ui);

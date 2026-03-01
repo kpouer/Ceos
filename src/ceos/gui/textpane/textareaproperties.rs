@@ -163,7 +163,7 @@ impl TextAreaProperties {
         }
     }
 
-    pub(crate) fn copy(&self, ctx: &egui::Context) {
+    pub(crate) fn copy(&mut self, ctx: &egui::Context) {
         info!("copy");
         if let Some(selection) = &self.selection {
             let mut text = String::with_capacity(5000);
