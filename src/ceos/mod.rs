@@ -28,18 +28,18 @@ use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 
-pub(crate) mod buffer;
-pub(crate) mod command;
-mod command_manager;
-pub(crate) mod gui;
-mod options;
-mod progress_manager;
-pub(crate) mod search;
-mod syntax;
-mod tools;
+pub mod buffer;
+pub mod command;
+pub mod command_manager;
+pub mod gui;
+pub mod options;
+pub mod progress_manager;
+pub mod search;
+pub mod syntax;
+pub mod tools;
 
 #[derive(Debug)]
-pub(crate) struct Ceos {
+pub struct Ceos {
     textarea_properties: TextAreaProperties,
     keyboard_handler: KeyboardHandler,
     sender: Sender<Event>,

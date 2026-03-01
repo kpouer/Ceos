@@ -2,14 +2,14 @@ use crate::ceos::search::SearchMatcher;
 use std::borrow::Cow;
 
 #[derive(Debug)]
-pub(crate) struct SimpleSearchMatcher<'a> {
+pub struct SimpleSearchMatcher<'a> {
     query: Cow<'a, str>,
     case_insensitive: bool,
     whole_words: bool,
 }
 
 impl<'a> SimpleSearchMatcher<'a> {
-    pub(crate) fn new(query: &'a str, case_sensitive: bool, whole_words: bool) -> Self {
+    pub fn new(query: &'a str, case_sensitive: bool, whole_words: bool) -> Self {
         let query_text = if case_sensitive {
             Cow::Borrowed(query)
         } else {

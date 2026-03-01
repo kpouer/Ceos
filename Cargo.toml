@@ -23,6 +23,11 @@ toml = "0.8"
 
 [dev-dependencies]
 rstest = "0.26.1"
+criterion = "0.5"
+
+[[bench]]
+name = "search_bench"
+harness = false
 
 [lints.clippy]
 unwrap_used = "deny"

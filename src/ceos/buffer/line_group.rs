@@ -376,7 +376,6 @@ impl LineGroup {
             .unwrap_or_default()
     }
 
-    #[cfg(debug_assertions)]
     pub(crate) fn debug(&self) {
         println!(
             "LineGroup {{ line_count: {}, length: {}, max_line_length: {}, first_line: {}, compressed: {:?} }}",

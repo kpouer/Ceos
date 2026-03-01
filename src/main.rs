@@ -1,11 +1,7 @@
 #![windows_subsystem = "windows"]
 extern crate core;
 
-use crate::ceos::Ceos;
-
-mod ceos;
-mod event;
-mod progress_operation;
+use ceos::ceos::Ceos;
 
 const INITIAL_WIDTH: f32 = 1024.0;
 const INITIAL_HEIGHT: f32 = 768.0;

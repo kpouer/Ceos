@@ -586,7 +586,6 @@ impl Buffer {
         (start.min(self.line_count()), end.min(self.line_count()))
     }
 
-    #[cfg(debug_assertions)]
     fn debug(&self) {
         println!("Buffer Debug Info:");
         println!("Line Count: {}", self.line_count());
