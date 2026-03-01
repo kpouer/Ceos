@@ -9,15 +9,15 @@ pub(crate) struct SimpleSearchMatcher<'a> {
 }
 
 impl<'a> SimpleSearchMatcher<'a> {
-    pub(crate) fn new(query: &'a str, case_insensitive: bool, whole_words: bool) -> Self {
-        let query_text = if case_insensitive {
-            Cow::Owned(query.to_lowercase())
-        } else {
+    pub(crate) fn new(query: &'a str, case_sensitive: bool, whole_words: bool) -> Self {
+        let query_text = if case_sensitive {
             Cow::Borrowed(query)
+        } else {
+            Cow::Owned(query.to_lowercase())
         };
         Self {
             query: query_text,
-            case_insensitive,
+            case_insensitive: case_sensitive,
             whole_words,
         }
     }

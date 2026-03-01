@@ -13,9 +13,9 @@ impl RegexSearchMatcher {
         case_sensitive: bool,
         whole_words: bool,
     ) -> Result<Self, Error> {
-        let mut builder = RegexBuilder::new(pattern);
-        builder.case_insensitive(!case_sensitive);
-        let regex = builder.build()?;
+        let regex = RegexBuilder::new(pattern)
+            .case_insensitive(!case_sensitive)
+            .build()?;
         Ok(Self { regex, whole_words })
     }
 }
