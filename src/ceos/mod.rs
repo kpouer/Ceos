@@ -34,9 +34,9 @@ mod command_manager;
 pub(crate) mod gui;
 mod options;
 mod progress_manager;
+pub(crate) mod search;
 mod syntax;
 mod tools;
-pub(crate) mod search;
 
 #[derive(Debug)]
 pub(crate) struct Ceos {

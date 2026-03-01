@@ -2,9 +2,9 @@ use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::command::direct::zoom::Zoom;
 use crate::event::Event::{BufferClosed, GotoLine, NewFont};
+use crate::progress_operation::ProgressOperation;
 use egui::FontId;
 use std::path::PathBuf;
-use crate::progress_operation::ProgressOperation;
 
 #[derive(Debug)]
 pub(crate) enum Event {

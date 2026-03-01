@@ -49,7 +49,10 @@ impl Renderer for ColumnFilter {
             drawing_pos.x + self.range.start as f32 * char_width,
             drawing_pos.y,
         );
-        let bottom_right = Pos2::new(drawing_pos.x + end_x, drawing_pos.y + textarea_properties.line_height);
+        let bottom_right = Pos2::new(
+            drawing_pos.x + end_x,
+            drawing_pos.y + textarea_properties.line_height,
+        );
         let line_rect = Rect::from_min_max(top_left, bottom_right);
         let painter = ui.painter();
         painter.rect(
@@ -62,8 +65,7 @@ impl Renderer for ColumnFilter {
     }
 }
 
-impl Command for ColumnFilter {
-}
+impl Command for ColumnFilter {}
 
 impl Action for ColumnFilter {
     fn execute(&self, buffer: &mut Buffer) {

@@ -1,5 +1,6 @@
 use crate::ceos::command::Command;
 use crate::ceos::command::search::Search;
+use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
 use crate::ceos::gui::theme::Theme;
 use crate::event::Event;
 use eframe::epaint::Vec2;
@@ -9,15 +10,14 @@ use gutter::Gutter;
 use std::sync::mpsc::Sender;
 use textarea::TextArea;
 use textareaproperties::TextAreaProperties;
-use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
 
 pub(crate) mod gutter;
+pub(crate) mod interaction_mode;
 pub(crate) mod position;
 pub(crate) mod renderer;
 pub(crate) mod selection;
 mod textarea;
 pub(crate) mod textareaproperties;
-pub(crate) mod interaction_mode;
 
 #[derive(Debug)]
 pub(crate) struct TextPane<'a> {
@@ -51,57 +51,63 @@ impl<'a> TextPane<'a> {
 
 impl Widget for TextPane<'_> {
     fn ui(self, ui: &mut Ui) -> Response {
-        let response = ui.horizontal_top(|ui| {
-            // remove the spacing between the gutter and the text area
-            ui.spacing_mut().item_spacing = Vec2::ZERO;
-            let gutter_width = self.textarea_properties.gutter_width();
+        let response = ui
+            .horizontal_top(|ui| {
+                // remove the spacing between the gutter and the text area
+                ui.spacing_mut().item_spacing = Vec2::ZERO;
+                let gutter_width = self.textarea_properties.gutter_width();
 
-            let mut gutter_rect = ui.available_rect_before_wrap();
-            gutter_rect.set_width(gutter_width);
-            let old_scroll_offset = self.textarea_properties.scroll_offset;
-            let scroll_result_gutter = egui::ScrollArea::vertical()
-                .id_salt("gutter")
-                .auto_shrink(false)
-                .max_width(gutter_width)
-                .scroll_bar_visibility(AlwaysHidden)
-                .vertical_scroll_offset(old_scroll_offset.y)
-                .show_viewport(ui, |ui, rect| {
-                    Gutter::new(self.textarea_properties, gutter_rect, rect).ui(ui);
-                });
-            let text_area_rect = ui.available_rect_before_wrap();
-            let scroll_result_textarea = egui::ScrollArea::both()
-                .id_salt("textarea_scroll")
-                .auto_shrink(false)
-                .scroll_offset(old_scroll_offset)
-                .show_viewport(ui, |ui, rect| {
-                    TextArea::new(
-                        self.textarea_properties,
-                        self.current_command,
-                        text_area_rect,
-                        rect,
-                        self.theme,
-                        self.sender,
-                        self.search,
-                        self.keyboard_handler,
-                    )
-                    .ui(ui)
-                });
+                let mut gutter_rect = ui.available_rect_before_wrap();
+                gutter_rect.set_width(gutter_width);
+                let old_scroll_offset = self.textarea_properties.scroll_offset;
+                let scroll_result_gutter = egui::ScrollArea::vertical()
+                    .id_salt("gutter")
+                    .auto_shrink(false)
+                    .max_width(gutter_width)
+                    .scroll_bar_visibility(AlwaysHidden)
+                    .vertical_scroll_offset(old_scroll_offset.y)
+                    .show_viewport(ui, |ui, rect| {
+                        Gutter::new(self.textarea_properties, gutter_rect, rect).ui(ui);
+                    });
+                let text_area_rect = ui.available_rect_before_wrap();
+                let scroll_result_textarea = egui::ScrollArea::both()
+                    .id_salt("textarea_scroll")
+                    .auto_shrink(false)
+                    .scroll_offset(old_scroll_offset)
+                    .show_viewport(ui, |ui, rect| {
+                        TextArea::new(
+                            self.textarea_properties,
+                            self.current_command,
+                            text_area_rect,
+                            rect,
+                            self.theme,
+                            self.sender,
+                            self.search,
+                            self.keyboard_handler,
+                        )
+                        .ui(ui)
+                    });
 
-            let mut offset = scroll_result_textarea.state.offset;
-            if offset != old_scroll_offset {
-                offset.y = if scroll_result_gutter.state.offset.y != self.textarea_properties.scroll_offset.y {
-                    scroll_result_gutter.state.offset.y
-                } else if scroll_result_textarea.state.offset.y != self.textarea_properties.scroll_offset.y {
-                    scroll_result_textarea.state.offset.y
-                } else {
-                    self.textarea_properties.scroll_offset.y
-                };
-                if self.textarea_properties.scroll_offset != offset {
-                    self.textarea_properties.scroll_offset = offset;
+                let mut offset = scroll_result_textarea.state.offset;
+                if offset != old_scroll_offset {
+                    offset.y = if scroll_result_gutter.state.offset.y
+                        != self.textarea_properties.scroll_offset.y
+                    {
+                        scroll_result_gutter.state.offset.y
+                    } else if scroll_result_textarea.state.offset.y
+                        != self.textarea_properties.scroll_offset.y
+                    {
+                        scroll_result_textarea.state.offset.y
+                    } else {
+                        self.textarea_properties.scroll_offset.y
+                    };
+                    if self.textarea_properties.scroll_offset != offset {
+                        self.textarea_properties.scroll_offset = offset;
+                    }
                 }
-            }
-            scroll_result_textarea.inner
-        }).inner;
+                scroll_result_textarea.inner
+            })
+            .inner;
         ui.allocate_rect(response.rect, egui::Sense::hover());
         response
     }

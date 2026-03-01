@@ -17,8 +17,7 @@ impl Renderer for SelectionRenderer {
         drawing_pos: Pos2,
         _has_focus: bool,
     ) {
-        if let Some(selection) = &textarea_properties.selection
-        {
+        if let Some(selection) = &textarea_properties.selection {
             let start_column = if selection.start.line < line {
                 0
             } else if selection.start.line == line {
@@ -39,11 +38,8 @@ impl Renderer for SelectionRenderer {
                 Pos2::new(start_x, drawing_pos.y),
                 Pos2::new(end_x, drawing_pos.y + textarea_properties.line_height),
             ]);
-            ui.painter().rect_filled(
-                rect,
-                0.0,
-                ui.style().visuals.selection.bg_fill,
-            );
+            ui.painter()
+                .rect_filled(rect, 0.0, ui.style().visuals.selection.bg_fill);
         }
     }
 }

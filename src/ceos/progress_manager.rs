@@ -1,6 +1,6 @@
+use crate::progress_operation::ProgressOperation;
 use std::collections::HashMap;
 use std::collections::hash_map::Iter;
-use crate::progress_operation::ProgressOperation;
 
 #[derive(Default, Debug)]
 pub(crate) struct ProgressManager {

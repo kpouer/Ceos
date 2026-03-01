@@ -53,8 +53,7 @@ impl Options {
         if !parent.exists() {
             fs::create_dir_all(parent)?;
         }
-        let toml_text = toml::to_string_pretty(self)
-            .map_err(|e| Error::other(format!("{}", e)))?;
+        let toml_text = toml::to_string_pretty(self).map_err(|e| Error::other(format!("{}", e)))?;
         fs::write(&path, toml_text)?;
         info!("Options saved into {path:?}");
         Ok(())

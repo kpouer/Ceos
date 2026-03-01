@@ -1,15 +1,15 @@
-use std::time::Instant;
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
+use crate::event::Event;
+use crate::progress_operation::ProgressOperation;
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::{Stroke, StrokeKind};
 use egui::Ui;
 use log::info;
 use rayon::prelude::*;
-use crate::event::Event;
-use crate::progress_operation::ProgressOperation;
+use std::time::Instant;
 
 /// Search filter
 #[derive(Default, Debug)]
@@ -70,13 +70,18 @@ impl Renderer for Search {
 impl Search {
     pub(crate) fn init(&mut self, buffer: &Buffer) {
         let start = Instant::now();
-        let _ = buffer.sender.send(Event::OperationStarted(ProgressOperation::Searching, buffer.line_groups().len()));
+        let _ = buffer.sender.send(Event::OperationStarted(
+            ProgressOperation::Searching,
+            buffer.line_groups().len(),
+        ));
         let lines: Vec<usize> = buffer
             .line_groups()
             .par_iter()
             .map(|line_group| (line_group.first_line(), line_group.lines()))
             .flat_map(|(first_line, lines)| {
-                let _ = buffer.sender.send(Event::OperationIncrement(ProgressOperation::Searching, 1));
+                let _ = buffer
+                    .sender
+                    .send(Event::OperationIncrement(ProgressOperation::Searching, 1));
                 lines
                     .iter()
                     .enumerate()
@@ -85,7 +90,9 @@ impl Search {
             })
             .collect();
         self.lines = lines;
-        let _ = buffer.sender.send(Event::OperationFinished(ProgressOperation::Searching));
+        let _ = buffer
+            .sender
+            .send(Event::OperationFinished(ProgressOperation::Searching));
         info!("Search took {}ms", start.elapsed().as_millis());
     }
 
@@ -133,9 +140,9 @@ impl Search {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::ceos::command::Action;
     use crate::ceos::command::filter::linefilter::LineFilter;
-    use super::*;
 
     #[test]
     fn test_filter() -> Result<(), ()> {

@@ -121,4 +121,3 @@ mod tests {
         assert_eq!(tool.find_word_end(7), 12);
     }
 }
-

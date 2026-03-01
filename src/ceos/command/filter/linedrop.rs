@@ -45,7 +45,10 @@ impl Renderer for LineDrop {
         _has_focus: bool,
     ) {
         if self.range.contains(line + 1) {
-            let bottom_right = Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea_properties.line_height);
+            let bottom_right = Pos2::new(
+                ui.max_rect().max.x,
+                drawing_pos.y + textarea_properties.line_height,
+            );
             let line_rect = Rect::from_min_max(drawing_pos, bottom_right);
             let painter = ui.painter();
             painter.rect(
@@ -76,8 +79,7 @@ impl Action for LineDrop {
     }
 }
 
-impl Command for LineDrop {
-}
+impl Command for LineDrop {}
 
 impl Display for LineDrop {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -88,8 +90,8 @@ impl Display for LineDrop {
 #[cfg(test)]
 mod tests {
     use crate::ceos::buffer::buffer::Buffer;
-    use crate::ceos::command::filter::linedrop::LineDrop;
     use crate::ceos::command::Action;
+    use crate::ceos::command::filter::linedrop::LineDrop;
 
     const CONTENT: &str = "1 delete me\n\
         2 keep me\n\

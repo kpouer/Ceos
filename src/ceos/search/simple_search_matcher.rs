@@ -17,7 +17,7 @@ impl<'a> SimpleSearchMatcher<'a> {
         };
         Self {
             query: query_text,
-            case_insensitive: case_sensitive,
+            case_insensitive: !case_sensitive,
             whole_words,
         }
     }
@@ -52,5 +52,94 @@ impl SearchMatcher for SimpleSearchMatcher<'_> {
                 }
                 Some((actual_idx, actual_idx + match_len))
             })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_search_case_sensitive_exact_match() {
+        let matcher = SimpleSearchMatcher::new("hello", true, false);
+        let result = matcher.search("hello world", 0);
+        assert_eq!(result, Some((0, 5)));
+    }
+
+    #[test]
+    fn test_search_case_insensitive_match() {
+        let matcher = SimpleSearchMatcher::new("hello", false, false);
+        let result = matcher.search("Hello World", 0);
+        assert_eq!(result, Some((0, 5)));
+    }
+
+    #[test]
+    fn test_search_whole_words_match_found() {
+        let matcher = SimpleSearchMatcher::new("word", true, true);
+        let result = matcher.search("hello word world", 0);
+        assert_eq!(result, Some((6, 10)));
+    }
+
+    #[test]
+    fn test_search_whole_words_no_match_part_of_word() {
+        let matcher = SimpleSearchMatcher::new("word", true, true);
+        let result = matcher.search("hello wording world", 0);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_search_from_column_position() {
+        let matcher = SimpleSearchMatcher::new("world", true, false);
+        let result = matcher.search("hello world world", 7);
+        assert_eq!(result, Some((12, 17)));
+    }
+
+    #[test]
+    fn test_search_no_match_found() {
+        let matcher = SimpleSearchMatcher::new("missing", true, false);
+        let result = matcher.search("hello world", 0);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_search_match_at_beginning() {
+        let matcher = SimpleSearchMatcher::new("hello", true, false);
+        let result = matcher.search("hello world", 0);
+        assert_eq!(result, Some((0, 5)));
+    }
+
+    #[test]
+    fn test_search_match_at_end() {
+        let matcher = SimpleSearchMatcher::new("world", true, false);
+        let result = matcher.search("hello world", 0);
+        assert_eq!(result, Some((6, 11)));
+    }
+
+    #[test]
+    fn test_search_multiple_occurrences_finds_first() {
+        let matcher = SimpleSearchMatcher::new("the", true, false);
+        let result = matcher.search("the quick the brown", 0);
+        assert_eq!(result, Some((0, 3)));
+    }
+
+    #[test]
+    fn test_search_whole_words_at_boundaries() {
+        let matcher = SimpleSearchMatcher::new("test", true, true);
+        let result = matcher.search("test", 0);
+        assert_eq!(result, Some((0, 4)));
+    }
+
+    #[test]
+    fn test_search_case_insensitive_whole_words() {
+        let matcher = SimpleSearchMatcher::new("word", false, true);
+        let result = matcher.search("Hello WORD world", 0);
+        assert_eq!(result, Some((6, 10)));
+    }
+
+    #[test]
+    fn test_search_whole_words_with_punctuation() {
+        let matcher = SimpleSearchMatcher::new("hello", true, true);
+        let result = matcher.search("hello, world", 0);
+        assert_eq!(result, Some((0, 5)));
     }
 }

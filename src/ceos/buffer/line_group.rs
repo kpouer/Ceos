@@ -396,9 +396,7 @@ impl Index<usize> for LineGroup {
         assert!(index < self.line_count);
         match &self.lines {
             None => panic!("index called on compressed group"),
-            Some(lines) => {
-                &lines[index]
-            }
+            Some(lines) => &lines[index],
         }
     }
 }

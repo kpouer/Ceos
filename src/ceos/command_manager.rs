@@ -1,8 +1,8 @@
 use crate::ceos::buffer::buffer::Buffer;
-use crate::ceos::command::{Action, Command};
 use crate::ceos::command::filter::columnfilter::ColumnFilter;
 use crate::ceos::command::filter::linedrop::LineDrop;
 use crate::ceos::command::filter::linefilter::LineFilter;
+use crate::ceos::command::{Action, Command};
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::event::Event;
 use log::{debug, info};

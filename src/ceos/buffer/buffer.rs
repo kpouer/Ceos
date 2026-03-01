@@ -4,7 +4,9 @@ use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::tools::misc_tool::{gzip_uncompressed_size_fast, is_gzip};
 use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
+use crate::progress_operation::ProgressOperation;
 use flate2::bufread::GzDecoder;
+use log::{info, warn};
 use rayon::prelude::*;
 use std::fs::File;
 use std::io;
@@ -13,8 +15,6 @@ use std::ops::{Bound, Index, RangeBounds};
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
-use log::{info, warn};
-use crate::progress_operation::ProgressOperation;
 
 const DEFAULT_GROUP_SIZE: usize = 1000;
 
@@ -199,13 +199,12 @@ impl Buffer {
         end_line: usize,
         end_col: usize,
     ) {
-        let Some((start_group_index, start_line_in_group)) = self
-            .find_group_index(start_line) else {
+        let Some((start_group_index, start_line_in_group)) = self.find_group_index(start_line)
+        else {
             warn!("start_line out of bounds");
             return;
         };
-        let Some((end_group_index, end_line_in_group)) = self
-            .find_group_index(end_line) else {
+        let Some((end_group_index, end_line_in_group)) = self.find_group_index(end_line) else {
             warn!("end_line out of bounds");
             return;
         };

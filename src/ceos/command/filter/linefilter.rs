@@ -61,7 +61,10 @@ impl Renderer for LineFilter {
     ) {
         let line = &textarea_properties.buffer[line];
         if !self.accept(line) {
-            let bottom_right = Pos2::new(ui.max_rect().max.x, drawing_pos.y + textarea_properties.line_height);
+            let bottom_right = Pos2::new(
+                ui.max_rect().max.x,
+                drawing_pos.y + textarea_properties.line_height,
+            );
             let line_rect = Rect::from_min_max(drawing_pos, bottom_right);
             let painter = ui.painter();
             painter.rect(
@@ -75,8 +78,7 @@ impl Renderer for LineFilter {
     }
 }
 
-impl Command for LineFilter {
-}
+impl Command for LineFilter {}
 
 impl Action for LineFilter {
     fn execute(&self, buffer: &mut Buffer) {

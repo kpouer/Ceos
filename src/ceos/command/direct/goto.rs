@@ -1,5 +1,5 @@
-use log::info;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
+use log::info;
 
 #[derive(Debug)]
 pub(crate) struct Goto {
@@ -45,7 +45,10 @@ mod tests {
     #[rstest]
     #[case(3, ":3")]
     #[case(333, ":333")]
-    fn test_try_from_valid_command(#[case] expected: usize, #[case] command: &str) -> Result<(), ()> {
+    fn test_try_from_valid_command(
+        #[case] expected: usize,
+        #[case] command: &str,
+    ) -> Result<(), ()> {
         let goto = Goto::try_from(command)?;
         assert_eq!(expected, goto.line);
         Ok(())
