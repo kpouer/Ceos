@@ -27,9 +27,9 @@ impl SearchMatcher for SimpleSearchMatcher<'_> {
     fn search(&self, line_text: &str, from_col: usize) -> Option<(usize, usize)> {
         let search_slice = &line_text[from_col..];
         let search_text = if self.case_insensitive {
-            search_slice.to_lowercase()
+            Cow::Owned(search_slice.to_lowercase())
         } else {
-            search_slice.to_string()
+            Cow::Borrowed(search_slice)
         };
 
         search_text.find(self.query.as_ref()).and_then(|found_idx| {
