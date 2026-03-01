@@ -35,13 +35,19 @@ impl Display for ProgressOperation {
 
 impl PartialEq for ProgressOperation {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (ProgressOperation::Filtering, ProgressOperation::Filtering) => true,
-            (ProgressOperation::Searching, ProgressOperation::Searching) => true,
-            (ProgressOperation::BufferLoading(_), ProgressOperation::BufferLoading(_)) => true,
-            (ProgressOperation::BufferSaving(_), ProgressOperation::BufferSaving(_)) => true,
-            _ => false,
-        }
+        matches!(
+            (self, other),
+            (ProgressOperation::Filtering, ProgressOperation::Filtering)
+                | (ProgressOperation::Searching, ProgressOperation::Searching)
+                | (
+                    ProgressOperation::BufferLoading(_),
+                    ProgressOperation::BufferLoading(_)
+                )
+                | (
+                    ProgressOperation::BufferSaving(_),
+                    ProgressOperation::BufferSaving(_)
+                )
+        )
     }
 }
 

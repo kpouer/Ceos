@@ -1,3 +1,4 @@
+use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::selection::Selection;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
@@ -6,7 +7,6 @@ use crate::ceos::search::regex_search_matcher::RegexSearchMatcher;
 use crate::ceos::search::simple_search_matcher::SimpleSearchMatcher;
 use egui;
 use log::info;
-use crate::ceos::buffer::buffer::Buffer;
 
 #[derive(Debug, Default)]
 pub(crate) struct SearchToolbar {
@@ -34,13 +34,16 @@ impl SearchToolbar {
             ui.label("Search:");
             let response = ui.text_edit_singleline(&mut self.query);
 
-            if ui.toggle_value(&mut self.case_sensitive, "Cc")
+            if ui
+                .toggle_value(&mut self.case_sensitive, "Cc")
                 .on_hover_text("Case sensitive")
                 .changed()
-                || ui.toggle_value(&mut self.whole_words, "W")
+                || ui
+                    .toggle_value(&mut self.whole_words, "W")
                     .on_hover_text("Entire words")
                     .changed()
-                || ui.toggle_value(&mut self.is_regex, ".*")
+                || ui
+                    .toggle_value(&mut self.is_regex, ".*")
                     .on_hover_text("Regular expression")
                     .changed()
                 || response.changed()
@@ -168,11 +171,11 @@ impl SearchToolbar {
                 textarea_properties.buffer.line_text(line_idx).len()
             };
 
-            if let Some((start, end)) = find_in_line(&mut textarea_properties.buffer, line_idx, 0) {
-                if line_idx < start_pos.line || start <= to_col {
-                    self.apply_found_match(textarea_properties, line_idx, start, end);
-                    return Err(());
-                }
+            if let Some((start, end)) = find_in_line(&mut textarea_properties.buffer, line_idx, 0)
+                && (line_idx < start_pos.line || start <= to_col)
+            {
+                self.apply_found_match(textarea_properties, line_idx, start, end);
+                return Err(());
             }
         }
         self.last_search_failed = true;
