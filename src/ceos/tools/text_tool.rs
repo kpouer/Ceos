@@ -4,7 +4,7 @@ pub(crate) struct TextTool<'a> {
 }
 
 impl<'a> TextTool<'a> {
-    pub(crate) fn new(text: &'a str) -> Self {
+    pub(crate) const fn new(text: &'a str) -> Self {
         Self { text }
     }
 
@@ -34,8 +34,25 @@ impl<'a> TextTool<'a> {
             .unwrap_or(self.text.len())
     }
 
-    fn is_word_separator(c: &char) -> bool {
+    #[inline]
+    pub(crate) fn is_word_separator(c: &char) -> bool {
         !c.is_alphanumeric() && *c != '_'
+    }
+
+    #[inline]
+    pub(crate) fn is_whole_word(line_text: &str, start: usize, end: usize) -> bool {
+        let before = line_text[..start].chars().last().unwrap_or(' ');
+        if !Self::is_word_separator(&before) {
+            return false;
+        }
+
+        let after = line_text[end..].chars().next().unwrap_or(' ');
+
+        if !Self::is_word_separator(&after) {
+            return false;
+        }
+
+        true
     }
 }
 

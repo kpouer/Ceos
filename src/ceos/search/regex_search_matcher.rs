@@ -1,4 +1,5 @@
 use crate::ceos::search::SearchMatcher;
+use crate::ceos::tools::text_tool::TextTool;
 use regex::{Error, Regex, RegexBuilder};
 
 #[derive(Debug)]
@@ -25,15 +26,11 @@ impl SearchMatcher for RegexSearchMatcher {
         self.regex.find_at(line_text, from_col).and_then(|m| {
             let start = m.start();
             let end = m.end();
-            if self.whole_words {
-                let before = line_text[..start].chars().last().unwrap_or(' ');
-                let after = line_text[end..].chars().next().unwrap_or(' ');
-                if (before.is_alphanumeric() || before == '_')
-                    || (after.is_alphanumeric() || after == '_')
-                {
-                    return None;
-                }
+
+            if self.whole_words && !TextTool::is_whole_word(line_text, start, end) {
+                return None;
             }
+
             Some((start, end))
         })
     }

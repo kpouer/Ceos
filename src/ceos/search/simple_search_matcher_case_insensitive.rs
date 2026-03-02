@@ -1,4 +1,5 @@
 use crate::ceos::search::SearchMatcher;
+use crate::ceos::tools::text_tool::TextTool;
 use memchr::memchr2;
 
 #[derive(Debug)]
@@ -15,11 +16,6 @@ impl SimpleSearchCaseInsensitiveMatcher {
             query: query_text,
             whole_words,
         }
-    }
-
-    #[inline]
-    fn is_word_char(c: char) -> bool {
-        c.is_alphanumeric() || c == '_'
     }
 
     #[inline]
@@ -73,13 +69,8 @@ impl SearchMatcher for SimpleSearchCaseInsensitiveMatcher {
         let match_len_bytes = self.query.len();
         let end = start + match_len_bytes;
 
-        if self.whole_words {
-            let before = line_text[..start].chars().last().unwrap_or(' ');
-            let after = line_text[end..].chars().next().unwrap_or(' ');
-
-            if Self::is_word_char(before) || Self::is_word_char(after) {
-                return None;
-            }
+        if self.whole_words && !TextTool::is_whole_word(line_text, start, end) {
+            return None;
         }
 
         Some((start, end))
