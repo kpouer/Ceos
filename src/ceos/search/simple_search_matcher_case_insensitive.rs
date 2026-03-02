@@ -5,6 +5,7 @@ use memchr::memchr2;
 #[derive(Debug)]
 pub struct SimpleSearchCaseInsensitiveMatcher {
     query: String,
+    query_bytes: Option<Vec<u8>>,
     whole_words: bool,
 }
 
@@ -12,8 +13,14 @@ impl SimpleSearchCaseInsensitiveMatcher {
     #[inline]
     pub fn new(query: &str, whole_words: bool) -> Self {
         let query_text = query.to_lowercase();
+        let query_bytes = if query.is_ascii() {
+            Some(query.as_bytes().to_vec())
+        } else {
+            None
+        };
         Self {
             query: query_text,
+            query_bytes,
             whole_words,
         }
     }
@@ -38,7 +45,7 @@ impl SimpleSearchCaseInsensitiveMatcher {
             if pos + needle.len() <= haystack.len() {
                 let mut ok = true;
                 for i in 0..needle.len() {
-                    if haystack[pos + i].to_ascii_lowercase() != needle[i].to_ascii_lowercase() {
+                    if !haystack[pos + i].eq_ignore_ascii_case(&needle[i]) {
                         ok = false;
                         break;
                     }
@@ -59,8 +66,10 @@ impl SearchMatcher for SimpleSearchCaseInsensitiveMatcher {
     fn search(&self, line_text: &str, from_col: usize) -> Option<(usize, usize)> {
         let slice_from_col = &line_text[from_col..];
 
-        let found_in_slice = if slice_from_col.is_ascii() && self.query.is_ascii() {
-            Self::find_ascii_case_insensitive(slice_from_col.as_bytes(), self.query.as_bytes())
+        let found_in_slice = if slice_from_col.is_ascii()
+            && let Some(bytes) = &self.query_bytes
+        {
+            Self::find_ascii_case_insensitive(slice_from_col.as_bytes(), bytes)
         } else {
             slice_from_col.to_lowercase().find(&self.query)
         }?;
