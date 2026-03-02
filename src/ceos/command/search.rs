@@ -25,8 +25,8 @@ impl TryFrom<&str> for Search {
 
     fn try_from(command: &str) -> Result<Self, Self::Error> {
         const PREFIX: &str = "s ";
-        if command.starts_with(PREFIX) && command.len() > 2 {
-            let pattern = command[2..].to_string();
+        if command.starts_with(PREFIX) && command.len() > PREFIX.len() {
+            let pattern = command[PREFIX.len()..].to_string();
             Ok(Self {
                 pattern,
                 lines: Vec::new(),
