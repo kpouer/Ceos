@@ -1,23 +1,20 @@
 use crate::ceos::search::SearchMatcher;
-use std::borrow::Cow;
+use memchr::memmem;
 
 #[derive(Debug)]
-pub struct SimpleSearchMatcher<'a> {
-    query: Cow<'a, str>,
-    case_insensitive: bool,
+pub struct SimpleSearchCaseSensitiveMatcher {
+    len: usize,
+    finder: memmem::Finder<'static>,
     whole_words: bool,
 }
 
-impl<'a> SimpleSearchMatcher<'a> {
-    pub fn new(query: &'a str, case_sensitive: bool, whole_words: bool) -> Self {
-        let query_text = if case_sensitive {
-            Cow::Borrowed(query)
-        } else {
-            Cow::Owned(query.to_lowercase())
-        };
+impl SimpleSearchCaseSensitiveMatcher {
+    #[inline]
+    pub fn new(query: &str, whole_words: bool) -> Self {
+        let finder = memmem::Finder::new(query.as_bytes()).into_owned();
         Self {
-            query: query_text,
-            case_insensitive: !case_sensitive,
+            len: query.len(),
+            finder,
             whole_words,
         }
     }
@@ -28,26 +25,23 @@ impl<'a> SimpleSearchMatcher<'a> {
     }
 }
 
-impl SearchMatcher for SimpleSearchMatcher<'_> {
+impl SearchMatcher for SimpleSearchCaseSensitiveMatcher {
     fn search(&self, line_text: &str, from_col: usize) -> Option<(usize, usize)> {
         let slice_from_col = &line_text[from_col..];
-        let haystack = if self.case_insensitive {
-            Cow::Owned(slice_from_col.to_lowercase())
-        } else {
-            Cow::Borrowed(slice_from_col)
-        };
 
-        let found_in_slice = haystack.find(self.query.as_ref())?;
+        let found_in_slice = self.finder.find(slice_from_col.as_bytes())?;
+
         let start = from_col + found_in_slice;
-
-        let match_len_bytes = self.query.len();
-        let end = start + match_len_bytes;
+        let end = start + self.len;
 
         if self.whole_words {
             let before = line_text[..start].chars().last().unwrap_or(' ');
+            if Self::is_word_char(before) {
+                return None;
+            }
             let after = line_text[end..].chars().next().unwrap_or(' ');
 
-            if Self::is_word_char(before) || Self::is_word_char(after) {
+            if Self::is_word_char(after) {
                 return None;
             }
         }
@@ -62,84 +56,70 @@ mod tests {
 
     #[test]
     fn test_search_case_sensitive_exact_match() {
-        let matcher = SimpleSearchMatcher::new("hello", true, false);
+        let matcher = SimpleSearchCaseSensitiveMatcher::new("hello", false);
         let result = matcher.search("hello world", 0);
         assert_eq!(result, Some((0, 5)));
     }
 
     #[test]
-    fn test_search_case_insensitive_match() {
-        let matcher = SimpleSearchMatcher::new("hello", false, false);
-        let result = matcher.search("Hello World", 0);
-        assert_eq!(result, Some((0, 5)));
-    }
-
-    #[test]
     fn test_search_whole_words_match_found() {
-        let matcher = SimpleSearchMatcher::new("word", true, true);
+        let matcher = SimpleSearchCaseSensitiveMatcher::new("word", true);
         let result = matcher.search("hello word world", 0);
         assert_eq!(result, Some((6, 10)));
     }
 
     #[test]
     fn test_search_whole_words_no_match_part_of_word() {
-        let matcher = SimpleSearchMatcher::new("word", true, true);
+        let matcher = SimpleSearchCaseSensitiveMatcher::new("word", true);
         let result = matcher.search("hello wording world", 0);
         assert_eq!(result, None);
     }
 
     #[test]
     fn test_search_from_column_position() {
-        let matcher = SimpleSearchMatcher::new("world", true, false);
+        let matcher = SimpleSearchCaseSensitiveMatcher::new("world", false);
         let result = matcher.search("hello world world", 7);
         assert_eq!(result, Some((12, 17)));
     }
 
     #[test]
     fn test_search_no_match_found() {
-        let matcher = SimpleSearchMatcher::new("missing", true, false);
+        let matcher = SimpleSearchCaseSensitiveMatcher::new("missing", false);
         let result = matcher.search("hello world", 0);
         assert_eq!(result, None);
     }
 
     #[test]
     fn test_search_match_at_beginning() {
-        let matcher = SimpleSearchMatcher::new("hello", true, false);
+        let matcher = SimpleSearchCaseSensitiveMatcher::new("hello", false);
         let result = matcher.search("hello world", 0);
         assert_eq!(result, Some((0, 5)));
     }
 
     #[test]
     fn test_search_match_at_end() {
-        let matcher = SimpleSearchMatcher::new("world", true, false);
+        let matcher = SimpleSearchCaseSensitiveMatcher::new("world", false);
         let result = matcher.search("hello world", 0);
         assert_eq!(result, Some((6, 11)));
     }
 
     #[test]
     fn test_search_multiple_occurrences_finds_first() {
-        let matcher = SimpleSearchMatcher::new("the", true, false);
+        let matcher = SimpleSearchCaseSensitiveMatcher::new("the", false);
         let result = matcher.search("the quick the brown", 0);
         assert_eq!(result, Some((0, 3)));
     }
 
     #[test]
     fn test_search_whole_words_at_boundaries() {
-        let matcher = SimpleSearchMatcher::new("test", true, true);
+        let matcher = SimpleSearchCaseSensitiveMatcher::new("test", true);
         let result = matcher.search("test", 0);
         assert_eq!(result, Some((0, 4)));
     }
 
     #[test]
-    fn test_search_case_insensitive_whole_words() {
-        let matcher = SimpleSearchMatcher::new("word", false, true);
-        let result = matcher.search("Hello WORD world", 0);
-        assert_eq!(result, Some((6, 10)));
-    }
-
-    #[test]
     fn test_search_whole_words_with_punctuation() {
-        let matcher = SimpleSearchMatcher::new("hello", true, true);
+        let matcher = SimpleSearchCaseSensitiveMatcher::new("hello", true);
         let result = matcher.search("hello, world", 0);
         assert_eq!(result, Some((0, 5)));
     }

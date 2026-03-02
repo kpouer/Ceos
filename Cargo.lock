@@ -660,6 +660,7 @@ dependencies = [
  "log",
  "logos",
  "lz4",
+ "memchr",
  "rayon",
  "regex",
  "rfd",

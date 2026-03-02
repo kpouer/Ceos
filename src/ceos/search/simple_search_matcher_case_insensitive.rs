@@ -1,0 +1,106 @@
+use crate::ceos::search::SearchMatcher;
+use memchr::memchr2;
+
+#[derive(Debug)]
+pub struct SimpleSearchCaseInsensitiveMatcher {
+    query: String,
+    whole_words: bool,
+}
+
+impl SimpleSearchCaseInsensitiveMatcher {
+    #[inline]
+    pub fn new(query: &str, whole_words: bool) -> Self {
+        let query_text = query.to_lowercase();
+        Self {
+            query: query_text,
+            whole_words,
+        }
+    }
+
+    #[inline]
+    fn is_word_char(c: char) -> bool {
+        c.is_alphanumeric() || c == '_'
+    }
+
+    #[inline]
+    fn find_ascii_case_insensitive(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+        if needle.is_empty() {
+            return Some(0);
+        }
+        if needle.len() > haystack.len() {
+            return None;
+        }
+
+        let n0_lo = needle[0].to_ascii_lowercase();
+        let n0_hi = needle[0].to_ascii_uppercase();
+
+        let mut start = 0;
+        while start + needle.len() <= haystack.len() {
+            let rel = memchr2(n0_lo, n0_hi, &haystack[start..])?;
+            let pos = start + rel;
+
+            if pos + needle.len() <= haystack.len() {
+                let mut ok = true;
+                for i in 0..needle.len() {
+                    if haystack[pos + i].to_ascii_lowercase() != needle[i].to_ascii_lowercase() {
+                        ok = false;
+                        break;
+                    }
+                }
+                if ok {
+                    return Some(pos);
+                }
+            }
+
+            start = pos + 1;
+        }
+
+        None
+    }
+}
+
+impl SearchMatcher for SimpleSearchCaseInsensitiveMatcher {
+    fn search(&self, line_text: &str, from_col: usize) -> Option<(usize, usize)> {
+        let slice_from_col = &line_text[from_col..];
+
+        let found_in_slice = if slice_from_col.is_ascii() && self.query.is_ascii() {
+            Self::find_ascii_case_insensitive(slice_from_col.as_bytes(), self.query.as_bytes())
+        } else {
+            slice_from_col.to_lowercase().find(&self.query)
+        }?;
+
+        let start = from_col + found_in_slice;
+        let match_len_bytes = self.query.len();
+        let end = start + match_len_bytes;
+
+        if self.whole_words {
+            let before = line_text[..start].chars().last().unwrap_or(' ');
+            let after = line_text[end..].chars().next().unwrap_or(' ');
+
+            if Self::is_word_char(before) || Self::is_word_char(after) {
+                return None;
+            }
+        }
+
+        Some((start, end))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_search_case_insensitive_match() {
+        let matcher = SimpleSearchCaseInsensitiveMatcher::new("hello", false);
+        let result = matcher.search("Hello World", 0);
+        assert_eq!(result, Some((0, 5)));
+    }
+
+    #[test]
+    fn test_search_case_insensitive_whole_words() {
+        let matcher = SimpleSearchCaseInsensitiveMatcher::new("word", true);
+        let result = matcher.search("Hello WORD world", 0);
+        assert_eq!(result, Some((6, 10)));
+    }
+}
