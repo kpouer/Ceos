@@ -21,35 +21,38 @@ impl<'a> SimpleSearchMatcher<'a> {
             whole_words,
         }
     }
+
+    #[inline]
+    fn is_word_char(c: char) -> bool {
+        c.is_alphanumeric() || c == '_'
+    }
 }
 
 impl SearchMatcher for SimpleSearchMatcher<'_> {
     fn search(&self, line_text: &str, from_col: usize) -> Option<(usize, usize)> {
-        let search_slice = &line_text[from_col..];
-        let search_text = if self.case_insensitive {
-            Cow::Owned(search_slice.to_lowercase())
+        let slice_from_col = &line_text[from_col..];
+        let haystack = if self.case_insensitive {
+            Cow::Owned(slice_from_col.to_lowercase())
         } else {
-            Cow::Borrowed(search_slice)
+            Cow::Borrowed(slice_from_col)
         };
 
-        search_text.find(self.query.as_ref()).and_then(|found_idx| {
-            let actual_idx = from_col + found_idx;
-            let match_len = self.query.len();
-            if self.whole_words {
-                let before = if actual_idx == 0 {
-                    ' '
-                } else {
-                    line_text.chars().nth(actual_idx - 1).unwrap_or(' ')
-                };
-                let after = line_text.chars().nth(actual_idx + match_len).unwrap_or(' ');
-                if (before.is_alphanumeric() || before == '_')
-                    || (after.is_alphanumeric() || after == '_')
-                {
-                    return None;
-                }
+        let found_in_slice = haystack.find(self.query.as_ref())?;
+        let start = from_col + found_in_slice;
+
+        let match_len_bytes = self.query.len();
+        let end = start + match_len_bytes;
+
+        if self.whole_words {
+            let before = line_text[..start].chars().last().unwrap_or(' ');
+            let after = line_text[end..].chars().next().unwrap_or(' ');
+
+            if Self::is_word_char(before) || Self::is_word_char(after) {
+                return None;
             }
-            Some((actual_idx, actual_idx + match_len))
-        })
+        }
+
+        Some((start, end))
     }
 }
 
