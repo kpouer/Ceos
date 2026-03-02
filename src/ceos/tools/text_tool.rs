@@ -10,7 +10,7 @@ impl<'a> TextTool<'a> {
 
     // ... existing code ...
     pub(crate) fn find_word_start(&self, pos: usize) -> usize {
-        if pos == 0 || self.text.is_empty() {
+        if pos == 0 || self.text.is_empty() || pos >= self.text.len() {
             return 0;
         }
 
