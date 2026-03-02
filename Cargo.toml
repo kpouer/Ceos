@@ -24,7 +24,7 @@ toml = "0.8"
 
 [dev-dependencies]
 rstest = "0.26.1"
-criterion = "0.5"
+criterion = "0.8.2"
 
 [[bench]]
 name = "search_bench"
