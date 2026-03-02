@@ -3,7 +3,7 @@ use std::hash::Hash;
 use std::path::PathBuf;
 
 #[derive(Debug)]
-pub(crate) enum ProgressOperation {
+pub enum ProgressOperation {
     Filtering,
     Searching,
     BufferLoading(Option<PathBuf>),

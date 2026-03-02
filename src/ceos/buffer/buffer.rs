@@ -19,7 +19,7 @@ use std::time::{Duration, Instant};
 const DEFAULT_GROUP_SIZE: usize = 1000;
 
 #[derive(Debug)]
-pub(crate) struct Buffer {
+pub struct Buffer {
     pub(crate) path: Option<PathBuf>,
     /// the linegroups, the last one is never full. Eventually it is empty
     content: Vec<LineGroup>,
@@ -39,8 +39,7 @@ impl Buffer {
         buffer
     }
 
-    #[cfg(test)]
-    pub(crate) fn new_from_string(sender: Sender<Event>, text: &str, group_size: usize) -> Self {
+    pub fn new_from_string(sender: Sender<Event>, text: &str, group_size: usize) -> Self {
         let mut buffer = Self::new_with_group_size(sender, group_size);
 
         let lines_iterator = text.lines();

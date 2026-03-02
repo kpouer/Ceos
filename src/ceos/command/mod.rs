@@ -6,7 +6,7 @@ use crate::ceos::gui::textpane::renderer::Renderer;
 pub(crate) mod direct;
 pub(crate) mod filter;
 pub(crate) mod save_action;
-pub(crate) mod search;
+pub mod search;
 
 pub(crate) trait Action: Debug {
     fn execute(&self, buffer: &mut Buffer);

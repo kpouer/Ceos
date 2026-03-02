@@ -7,7 +7,7 @@ use egui::FontId;
 use std::path::PathBuf;
 
 #[derive(Debug)]
-pub(crate) enum Event {
+pub enum Event {
     /// BufferLoading(path, current, size)
     OpenFile(PathBuf),
     BufferLoadingStarted(PathBuf, usize),

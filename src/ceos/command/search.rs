@@ -2,6 +2,8 @@ use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
+use crate::ceos::search::SearchMatcher;
+use crate::ceos::search::simple_search_case_sensitive::SimpleSearchCaseSensitiveMatcher;
 use crate::event::Event;
 use crate::progress_operation::ProgressOperation;
 use eframe::emath::{Pos2, Rect};
@@ -13,8 +15,8 @@ use std::time::Instant;
 
 /// Search filter
 #[derive(Default, Debug)]
-pub(crate) struct Search {
-    pattern: String,
+pub struct Search {
+    search_matcher: Option<SimpleSearchCaseSensitiveMatcher>,
     // the line indexes containing the search value
     lines: Vec<usize>,
     index: usize,
@@ -27,8 +29,9 @@ impl TryFrom<&str> for Search {
         const PREFIX: &str = "s ";
         if command.starts_with(PREFIX) && command.len() > PREFIX.len() {
             let pattern = command[PREFIX.len()..].to_string();
+            let search_matcher = SimpleSearchCaseSensitiveMatcher::new(&pattern, false);
             Ok(Self {
-                pattern,
+                search_matcher: Some(search_matcher),
                 lines: Vec::new(),
                 index: 0,
             })
@@ -49,46 +52,58 @@ impl Renderer for Search {
         _has_focus: bool,
     ) {
         let line = &textarea.buffer[line];
-        if let Some(offset) = line.content().find(&self.pattern) {
-            let x1 = offset as f32 * textarea.char_width;
-            let x2 = (offset + self.pattern.len()) as f32 * textarea.char_width;
-            let top_left = Pos2::new(drawing_pos.x + x1, drawing_pos.y);
-            let bottom_right = Pos2::new(drawing_pos.x + x2, drawing_pos.y + textarea.line_height);
-            let line_rect = Rect::from_min_max(top_left, bottom_right);
-            let painter = ui.painter();
-            painter.rect(
-                line_rect,
-                0.0,
-                theme.deleting,
-                Stroke::default(),
-                StrokeKind::Inside,
-            );
+        if let Some(search_matcher) = &self.search_matcher {
+            if let Some((start, end)) = search_matcher.search(line.content(), 0) {
+                let x1 = start as f32 * textarea.char_width;
+                let x2 = end as f32 * textarea.char_width;
+                let top_left = Pos2::new(drawing_pos.x + x1, drawing_pos.y);
+                let bottom_right =
+                    Pos2::new(drawing_pos.x + x2, drawing_pos.y + textarea.line_height);
+                let line_rect = Rect::from_min_max(top_left, bottom_right);
+                let painter = ui.painter();
+                painter.rect(
+                    line_rect,
+                    0.0,
+                    theme.deleting,
+                    Stroke::default(),
+                    StrokeKind::Inside,
+                );
+            }
         }
     }
 }
 
 impl Search {
-    pub(crate) fn init(&mut self, buffer: &Buffer) {
+    pub fn init(&mut self, buffer: &Buffer) {
         let start = Instant::now();
         let _ = buffer.sender.send(Event::OperationStarted(
             ProgressOperation::Searching,
             buffer.line_groups().len(),
         ));
-        let lines: Vec<usize> = buffer
-            .line_groups()
-            .par_iter()
-            .map(|line_group| (line_group.first_line(), line_group.lines()))
-            .flat_map(|(first_line, lines)| {
-                let _ = buffer
-                    .sender
-                    .send(Event::OperationIncrement(ProgressOperation::Searching, 1));
-                lines
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(i, line)| line.contains(&self.pattern).then_some(first_line + i))
-                    .collect::<Vec<_>>()
-            })
-            .collect();
+        let lines: Vec<usize> = if let Some(search_matcher) = &self.search_matcher {
+            buffer
+                .line_groups()
+                .par_iter()
+                .map(|line_group| (line_group.first_line(), line_group.lines()))
+                .flat_map(|(first_line, lines)| {
+                    let _ = buffer
+                        .sender
+                        .send(Event::OperationIncrement(ProgressOperation::Searching, 1));
+                    lines
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(i, line)| {
+                            search_matcher
+                                .search(line.content(), 0)
+                                .is_some()
+                                .then_some(first_line + i)
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
         self.lines = lines;
         let _ = buffer
             .sender

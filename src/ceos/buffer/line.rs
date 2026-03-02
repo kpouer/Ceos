@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::ops::RangeBounds;
 
 #[derive(Default, Debug, Clone)]
-pub(crate) struct Line {
+pub struct Line {
     content: String,
 }
 
