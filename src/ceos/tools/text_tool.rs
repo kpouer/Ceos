@@ -137,4 +137,68 @@ mod tests {
         assert_eq!(tool.find_word_start(9), 7);
         assert_eq!(tool.find_word_end(7), 12);
     }
+
+    #[test]
+    fn test_is_whole_word_at_beginning() {
+        let line = "hello world";
+        assert!(TextTool::is_whole_word(line, 0, 5));
+    }
+
+    #[test]
+    fn test_is_whole_word_at_end() {
+        let line = "hello world";
+        assert!(TextTool::is_whole_word(line, 6, 11));
+    }
+
+    #[test]
+    fn test_is_whole_word_in_middle() {
+        let line = "hello world today";
+        assert!(TextTool::is_whole_word(line, 6, 11));
+    }
+
+    #[test]
+    fn test_is_whole_word_with_punctuation() {
+        let line = "hello, world!";
+        assert!(TextTool::is_whole_word(line, 0, 5));
+        assert!(TextTool::is_whole_word(line, 7, 12));
+    }
+
+    #[test]
+    fn test_is_whole_word_partial_at_start() {
+        let line = "hello world";
+        assert!(!TextTool::is_whole_word(line, 0, 3));
+    }
+
+    #[test]
+    fn test_is_whole_word_partial_at_end() {
+        let line = "hello world";
+        assert!(!TextTool::is_whole_word(line, 8, 11));
+    }
+
+    #[test]
+    fn test_is_whole_word_partial_both_sides() {
+        let line = "hello world";
+        assert!(!TextTool::is_whole_word(line, 1, 4));
+    }
+
+    #[test]
+    fn test_is_whole_word_with_underscores() {
+        let line = "hello_world test";
+        assert!(TextTool::is_whole_word(line, 0, 11));
+        assert!(!TextTool::is_whole_word(line, 0, 5));
+        assert!(!TextTool::is_whole_word(line, 6, 11));
+    }
+
+    #[test]
+    fn test_is_whole_word_with_multiple_separators() {
+        let line = "hello  world";
+        assert!(TextTool::is_whole_word(line, 0, 5));
+        assert!(TextTool::is_whole_word(line, 7, 12));
+    }
+
+    #[test]
+    fn test_is_whole_word_entire_line() {
+        let line = "hello";
+        assert!(TextTool::is_whole_word(line, 0, 5));
+    }
 }
