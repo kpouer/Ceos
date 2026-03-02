@@ -289,7 +289,6 @@ impl TextArea<'_> {
         self.textarea_properties.caret_position = new_caret_position;
     }
 
-    /// ```rust
     /// Builds a `Position` object based on the interaction pointer's position within a given rectangular area.
     ///
     /// # Arguments
