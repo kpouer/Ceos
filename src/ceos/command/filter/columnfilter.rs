@@ -90,6 +90,7 @@ impl ColumnFilter {
         } else {
             line.drain(self.range.start..);
         }
+        line.shrink_to_fit();
     }
 }
 

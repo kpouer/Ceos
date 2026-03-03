@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 use std::ops::RangeBounds;
+use std::string::Drain;
 
 #[derive(Default, Debug, Clone)]
 pub struct Line {
@@ -35,12 +36,16 @@ impl Line {
         self.content.capacity()
     }
 
-    pub(crate) fn drain<R>(&mut self, range: R)
+    pub(crate) fn shrink_to_fit(&mut self) {
+        self.content.shrink_to_fit();
+    }
+
+    /// Removes and returns a specified range of characters from the `content` field of the struct.
+    pub(crate) fn drain<R>(&mut self, range: R) -> Drain<'_>
     where
         R: RangeBounds<usize>,
     {
-        self.content.drain(range);
-        self.content.shrink_to_fit();
+        self.content.drain(range)
     }
 
     pub(crate) fn push_str(&mut self, str: &str) {

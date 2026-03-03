@@ -1,6 +1,7 @@
 use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::line_group::LineGroup;
 use crate::ceos::buffer::text_range::TextRange;
+use crate::ceos::buffer::undo_manager::UndoManager;
 use crate::ceos::tools::misc_tool::{gzip_uncompressed_size_fast, is_gzip};
 use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
@@ -30,6 +31,7 @@ pub struct Buffer {
     pub(crate) sender: Sender<Event>,
     /// The size of the groups used for line compression.
     group_size: usize,
+    undo_manager: UndoManager,
 }
 
 impl Buffer {
@@ -59,6 +61,7 @@ impl Buffer {
             dirty: false,
             sender,
             group_size,
+            undo_manager: UndoManager::default(),
         }
     }
 
@@ -146,6 +149,8 @@ impl Buffer {
         }
     }
 
+    /// Push a new line at the end of the buffer.
+    /// It is called when creating a new buffer
     fn push_line(&mut self, line: impl Into<Line>) {
         let last_group = self.content.last_mut().expect("buffer is empty");
         let line = line.into();
@@ -160,7 +165,11 @@ impl Buffer {
         }
     }
 
-    /// Delete a range of text from the buffer.
+    /// Deletes content within a specified range of text.
+    ///
+    /// # Parameters
+    /// - `text_range`: A `TextRange` struct specifying the range of text to be deleted.
+    ///
     pub(crate) fn delete_range(&mut self, text_range: TextRange) {
         let line_count = self.line_count();
         if line_count == 0 || text_range.start_line >= line_count || text_range.is_empty() {
@@ -175,6 +184,7 @@ impl Buffer {
                 let line_group = &mut self.content[group_index];
                 line_group.filter_line_mut(line_in_group, |line| {
                     line.drain(text_range.start_column..text_range.end_column);
+                    line.shrink_to_fit();
                 });
             }
         } else {
@@ -218,6 +228,7 @@ impl Buffer {
             line_group.filter_line_mut(start_line_in_group, |line| {
                 line.drain(start_col..);
                 line.push_str(&suffix);
+                line.shrink_to_fit();
             });
 
             line_group.drain_lines(start_line_in_group + 1..=end_line_in_group);
@@ -237,6 +248,7 @@ impl Buffer {
         first_group.filter_line_mut(start_line_in_group, |line| {
             line.drain(start_col..);
             line.push_str(&suffix);
+            line.shrink_to_fit();
         });
         first_group.drain_lines(start_line_in_group + 1..);
 
@@ -471,6 +483,7 @@ impl Buffer {
                 line_group.filter_line_mut(li, |l| {
                     suffix = l.content()[col..].to_owned();
                     l.drain(col..);
+                    l.shrink_to_fit();
                 });
                 suffix
             };
