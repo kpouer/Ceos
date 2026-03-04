@@ -2,6 +2,7 @@ use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::line_group::LineGroup;
 use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::buffer::undo_manager::UndoManager;
+use crate::ceos::buffer::undo_manager::edit::Edit;
 use crate::ceos::tools::misc_tool::{gzip_uncompressed_size_fast, is_gzip};
 use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
@@ -183,7 +184,13 @@ impl Buffer {
             if let Some((group_index, line_in_group)) = self.find_group_index(start_line) {
                 let line_group = &mut self.content[group_index];
                 line_group.filter_line_mut(line_in_group, |line| {
-                    line.drain(text_range.start_column..text_range.end_column);
+                    {
+                        let drain = line.drain(text_range.start_column..text_range.end_column);
+                        self.undo_manager.push(Edit::RemoveRange {
+                            offset: text_range.start_column,
+                            text: drain.as_str().to_string(),
+                        })
+                    }
                     line.shrink_to_fit();
                 });
             }
@@ -201,6 +208,7 @@ impl Buffer {
         self.dirty = true;
     }
 
+    /// Delete text on multiple lines
     fn delete_across_lines(
         &mut self,
         start_line: usize,
@@ -225,33 +233,96 @@ impl Buffer {
             line_group.eventually_decompress();
 
             let suffix = line_group[end_line_in_group].content()[end_col..].to_owned();
-            line_group.filter_line_mut(start_line_in_group, |line| {
-                line.drain(start_col..);
+            let compound_edit = line_group.filter_line_mut(start_line_in_group, |line| {
+                let remove_range = {
+                    let drain = line.drain(start_col..);
+                    Edit::RemoveRange {
+                        offset: start_col,
+                        text: drain.as_str().to_string(),
+                    }
+                };
+                let offset = line.len();
                 line.push_str(&suffix);
+                let insert_text = Edit::InsertText {
+                    offset,
+                    length: suffix.len(),
+                };
                 line.shrink_to_fit();
+                vec![remove_range, insert_text]
             });
 
-            line_group.drain_lines(start_line_in_group + 1..=end_line_in_group);
+            let drain_lines = line_group
+                .drain_lines(start_line_in_group + 1..=end_line_in_group)
+                .map(|lines| Edit::RemoveLines {
+                    lines: lines.into_iter().map(|line| line.into_content()).collect(),
+                    line: start_line_in_group + 1,
+                });
+            let edit = match (compound_edit, drain_lines) {
+                (Some(mut edit_list), Some(drain_lines)) => {
+                    edit_list.push(drain_lines);
+                    Some(Edit::CompoundEdit { edits: edit_list })
+                }
+                (Some(edit_list), None) => Some(Edit::CompoundEdit { edits: edit_list }),
+                (None, Some(drain_lines)) => Some(drain_lines),
+                (None, None) => None,
+            };
+            if let Some(edit) = edit {
+                self.undo_manager.push(edit);
+            }
+
             return;
         }
 
-        let suffix = {
+        let (drain_lines_end, suffix) = {
             // process the end group and retrieve the suffix
             let end_group = &mut self.content[end_group_index];
             let last_line = &end_group.lines()[end_line_in_group];
             let suffix = last_line.content()[end_col..].to_owned();
-            end_group.drain_lines(0..=end_line_in_group);
-            suffix
+            let drain_lines =
+                end_group
+                    .drain_lines(0..=end_line_in_group)
+                    .map(|lines| Edit::RemoveLines {
+                        lines: lines.into_iter().map(|line| line.into_content()).collect(),
+                        line: 0,
+                    });
+            (drain_lines, suffix)
         };
 
         let first_group = &mut self.content[start_group_index];
-        first_group.filter_line_mut(start_line_in_group, |line| {
-            line.drain(start_col..);
+        let compound_edit = first_group.filter_line_mut(start_line_in_group, |line| {
+            let remove_range = {
+                let drain = line.drain(start_col..);
+                Edit::RemoveRange {
+                    offset: start_col,
+                    text: drain.as_str().to_string(),
+                }
+            };
+            let offset = line.len();
             line.push_str(&suffix);
+            let insert_text = Edit::InsertText {
+                offset,
+                length: suffix.len(),
+            };
             line.shrink_to_fit();
+            vec![remove_range, insert_text]
         });
-        first_group.drain_lines(start_line_in_group + 1..);
+        let drain_lines = first_group
+            .drain_lines(start_line_in_group + 1..)
+            .map(|lines| Edit::RemoveLines {
+                lines: lines.into_iter().map(|line| line.into_content()).collect(),
+                line: start_line_in_group + 1,
+            });
 
+        let mut edits = Vec::new();
+        if let Some(drain_lines_end) = compound_edit {
+            edits.extend(drain_lines_end);
+        }
+        if let Some(drain_lines) = drain_lines {
+            edits.push(drain_lines);
+        }
+        if let Some(drain_lines) = drain_lines_end {
+            edits.push(drain_lines);
+        }
         // drain the linegroups between the start and the end group
         if start_group_index + 1 < end_group_index {
             self.content.drain(start_group_index + 1..end_group_index);

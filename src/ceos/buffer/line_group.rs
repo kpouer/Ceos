@@ -266,11 +266,11 @@ impl LineGroup {
         }
     }
 
-    pub(crate) fn filter_line_mut(
+    pub(crate) fn filter_line_mut<R>(
         &mut self,
         line_number: usize,
-        mut filter: impl FnMut(&mut Line),
-    ) {
+        mut filter: impl FnMut(&mut Line) -> R,
+    ) -> Option<R> {
         let should_decompress = self.lines.is_none();
         if should_decompress {
             self.decompress();
@@ -279,10 +279,12 @@ impl LineGroup {
         }
         debug_assert!(self.lines.is_some());
 
-        if let Some(lines) = &mut self.lines {
+        let ret = if let Some(lines) = &mut self.lines {
             let line = &mut lines[line_number];
-            filter(line);
-        }
+            Some(filter(line))
+        } else {
+            None
+        };
 
         self.compute_metadata();
         if should_decompress {
@@ -291,6 +293,8 @@ impl LineGroup {
             debug_assert!(self.compressed.is_some());
             debug_assert!(self.lines.is_none());
         }
+
+        ret
     }
 
     pub(crate) fn compute_metadata(&mut self) {
@@ -325,7 +329,7 @@ impl LineGroup {
         }
     }
 
-    pub(crate) fn drain_lines<R>(&mut self, range: R)
+    pub(crate) fn drain_lines<R>(&mut self, range: R) -> Option<Vec<Line>>
     where
         R: RangeBounds<usize>,
     {
@@ -333,14 +337,22 @@ impl LineGroup {
         if was_compressed {
             self.decompress();
         }
-        if let Some(lines) = &mut self.lines {
-            self.compressed = None;
-            lines.drain(range);
-        }
+        assert!(self.lines.is_some());
+
+        let Some(lines) = &mut self.lines else {
+            warn!("The line group cannot be empty");
+            return None;
+        };
+        self.compressed = None;
+        let removed_lines = {
+            let drain = lines.drain(range);
+            drain.collect::<Vec<_>>()
+        };
         self.compute_metadata();
         if was_compressed {
             self.compress();
         }
+        Some(removed_lines)
     }
 
     pub(crate) fn insert_line(&mut self, line_number: usize, line: Line) {

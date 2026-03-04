@@ -28,6 +28,10 @@ impl Line {
         &self.content
     }
 
+    pub fn into_content(self) -> String {
+        self.content
+    }
+
     pub(crate) fn contains(&self, needle: &str) -> bool {
         self.content.contains(needle)
     }
