@@ -11,7 +11,7 @@ pub(crate) struct Selection {
 
 impl Selection {
     pub(crate) fn new(start: Position, end: Position) -> Self {
-        debug_assert!(start <= end);
+        debug_assert!(start < end);
         Self { start, end }
     }
 }
