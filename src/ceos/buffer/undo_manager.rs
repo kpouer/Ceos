@@ -18,7 +18,7 @@ impl UndoManager {
         self.edits.pop()
     }
 
-    pub(crate) fn can_undo(&self) -> bool {
+    pub(crate) const fn can_undo(&self) -> bool {
         !self.edits.is_empty()
     }
 }
