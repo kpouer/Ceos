@@ -2,7 +2,10 @@ use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::line_group::LineGroup;
 use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::buffer::undo_manager::UndoManager;
-use crate::ceos::buffer::undo_manager::edit::Edit;
+use crate::ceos::buffer::undo_manager::edit::{
+    CompoundEdit, Edit, InsertText, RemoveLines, RemoveRange,
+};
+use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::tools::misc_tool::{gzip_uncompressed_size_fast, is_gzip};
 use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
@@ -186,10 +189,11 @@ impl Buffer {
                 line_group.filter_line_mut(line_in_group, |line| {
                     {
                         let drain = line.drain(text_range.start_column..text_range.end_column);
-                        self.undo_manager.push(Edit::RemoveRange {
-                            offset: text_range.start_column,
-                            text: drain.as_str().to_string(),
-                        })
+                        self.undo_manager.push(Box::new(RemoveRange::new(
+                            start_line,
+                            text_range.start_column,
+                            drain.as_str().to_string(),
+                        )))
                     }
                     line.shrink_to_fit();
                 });
@@ -236,33 +240,36 @@ impl Buffer {
             let compound_edit = line_group.filter_line_mut(start_line_in_group, |line| {
                 let remove_range = {
                     let drain = line.drain(start_col..);
-                    Edit::RemoveRange {
-                        offset: start_col,
-                        text: drain.as_str().to_string(),
-                    }
+                    Box::new(RemoveRange::new(
+                        start_line,
+                        start_col,
+                        drain.as_str().to_string(),
+                    ))
                 };
                 let offset = line.len();
                 line.push_str(&suffix);
-                let insert_text = Edit::InsertText {
-                    offset,
-                    length: suffix.len(),
-                };
+                let insert_text: Box<dyn Edit> =
+                    Box::new(InsertText::new(start_line, offset, suffix.len()));
                 line.shrink_to_fit();
                 vec![remove_range, insert_text]
             });
 
             let drain_lines = line_group
                 .drain_lines(start_line_in_group + 1..=end_line_in_group)
-                .map(|lines| Edit::RemoveLines {
-                    lines: lines.into_iter().map(|line| line.into_content()).collect(),
-                    line: start_line_in_group + 1,
+                .map(|lines| -> Box<dyn Edit> {
+                    Box::new(RemoveLines::new(
+                        lines.into_iter().map(|line| line.into_content()).collect(),
+                        start_line_in_group + 1,
+                    ))
                 });
-            let edit = match (compound_edit, drain_lines) {
+            let edit: Option<Box<dyn Edit>> = match (compound_edit, drain_lines) {
                 (Some(mut edit_list), Some(drain_lines)) => {
                     edit_list.push(drain_lines);
-                    Some(Edit::CompoundEdit { edits: edit_list })
+                    Some(Box::new(CompoundEdit::new(edit_list)) as Box<dyn Edit>)
                 }
-                (Some(edit_list), None) => Some(Edit::CompoundEdit { edits: edit_list }),
+                (Some(edit_list), None) => {
+                    Some(Box::new(CompoundEdit::new(edit_list)) as Box<dyn Edit>)
+                }
                 (None, Some(drain_lines)) => Some(drain_lines),
                 (None, None) => None,
             };
@@ -281,9 +288,11 @@ impl Buffer {
             let drain_lines =
                 end_group
                     .drain_lines(0..=end_line_in_group)
-                    .map(|lines| Edit::RemoveLines {
-                        lines: lines.into_iter().map(|line| line.into_content()).collect(),
-                        line: 0,
+                    .map(|lines| -> Box<dyn Edit> {
+                        Box::new(RemoveLines::new(
+                            lines.into_iter().map(|line| line.into_content()).collect(),
+                            0,
+                        ))
                     });
             (drain_lines, suffix)
         };
@@ -292,28 +301,30 @@ impl Buffer {
         let compound_edit = first_group.filter_line_mut(start_line_in_group, |line| {
             let remove_range = {
                 let drain = line.drain(start_col..);
-                Edit::RemoveRange {
-                    offset: start_col,
-                    text: drain.as_str().to_string(),
-                }
+                Box::new(RemoveRange::new(
+                    start_line,
+                    start_col,
+                    drain.as_str().to_string(),
+                ))
             };
             let offset = line.len();
             line.push_str(&suffix);
-            let insert_text = Edit::InsertText {
-                offset,
-                length: suffix.len(),
-            };
+            let insert_text: Box<dyn Edit> =
+                Box::new(InsertText::new(start_line, offset, suffix.len()));
             line.shrink_to_fit();
             vec![remove_range, insert_text]
         });
-        let drain_lines = first_group
-            .drain_lines(start_line_in_group + 1..)
-            .map(|lines| Edit::RemoveLines {
-                lines: lines.into_iter().map(|line| line.into_content()).collect(),
-                line: start_line_in_group + 1,
-            });
+        let drain_lines =
+            first_group
+                .drain_lines(start_line_in_group + 1..)
+                .map(|lines| -> Box<dyn Edit> {
+                    Box::new(RemoveLines::new(
+                        lines.into_iter().map(|line| line.into_content()).collect(),
+                        start_line_in_group + 1,
+                    ))
+                });
 
-        let mut edits = Vec::new();
+        let mut edits: Vec<Box<dyn Edit>> = Vec::new();
         if let Some(drain_lines_end) = compound_edit {
             edits.extend(drain_lines_end);
         }
@@ -327,6 +338,22 @@ impl Buffer {
         if start_group_index + 1 < end_group_index {
             self.content.drain(start_group_index + 1..end_group_index);
         }
+    }
+
+    pub(crate) fn undo(&mut self) -> Option<Position> {
+        if let Some(edit) = self.undo_manager.pop() {
+            let new_position = edit.undo(self);
+            return Some(new_position);
+        }
+        None
+    }
+
+    pub(crate) fn redo(&self) -> Option<Position> {
+        todo!()
+    }
+
+    pub(crate) fn can_undo(&self) -> bool {
+        self.undo_manager.can_undo()
     }
 
     pub(crate) fn line_groups(&self) -> &[LineGroup] {
@@ -564,6 +591,48 @@ impl Buffer {
 
             self.compute_length();
             self.recompute_first_lines();
+            self.dirty = true;
+        }
+    }
+
+    pub(crate) fn insert_str(&mut self, line: usize, col: usize, text: &str) {
+        if let Some((gi, li)) = self.find_group_index(line) {
+            let line_group = &mut self.content[gi];
+            line_group.filter_line_mut(li, |l| {
+                l.insert_str(col, text);
+            });
+            self.compute_length();
+            self.dirty = true;
+        }
+    }
+
+    pub(crate) fn insert_lines(&mut self, line_idx: usize, lines: Vec<String>) {
+        if lines.is_empty() {
+            return;
+        }
+        if let Some((gi, li)) = self.find_group_index(line_idx) {
+            let line_group = &mut self.content[gi];
+            for (i, line_text) in lines.into_iter().enumerate() {
+                line_group.insert_line(li + i, Line::from(line_text));
+            }
+            self.compute_length();
+            self.recompute_first_lines();
+            self.dirty = true;
+        } else if line_idx == self.line_count() {
+            for line_text in lines {
+                self.push_line(line_text);
+            }
+        }
+    }
+
+    pub(crate) fn delete_line_range(&mut self, line: usize, offset: usize, length: usize) {
+        if let Some((gi, li)) = self.find_group_index(line) {
+            let line_group = &mut self.content[gi];
+            line_group.filter_line_mut(li, |l| {
+                l.drain(offset..offset + length);
+                l.shrink_to_fit();
+            });
+            self.compute_length();
             self.dirty = true;
         }
     }
@@ -912,5 +981,29 @@ mod tests {
         let base = b.mem();
         b.push_line("abc");
         assert!(b.mem() >= base);
+    }
+
+    #[test]
+    fn test_undo_remove_range() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "Hello World", 100);
+        buffer.delete_range(TextRange::new(0, 5, 0, 11));
+        assert_eq!(buffer.line_text(0), "Hello");
+        buffer.undo();
+        assert_eq!(buffer.line_text(0), "Hello World");
+    }
+
+    #[test]
+    fn test_undo_delete_across_lines() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "Line 1\nLine 2\nLine 3", 100);
+        buffer.delete_range(TextRange::new(0, 4, 2, 4));
+        assert_eq!(buffer.line_count(), 1);
+        assert_eq!(buffer.line_text(0), "Line 3");
+        buffer.undo();
+        assert_eq!(buffer.line_count(), 3);
+        assert_eq!(buffer.line_text(0), "Line 1");
+        assert_eq!(buffer.line_text(1), "Line 2");
+        assert_eq!(buffer.line_text(2), "Line 3");
     }
 }

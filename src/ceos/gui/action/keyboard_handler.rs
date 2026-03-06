@@ -1,5 +1,5 @@
 use crate::ceos::gui::action::Action;
-use egui::KeyboardShortcut;
+use egui::{Key, KeyboardShortcut, Modifiers};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -10,58 +10,69 @@ pub(crate) struct KeyboardHandler {
 impl KeyboardHandler {
     pub(crate) fn new() -> Self {
         let mut shortcuts = HashMap::new();
+        shortcuts.insert(KeyboardShortcut::new(Modifiers::CTRL, Key::S), Action::Save);
         shortcuts.insert(
-            KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::S),
-            Action::Save,
+            KeyboardShortcut::new(Modifiers::NONE, Key::ArrowLeft),
+            Action::GoToPrevCharacter { select: false },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::ArrowLeft),
-            Action::GoToPrevCharacter,
+            KeyboardShortcut::new(Modifiers::SHIFT, Key::ArrowLeft),
+            Action::GoToPrevCharacter { select: true },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::ArrowRight),
-            Action::GoToNextCharacter,
+            KeyboardShortcut::new(Modifiers::NONE, Key::ArrowRight),
+            Action::GoToNextCharacter { select: false },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::ArrowUp),
-            Action::GoToPrevLine,
+            KeyboardShortcut::new(Modifiers::SHIFT, Key::ArrowRight),
+            Action::GoToNextCharacter { select: true },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::ArrowDown),
-            Action::GoToNextLine,
+            KeyboardShortcut::new(Modifiers::NONE, Key::ArrowUp),
+            Action::GoToPrevLine { select: false },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::Enter),
+            KeyboardShortcut::new(Modifiers::NONE, Key::ArrowDown),
+            Action::GoToNextLine { select: false },
+        );
+        shortcuts.insert(
+            KeyboardShortcut::new(Modifiers::NONE, Key::Enter),
             Action::Enter,
         );
         shortcuts.insert(
-            KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::Backspace),
+            KeyboardShortcut::new(Modifiers::NONE, Key::Backspace),
             Action::Backspace,
         );
         shortcuts.insert(
-            KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::Delete),
+            KeyboardShortcut::new(Modifiers::NONE, Key::Delete),
             Action::Delete,
         );
         shortcuts.insert(
-            KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::Home),
-            Action::GoToLineStart,
+            KeyboardShortcut::new(Modifiers::NONE, Key::Home),
+            Action::GoToLineStart { select: false },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(egui::Modifiers::NONE, egui::Key::End),
-            Action::GoToLineEnd,
+            KeyboardShortcut::new(Modifiers::NONE, Key::End),
+            Action::GoToLineEnd { select: false },
+        );
+        shortcuts.insert(KeyboardShortcut::new(Modifiers::CTRL, Key::Z), Action::Undo);
+        shortcuts.insert(
+            KeyboardShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::Z),
+            Action::Redo,
         );
         shortcuts.insert(
-            KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::Home),
-            Action::GoToBufferStart,
+            KeyboardShortcut::new(Modifiers::CTRL, Key::Home),
+            Action::GoToBufferStart { select: false },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::End),
-            Action::GoToBufferEnd,
+            KeyboardShortcut::new(Modifiers::CTRL, Key::End),
+            Action::GoToBufferEnd { select: false },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::F),
+            KeyboardShortcut::new(Modifiers::CTRL, Key::F),
             Action::Search,
         );
+        shortcuts.insert(KeyboardShortcut::new(Modifiers::CTRL, Key::Z), Action::Undo);
         Self { shortcuts }
     }
 

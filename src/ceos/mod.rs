@@ -244,6 +244,7 @@ impl Ceos {
             egui::MenuBar::new().ui(ui, |ui| {
                 // NOTE: no File->Quit on web pages!
                 self.file_menu(ui);
+                self.edit_menu(ui);
                 self.view_menu(ui);
                 self.options_menu(ui);
                 self.debug_menu(ui);
@@ -268,6 +269,21 @@ impl Ceos {
             if ui.button("Quit").clicked() {
                 info!("Quit");
                 ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+            }
+        });
+    }
+
+    fn edit_menu(&mut self, ui: &mut Ui) {
+        ui.menu_button("Edit", |ui| {
+            if ui
+                .add_enabled(
+                    self.textarea_properties.buffer.can_undo(),
+                    egui::Button::new("Undo").shortcut_text("Ctrl+Z"),
+                )
+                .clicked()
+            {
+                self.textarea_properties.undo();
+                ui.close_kind(egui::UiKind::Menu);
             }
         });
     }

@@ -205,23 +205,43 @@ impl TextAreaProperties {
         self.delete_selection();
     }
 
-    pub(crate) fn go_to_prev_char(&mut self) {
-        self.selection = None;
+    pub(crate) fn go_to_prev_char(&mut self, select: bool) {
+        let old_caret_position = self.caret_position;
         if self.caret_position.column > 0 {
             self.caret_position.column -= 1;
         } else if self.caret_position.line > 0 {
             self.caret_position.line -= 1;
             self.caret_position.column = self.buffer.line_length(self.caret_position.line);
         }
+
+        if select {
+            if let Some(selection) = &mut self.selection {
+                selection.start = self.caret_position;
+            } else {
+                self.selection = Some(Selection::new(self.caret_position, old_caret_position));
+            }
+        } else {
+            self.selection = None;
+        }
     }
 
-    pub(crate) fn go_to_next_char(&mut self) {
-        self.selection = None;
+    pub(crate) fn go_to_next_char(&mut self, select: bool) {
+        let old_caret_position = self.caret_position;
         if self.caret_position.column < self.buffer.line_length(self.caret_position.line) {
             self.caret_position.column += 1;
         } else if self.caret_position.line < self.buffer.line_count() - 1 {
             self.caret_position.line += 1;
             self.caret_position.column = 0;
+        }
+
+        if select {
+            if let Some(selection) = &mut self.selection {
+                selection.end = self.caret_position;
+            } else {
+                self.selection = Some(Selection::new(old_caret_position, self.caret_position));
+            }
+        } else {
+            self.selection = None;
         }
     }
 
@@ -303,6 +323,20 @@ impl TextAreaProperties {
         }
     }
 
+    pub(crate) fn undo(&mut self) {
+        info!("undo");
+        if let Some(position) = self.buffer.undo() {
+            self.caret_position = position;
+        }
+    }
+
+    pub(crate) fn redo(&mut self) {
+        info!("redo");
+        if let Some(position) = self.buffer.redo() {
+            self.caret_position = position;
+        }
+    }
+
     pub(crate) fn input_delete(&mut self) {
         if self.selection.is_some() {
             self.delete_selection();
@@ -356,7 +390,7 @@ mod tests {
         let mut textarea = create_test_textarea(text);
         textarea.caret_position = start_position;
 
-        textarea.go_to_prev_char();
+        textarea.go_to_prev_char(false);
 
         assert_eq!(textarea.caret_position, expected_position);
     }
@@ -373,7 +407,7 @@ mod tests {
         let mut textarea = create_test_textarea(text);
         textarea.caret_position = start_position;
 
-        textarea.go_to_next_char();
+        textarea.go_to_next_char(false);
 
         assert_eq!(textarea.caret_position, expected_position);
     }

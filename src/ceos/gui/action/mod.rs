@@ -7,18 +7,20 @@ pub(crate) mod keyboard_handler;
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum Action {
     Save,
-    GoToPrevCharacter,
-    GoToNextCharacter,
-    GoToPrevLine,
-    GoToNextLine,
-    GoToLineStart,
-    GoToLineEnd,
-    GoToBufferStart,
-    GoToBufferEnd,
+    GoToPrevCharacter { select: bool },
+    GoToNextCharacter { select: bool },
+    GoToPrevLine { select: bool },
+    GoToNextLine { select: bool },
+    GoToLineStart { select: bool },
+    GoToLineEnd { select: bool },
+    GoToBufferStart { select: bool },
+    GoToBufferEnd { select: bool },
     Enter,
     Backspace,
     Delete,
     Search,
+    Undo,
+    Redo,
 }
 
 impl Action {
@@ -27,15 +29,27 @@ impl Action {
             Action::Backspace => context.textarea_properties.input_backspace(),
             Action::Delete => context.textarea_properties.input_backspace(),
             Action::Enter => context.textarea_properties.input_enter(),
-            Action::GoToPrevCharacter => context.textarea_properties.go_to_prev_char(),
-            Action::GoToNextCharacter => context.textarea_properties.go_to_next_char(),
-            Action::GoToPrevLine => context.textarea_properties.go_to_prev_line(),
-            Action::GoToNextLine => context.textarea_properties.go_to_next_line(),
-            Action::GoToLineStart => context.textarea_properties.go_to_start_of_line(),
-            Action::GoToLineEnd => context.textarea_properties.go_to_end_of_line(),
-            Action::GoToBufferStart => context.textarea_properties.go_to_start_of_buffer(),
-            Action::GoToBufferEnd => context.textarea_properties.go_to_end_of_buffer(),
+            Action::GoToPrevCharacter { select } => {
+                context.textarea_properties.go_to_prev_char(*select)
+            }
+            Action::GoToNextCharacter { select } => {
+                context.textarea_properties.go_to_next_char(*select)
+            }
+            Action::GoToPrevLine { select: _ } => context.textarea_properties.go_to_prev_line(),
+            Action::GoToNextLine { select: _ } => context.textarea_properties.go_to_next_line(),
+            Action::GoToLineStart { select: _ } => {
+                context.textarea_properties.go_to_start_of_line()
+            }
+            Action::GoToLineEnd { select: _ } => context.textarea_properties.go_to_end_of_line(),
+            Action::GoToBufferStart { select: _ } => {
+                context.textarea_properties.go_to_start_of_buffer()
+            }
+            Action::GoToBufferEnd { select: _ } => {
+                context.textarea_properties.go_to_end_of_buffer()
+            }
             Action::Save => info!("Save action triggered"),
+            Action::Undo => context.textarea_properties.undo(),
+            Action::Redo => context.textarea_properties.redo(),
             Action::Search => {
                 let _ = context
                     .textarea_properties

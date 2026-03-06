@@ -5,12 +5,20 @@ pub(crate) mod edit;
 
 #[derive(Default, Debug)]
 pub(crate) struct UndoManager {
-    edits: Vec<Edit>,
+    edits: Vec<Box<dyn Edit>>,
 }
 
 impl UndoManager {
-    pub(crate) fn push(&mut self, new_edit: Edit) {
+    pub(crate) fn push(&mut self, new_edit: Box<dyn Edit>) {
         debug!("Pushing edit: {new_edit:?}");
         self.edits.push(new_edit);
+    }
+
+    pub(crate) fn pop(&mut self) -> Option<Box<dyn Edit>> {
+        self.edits.pop()
+    }
+
+    pub(crate) fn can_undo(&self) -> bool {
+        !self.edits.is_empty()
     }
 }
