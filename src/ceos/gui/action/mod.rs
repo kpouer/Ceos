@@ -35,17 +35,19 @@ impl Action {
             Action::GoToNextCharacter { select } => {
                 context.textarea_properties.go_to_next_char(*select)
             }
-            Action::GoToPrevLine { select: _ } => context.textarea_properties.go_to_prev_line(),
-            Action::GoToNextLine { select: _ } => context.textarea_properties.go_to_next_line(),
-            Action::GoToLineStart { select: _ } => {
-                context.textarea_properties.go_to_start_of_line()
+            Action::GoToPrevLine { select } => context.textarea_properties.go_to_prev_line(*select),
+            Action::GoToNextLine { select } => context.textarea_properties.go_to_next_line(*select),
+            Action::GoToLineStart { select } => {
+                context.textarea_properties.go_to_start_of_line(*select)
             }
-            Action::GoToLineEnd { select: _ } => context.textarea_properties.go_to_end_of_line(),
-            Action::GoToBufferStart { select: _ } => {
-                context.textarea_properties.go_to_start_of_buffer()
+            Action::GoToLineEnd { select } => {
+                context.textarea_properties.go_to_end_of_line(*select)
             }
-            Action::GoToBufferEnd { select: _ } => {
-                context.textarea_properties.go_to_end_of_buffer()
+            Action::GoToBufferStart { select } => {
+                context.textarea_properties.go_to_start_of_buffer(*select)
+            }
+            Action::GoToBufferEnd { select } => {
+                context.textarea_properties.go_to_end_of_buffer(*select)
             }
             Action::Save => info!("Save action triggered"),
             Action::Undo => context.textarea_properties.undo(),

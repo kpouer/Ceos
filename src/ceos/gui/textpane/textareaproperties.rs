@@ -13,7 +13,7 @@ use crate::ceos::gui::textpane::selection::Selection;
 use crate::event::Event;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::FontId;
-use log::{debug, info};
+use log::{debug, info, warn};
 use std::cmp;
 use std::ops::Range;
 use std::sync::mpsc::Sender;
@@ -214,15 +214,7 @@ impl TextAreaProperties {
             self.caret_position.column = self.buffer.line_length(self.caret_position.line);
         }
 
-        if select {
-            if let Some(selection) = &mut self.selection {
-                selection.start = self.caret_position;
-            } else {
-                self.selection = Some(Selection::new(self.caret_position, old_caret_position));
-            }
-        } else {
-            self.selection = None;
-        }
+        self.update_selection_after_caret_move(old_caret_position, select);
     }
 
     pub(crate) fn go_to_next_char(&mut self, select: bool) {
@@ -234,19 +226,11 @@ impl TextAreaProperties {
             self.caret_position.column = 0;
         }
 
-        if select {
-            if let Some(selection) = &mut self.selection {
-                selection.end = self.caret_position;
-            } else {
-                self.selection = Some(Selection::new(old_caret_position, self.caret_position));
-            }
-        } else {
-            self.selection = None;
-        }
+        self.update_selection_after_caret_move(old_caret_position, select);
     }
 
-    pub(crate) fn go_to_prev_line(&mut self) {
-        self.selection = None;
+    pub(crate) fn go_to_prev_line(&mut self, select: bool) {
+        let old_caret_position = self.caret_position;
         if self.caret_position.line > 0 {
             self.caret_position.line -= 1;
             self.caret_position.column = self
@@ -254,10 +238,12 @@ impl TextAreaProperties {
                 .column
                 .min(self.buffer.line_length(self.caret_position.line));
         }
+
+        self.update_selection_after_caret_move(old_caret_position, select);
     }
 
-    pub(crate) fn go_to_next_line(&mut self) {
-        self.selection = None;
+    pub(crate) fn go_to_next_line(&mut self, select: bool) {
+        let old_caret_position = self.caret_position;
         if self.caret_position.line < self.buffer.line_count() {
             self.caret_position.line += 1;
             self.caret_position.column = self
@@ -265,29 +251,62 @@ impl TextAreaProperties {
                 .column
                 .min(self.buffer.line_length(self.caret_position.line));
         }
+
+        self.update_selection_after_caret_move(old_caret_position, select);
     }
 
-    pub(crate) fn go_to_start_of_buffer(&mut self) {
-        self.selection = None;
+    pub(crate) fn go_to_start_of_buffer(&mut self, select: bool) {
+        let old_caret_position = self.caret_position;
         self.caret_position = Position::ZERO;
+        self.update_selection_after_caret_move(old_caret_position, select);
     }
 
-    pub(crate) fn go_to_start_of_line(&mut self) {
-        self.selection = None;
+    pub(crate) fn go_to_start_of_line(&mut self, select: bool) {
+        let old_caret_position = self.caret_position;
         self.caret_position.column = 0;
+        self.update_selection_after_caret_move(old_caret_position, select);
     }
 
-    pub(crate) fn go_to_end_of_line(&mut self) {
-        self.selection = None;
+    pub(crate) fn go_to_end_of_line(&mut self, select: bool) {
+        let old_caret_position = self.caret_position;
         let current_line_length = self.buffer.line_text(self.caret_position.line);
         self.caret_position.column = current_line_length.len().saturating_sub(1);
+        self.update_selection_after_caret_move(old_caret_position, select);
     }
 
-    pub(crate) fn go_to_end_of_buffer(&mut self) {
-        self.selection = None;
+    pub(crate) fn go_to_end_of_buffer(&mut self, select: bool) {
+        let old_caret_position = self.caret_position;
         let current_line_length = self.buffer.line_text(self.buffer.line_count() - 1);
         self.caret_position.line = self.buffer.line_count().saturating_sub(1);
         self.caret_position.column = current_line_length.len().saturating_sub(1);
+        self.update_selection_after_caret_move(old_caret_position, select);
+    }
+
+    fn update_selection_after_caret_move(&mut self, old_caret_position: Position, select: bool) {
+        if select {
+            if let Some(mut selection) = self.selection.take() {
+                if selection.start == old_caret_position {
+                    selection.start = self.caret_position;
+                } else if selection.end == old_caret_position {
+                    selection.end = self.caret_position;
+                } else {
+                    warn!(
+                        "That's a surprise, old_caret_position {old_caret_position} is neither start nor end of selection {selection:?}"
+                    );
+                };
+                if !selection.is_empty() {
+                    self.selection = Some(selection);
+                }
+            } else {
+                if self.caret_position < old_caret_position {
+                    self.selection = Some(Selection::new(self.caret_position, old_caret_position));
+                } else {
+                    self.selection = Some(Selection::new(old_caret_position, self.caret_position));
+                }
+            }
+        } else {
+            self.selection = None;
+        }
     }
 
     pub(crate) fn input_enter(&mut self) {
@@ -476,7 +495,7 @@ mod tests {
             end: Position { line: 1, column: 1 },
         });
 
-        textarea.go_to_start_of_buffer();
+        textarea.go_to_start_of_buffer(false);
 
         assert_eq!(textarea.caret_position, Position::ZERO);
         assert!(textarea.selection.is_none());
@@ -487,7 +506,7 @@ mod tests {
         let mut textarea = create_test_textarea("abc");
         textarea.caret_position = Position { line: 0, column: 2 };
 
-        textarea.go_to_start_of_line();
+        textarea.go_to_start_of_line(false);
 
         assert_eq!(textarea.caret_position, Position::ZERO);
         assert!(textarea.selection.is_none());
@@ -498,7 +517,7 @@ mod tests {
         let mut textarea = create_test_textarea("abc");
         textarea.caret_position = Position::ZERO;
 
-        textarea.go_to_end_of_line();
+        textarea.go_to_end_of_line(false);
 
         assert_eq!(textarea.caret_position.line, 0);
         assert_eq!(textarea.caret_position.column, 2);
@@ -510,7 +529,7 @@ mod tests {
         let mut textarea = create_test_textarea("a\nbc");
         textarea.caret_position = Position::ZERO;
 
-        textarea.go_to_end_of_buffer();
+        textarea.go_to_end_of_buffer(false);
 
         assert_eq!(textarea.caret_position.line, 1);
         assert_eq!(textarea.caret_position.column, 1);

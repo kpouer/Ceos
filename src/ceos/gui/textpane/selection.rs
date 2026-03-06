@@ -14,6 +14,11 @@ impl Selection {
         debug_assert!(start < end);
         Self { start, end }
     }
+
+    #[inline]
+    pub(crate) fn is_empty(&self) -> bool {
+        self.start == self.end
+    }
 }
 
 impl From<&Selection> for TextRange {
