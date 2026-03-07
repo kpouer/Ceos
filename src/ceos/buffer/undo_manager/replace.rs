@@ -11,7 +11,7 @@ pub(crate) struct Replace {
 }
 
 impl Replace {
-    pub(crate) fn new(line: usize, start: usize, end: usize, text: String) -> Self {
+    pub(crate) const fn new(line: usize, start: usize, end: usize, text: String) -> Self {
         Self {
             line,
             start,

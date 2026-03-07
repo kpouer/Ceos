@@ -10,7 +10,7 @@ pub(crate) struct RemoveRange {
 }
 
 impl RemoveRange {
-    pub(crate) fn new(line: usize, offset: usize, text: String) -> Self {
+    pub(crate) const fn new(line: usize, offset: usize, text: String) -> Self {
         Self { line, offset, text }
     }
 }

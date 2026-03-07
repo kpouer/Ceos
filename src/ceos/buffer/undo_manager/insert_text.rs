@@ -10,7 +10,7 @@ pub(crate) struct InsertText {
 }
 
 impl InsertText {
-    pub(crate) fn new(line: usize, offset: usize, length: usize) -> Self {
+    pub(crate) const fn new(line: usize, offset: usize, length: usize) -> Self {
         Self {
             line,
             offset,

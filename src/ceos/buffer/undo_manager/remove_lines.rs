@@ -9,7 +9,7 @@ pub(crate) struct RemoveLines {
 }
 
 impl RemoveLines {
-    pub(crate) fn new(lines: Vec<String>, line: usize) -> Self {
+    pub(crate) const fn new(lines: Vec<String>, line: usize) -> Self {
         Self { lines, line }
     }
 }

@@ -8,7 +8,7 @@ pub(crate) struct CompoundEdit {
 }
 
 impl CompoundEdit {
-    pub(crate) fn new(edits: Vec<Box<dyn Edit>>) -> Self {
+    pub(crate) const fn new(edits: Vec<Box<dyn Edit>>) -> Self {
         Self { edits }
     }
 }
