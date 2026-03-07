@@ -1,4 +1,5 @@
 use crate::ceos::buffer::buffer::Buffer;
+use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::undo_manager::edit::Edit;
 use crate::ceos::gui::textpane::position::Position;
 
@@ -9,7 +10,8 @@ pub(crate) struct RemoveLines {
 }
 
 impl RemoveLines {
-    pub(crate) const fn new(line: usize, lines: Vec<String>) -> Self {
+    pub(crate) fn new(line: usize, lines: Vec<Line>) -> Self {
+        let lines = lines.into_iter().map(|line| line.into_content()).collect();
         Self { line, lines }
     }
 }

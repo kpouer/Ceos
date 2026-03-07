@@ -259,10 +259,7 @@ impl Buffer {
             let drain_lines = line_group
                 .drain_lines(start_line_in_group + 1..=end_line_in_group)
                 .map(|lines| -> Box<dyn Edit> {
-                    Box::new(RemoveLines::new(
-                        start_line_in_group + 1,
-                        lines.into_iter().map(|line| line.into_content()).collect(),
-                    ))
+                    Box::new(RemoveLines::new(start_line_in_group + 1, lines))
                 });
             let edit: Option<Box<dyn Edit>> = match (compound_edit, drain_lines) {
                 (Some(mut edit_list), Some(drain_lines)) => {
@@ -287,15 +284,9 @@ impl Buffer {
             let end_group = &mut self.content[end_group_index];
             let last_line = &end_group.lines()[end_line_in_group];
             let suffix = last_line.content()[end_col..].to_owned();
-            let drain_lines =
-                end_group
-                    .drain_lines(0..=end_line_in_group)
-                    .map(|lines| -> Box<dyn Edit> {
-                        Box::new(RemoveLines::new(
-                            0,
-                            lines.into_iter().map(|line| line.into_content()).collect(),
-                        ))
-                    });
+            let drain_lines = end_group
+                .drain_lines(0..=end_line_in_group)
+                .map(|lines| -> Box<dyn Edit> { Box::new(RemoveLines::new(0, lines)) });
             (drain_lines, suffix)
         };
 
@@ -320,10 +311,7 @@ impl Buffer {
             first_group
                 .drain_lines(start_line_in_group + 1..)
                 .map(|lines| -> Box<dyn Edit> {
-                    Box::new(RemoveLines::new(
-                        start_line_in_group + 1,
-                        lines.into_iter().map(|line| line.into_content()).collect(),
-                    ))
+                    Box::new(RemoveLines::new(start_line_in_group + 1, lines))
                 });
 
         let mut edits: Vec<Box<dyn Edit>> = Vec::new();
