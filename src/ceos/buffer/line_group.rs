@@ -106,7 +106,9 @@ impl LineGroup {
     }
 
     fn decompress(&mut self) {
-        debug_assert!(self.lines.is_none());
+        if self.lines.is_some() {
+            return;
+        }
         debug_assert!(self.compressed.is_some());
 
         let lines = self.decompress_lines();

@@ -4,13 +4,13 @@ use crate::ceos::gui::textpane::position::Position;
 
 #[derive(Debug)]
 pub(crate) struct RemoveLines {
-    lines: Vec<String>,
     line: usize,
+    lines: Vec<String>,
 }
 
 impl RemoveLines {
-    pub(crate) const fn new(lines: Vec<String>, line: usize) -> Self {
-        Self { lines, line }
+    pub(crate) const fn new(line: usize, lines: Vec<String>) -> Self {
+        Self { line, lines }
     }
 }
 
@@ -23,7 +23,11 @@ impl Edit for RemoveLines {
         }
     }
 
-    fn redo(&self, _buffer: &mut Buffer) -> Position {
-        todo!()
+    fn redo(&self, buffer: &mut Buffer) -> Position {
+        buffer.drain_line_mut(self.line..self.line + self.lines.len());
+        Position {
+            line: self.line,
+            column: 0,
+        }
     }
 }

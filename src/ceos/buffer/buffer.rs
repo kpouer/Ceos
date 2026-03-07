@@ -249,9 +249,9 @@ impl Buffer {
                     ))
                 };
                 let offset = line.len();
-                line.push_str(&suffix);
                 let insert_text: Box<dyn Edit> =
-                    Box::new(InsertText::new(start_line, offset, suffix.len()));
+                    Box::new(InsertText::new(start_line, offset, suffix.clone()));
+                line.push_str(&suffix);
                 line.shrink_to_fit();
                 vec![remove_range, insert_text]
             });
@@ -260,8 +260,8 @@ impl Buffer {
                 .drain_lines(start_line_in_group + 1..=end_line_in_group)
                 .map(|lines| -> Box<dyn Edit> {
                     Box::new(RemoveLines::new(
-                        lines.into_iter().map(|line| line.into_content()).collect(),
                         start_line_in_group + 1,
+                        lines.into_iter().map(|line| line.into_content()).collect(),
                     ))
                 });
             let edit: Option<Box<dyn Edit>> = match (compound_edit, drain_lines) {
@@ -292,8 +292,8 @@ impl Buffer {
                     .drain_lines(0..=end_line_in_group)
                     .map(|lines| -> Box<dyn Edit> {
                         Box::new(RemoveLines::new(
-                            lines.into_iter().map(|line| line.into_content()).collect(),
                             0,
+                            lines.into_iter().map(|line| line.into_content()).collect(),
                         ))
                     });
             (drain_lines, suffix)
@@ -310,9 +310,9 @@ impl Buffer {
                 ))
             };
             let offset = line.len();
-            line.push_str(&suffix);
             let insert_text: Box<dyn Edit> =
-                Box::new(InsertText::new(start_line, offset, suffix.len()));
+                Box::new(InsertText::new(start_line, offset, suffix.clone()));
+            line.push_str(&suffix);
             line.shrink_to_fit();
             vec![remove_range, insert_text]
         });
@@ -321,37 +321,57 @@ impl Buffer {
                 .drain_lines(start_line_in_group + 1..)
                 .map(|lines| -> Box<dyn Edit> {
                     Box::new(RemoveLines::new(
-                        lines.into_iter().map(|line| line.into_content()).collect(),
                         start_line_in_group + 1,
+                        lines.into_iter().map(|line| line.into_content()).collect(),
                     ))
                 });
 
         let mut edits: Vec<Box<dyn Edit>> = Vec::new();
-        if let Some(drain_lines_end) = compound_edit {
-            edits.extend(drain_lines_end);
+        if let Some(drain_lines) = drain_lines_end {
+            edits.push(drain_lines);
         }
         if let Some(drain_lines) = drain_lines {
             edits.push(drain_lines);
         }
-        if let Some(drain_lines) = drain_lines_end {
-            edits.push(drain_lines);
+        if let Some(mut drain_lines_start) = compound_edit {
+            edits.append(&mut drain_lines_start);
         }
         // drain the linegroups between the start and the end group
         if start_group_index + 1 < end_group_index {
             self.content.drain(start_group_index + 1..end_group_index);
         }
+
+        if !edits.is_empty() {
+            self.undo_manager.push(Box::new(CompoundEdit::new(edits)));
+        }
     }
 
     pub(crate) fn undo(&mut self) -> Option<Position> {
-        if let Some(edit) = self.undo_manager.pop() {
+        if let Some(edit) = self.undo_manager.pop_undo() {
             let new_position = edit.undo(self);
+            self.undo_manager.push_redo(edit);
+            self.compute_length();
+            self.recompute_first_lines();
+            self.dirty = true;
             return Some(new_position);
         }
         None
     }
 
-    pub(crate) fn redo(&self) -> Option<Position> {
-        todo!()
+    pub(crate) fn redo(&mut self) -> Option<Position> {
+        if let Some(edit) = self.undo_manager.pop_redo() {
+            let new_position = edit.redo(self);
+            self.undo_manager.push_undo(edit);
+            self.compute_length();
+            self.recompute_first_lines();
+            self.dirty = true;
+            return Some(new_position);
+        }
+        None
+    }
+
+    pub(crate) fn can_redo(&self) -> bool {
+        self.undo_manager.can_redo()
     }
 
     pub(crate) fn can_undo(&self) -> bool {
@@ -986,13 +1006,62 @@ mod tests {
     }
 
     #[test]
-    fn test_undo_remove_range() {
+    fn test_undo_redo_remove_range() {
         let (sender, _) = std::sync::mpsc::channel();
         let mut buffer = Buffer::new_from_string(sender, "Hello World", 100);
         buffer.delete_range(TextRange::new(0, 5, 0, 11));
         assert_eq!(buffer.line_text(0), "Hello");
+
         buffer.undo();
         assert_eq!(buffer.line_text(0), "Hello World");
+        assert!(buffer.can_redo());
+
+        buffer.redo();
+        assert_eq!(buffer.line_text(0), "Hello");
+        assert!(!buffer.can_redo());
+        assert!(buffer.can_undo());
+    }
+
+    #[test]
+    fn test_undo_redo_multi_line_delete() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "line1\nline2\nline3\nline4", 2);
+
+        // Avant suppression :
+        // 0: "line1"
+        // 1: "line2"
+        // 2: "line3"
+        // 3: "line4"
+
+        // On supprime de (1, 0) à (3, 0)
+        // Cela supprime "line2" et "line3"
+        buffer.delete_range(TextRange::new(1, 0, 3, 0));
+
+        // Après suppression :
+        // 0: "line1"
+        // 1: "line4"
+        assert_eq!(buffer.line_text(0), "line1");
+        assert_eq!(buffer.line_text(1), "line4");
+        assert_eq!(buffer.line_count(), 2);
+
+        // buffer.undo();
+        // assert_eq!(buffer.line_count(), 4);
+        // assert_eq!(buffer.line_text(0), "line1");
+        // assert_eq!(buffer.line_text(1), "line2");
+        // assert_eq!(buffer.line_text(2), "line3");
+        // assert_eq!(buffer.line_text(3), "line4");
+    }
+
+    #[test]
+    fn test_new_edit_clears_redo_stack() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "abc", 100);
+        buffer.delete_range(TextRange::new(0, 1, 0, 2)); // "ac"
+        buffer.undo(); // "abc"
+        assert!(buffer.can_redo());
+
+        buffer.delete_range(TextRange::new(0, 0, 0, 1)); // "bc"
+        assert!(!buffer.can_redo());
     }
 
     #[test]
