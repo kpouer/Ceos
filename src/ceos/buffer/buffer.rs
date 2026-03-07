@@ -2,9 +2,11 @@ use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::line_group::LineGroup;
 use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::buffer::undo_manager::UndoManager;
-use crate::ceos::buffer::undo_manager::edit::{
-    CompoundEdit, Edit, InsertText, RemoveLines, RemoveRange,
-};
+use crate::ceos::buffer::undo_manager::compound_edit::CompoundEdit;
+use crate::ceos::buffer::undo_manager::edit::Edit;
+use crate::ceos::buffer::undo_manager::insert_text::InsertText;
+use crate::ceos::buffer::undo_manager::remove_lines::RemoveLines;
+use crate::ceos::buffer::undo_manager::remove_range::RemoveRange;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::tools::misc_tool::{gzip_uncompressed_size_fast, is_gzip};
 use crate::event::Event;
