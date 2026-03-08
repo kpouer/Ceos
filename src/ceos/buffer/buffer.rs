@@ -195,14 +195,11 @@ impl Buffer {
             if let Some((group_index, line_in_group)) = self.find_group_index(start_line) {
                 let line_group = &mut self.content[group_index];
                 let edit = line_group.filter_line_mut(line_in_group, |line| {
-                    let drain = line.drain(text_range.start_column..text_range.end_column);
-                    let remove_range = RemoveRange::new(
+                    let remove_range = Self::drain_columns_from_line(
                         start_line,
-                        text_range.start_column,
-                        drain.as_str().to_string(),
+                        text_range.start_column..text_range.end_column,
+                        line,
                     );
-                    // need to drop the drain before shrinking the line
-                    drop(drain);
                     line.shrink_to_fit();
                     remove_range
                 });
@@ -250,16 +247,11 @@ impl Buffer {
 
             let suffix = line_group[end_line_in_group].content()[end_col..].to_owned();
             let compound_edit = line_group.filter_line_mut(start_line_in_group, |line| {
-                let remove_range = {
-                    let drain = line.drain(start_col..);
-                    Box::new(RemoveRange::new(
-                        start_line,
-                        start_col,
-                        drain.as_str().to_string(),
-                    ))
-                };
+                let remove_range =
+                    Box::new(Self::drain_columns_from_line(start_line, start_col.., line));
                 let offset = line.len();
                 line.push_str(&suffix);
+                line.shrink_to_fit();
                 let insert_text: Box<dyn Edit> =
                     Box::new(InsertText::new(start_line, offset, suffix.len()));
                 line.shrink_to_fit();
@@ -311,19 +303,13 @@ impl Buffer {
 
         let first_group = &mut self.content[start_group_index];
         let compound_edit = first_group.filter_line_mut(start_line_in_group, |line| {
-            let remove_range = {
-                let drain = line.drain(start_col..);
-                Box::new(RemoveRange::new(
-                    start_line,
-                    start_col,
-                    drain.as_str().to_string(),
-                ))
-            };
-            let offset = line.len();
+            let remove_range =
+                Box::new(Self::drain_columns_from_line(start_line, start_col.., line));
             line.push_str(&suffix);
+            line.shrink_to_fit();
+            let offset = line.len();
             let insert_text: Box<dyn Edit> =
                 Box::new(InsertText::new(start_line, offset, suffix.len()));
-            line.shrink_to_fit();
             vec![remove_range, insert_text]
         });
         let drain_lines =
@@ -748,6 +734,19 @@ impl Buffer {
             Bound::Unbounded => self.line_count(),
         };
         (start.min(self.line_count()), end.min(self.line_count()))
+    }
+
+    fn drain_columns_from_line<R>(start_line: usize, range: R, line: &mut Line) -> RemoveRange
+    where
+        R: RangeBounds<usize>,
+    {
+        let start_col: usize = match range.start_bound() {
+            Bound::Included(s) => *s,
+            Bound::Excluded(s) => *s + 1,
+            Bound::Unbounded => 0,
+        };
+        let removed_text = line.drain(range);
+        RemoveRange::new(start_line, start_col, removed_text.as_str().to_string())
     }
 
     fn debug(&self) {
