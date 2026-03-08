@@ -196,9 +196,9 @@ impl Buffer {
                 let line_group = &mut self.content[group_index];
                 let edit = line_group.filter_line_mut(line_in_group, |line| {
                     let remove_range = Self::drain_columns_from_line(
-                        start_line,
-                        text_range.start_column..text_range.end_column,
                         line,
+                        text_range.start_column..text_range.end_column,
+                        start_line,
                     );
                     line.shrink_to_fit();
                     remove_range
@@ -246,17 +246,13 @@ impl Buffer {
             line_group.eventually_decompress();
 
             let suffix = line_group[end_line_in_group].content()[end_col..].to_owned();
-            let compound_edit = line_group.filter_line_mut(start_line_in_group, |line| {
-                let remove_range =
-                    Box::new(Self::drain_columns_from_line(start_line, start_col.., line));
-                let offset = line.len();
-                line.push_str(&suffix);
-                line.shrink_to_fit();
-                let insert_text: Box<dyn Edit> =
-                    Box::new(InsertText::new(start_line, offset, suffix.len()));
-                line.shrink_to_fit();
-                vec![remove_range, insert_text]
-            });
+            let compound_edit = Self::replace_with_suffix(
+                line_group,
+                start_line_in_group,
+                start_col,
+                start_line,
+                &suffix,
+            );
 
             let drain_lines = line_group
                 .drain_lines(start_line_in_group + 1..=end_line_in_group)
@@ -302,16 +298,13 @@ impl Buffer {
         };
 
         let first_group = &mut self.content[start_group_index];
-        let compound_edit = first_group.filter_line_mut(start_line_in_group, |line| {
-            let remove_range =
-                Box::new(Self::drain_columns_from_line(start_line, start_col.., line));
-            line.push_str(&suffix);
-            line.shrink_to_fit();
-            let offset = line.len();
-            let insert_text: Box<dyn Edit> =
-                Box::new(InsertText::new(start_line, offset, suffix.len()));
-            vec![remove_range, insert_text]
-        });
+        let compound_edit = Self::replace_with_suffix(
+            first_group,
+            start_line_in_group,
+            start_col,
+            start_line,
+            &suffix,
+        );
         let drain_lines =
             first_group
                 .drain_lines(start_line_in_group + 1..)
@@ -736,7 +729,13 @@ impl Buffer {
         (start.min(self.line_count()), end.min(self.line_count()))
     }
 
-    fn drain_columns_from_line<R>(start_line: usize, range: R, line: &mut Line) -> RemoveRange
+    fn push_into_line(line: &mut Line, str: &str, line_number: usize) -> InsertText {
+        let offset = line.len();
+        line.push_str(str);
+        InsertText::new(line_number, offset, str.len())
+    }
+
+    fn drain_columns_from_line<R>(line: &mut Line, range: R, line_number: usize) -> RemoveRange
     where
         R: RangeBounds<usize>,
     {
@@ -746,7 +745,23 @@ impl Buffer {
             Bound::Unbounded => 0,
         };
         let removed_text = line.drain(range);
-        RemoveRange::new(start_line, start_col, removed_text.as_str().to_string())
+        RemoveRange::new(line_number, start_col, removed_text.as_str().to_string())
+    }
+
+    fn replace_with_suffix(
+        line_group: &mut LineGroup,
+        start_line_in_group: usize,
+        col: usize,
+        start_line: usize,
+        suffix: &str,
+    ) -> Option<Vec<Box<dyn Edit>>> {
+        line_group.filter_line_mut(start_line_in_group, |line| {
+            let remove_range = Box::new(Self::drain_columns_from_line(line, col.., start_line));
+            let insert_text: Box<dyn Edit> =
+                Box::new(Self::push_into_line(line, &suffix, start_line));
+            line.shrink_to_fit();
+            vec![remove_range, insert_text]
+        })
     }
 
     fn debug(&self) {
