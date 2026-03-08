@@ -6,29 +6,29 @@ use crate::ceos::gui::textpane::position::Position;
 pub(crate) struct InsertText {
     line: usize,
     offset: usize,
-    text: String,
+    length: usize,
 }
 
 impl InsertText {
-    pub(crate) const fn new(line: usize, offset: usize, text: String) -> Self {
-        Self { line, offset, text }
+    pub(crate) const fn new(line: usize, offset: usize, length: usize) -> Self {
+        Self {
+            line,
+            offset,
+            length,
+        }
     }
 }
 
 impl Edit for InsertText {
     fn undo(&self, buffer: &mut Buffer) -> Position {
-        buffer.delete_line_range(self.line, self.offset, self.text.len());
+        buffer.delete_line_range(self.line, self.offset, self.length);
         Position {
             line: self.line,
             column: self.offset,
         }
     }
 
-    fn redo(&self, buffer: &mut Buffer) -> Position {
-        buffer.insert_str(self.line, self.offset, &self.text);
-        Position {
-            line: self.line,
-            column: self.offset,
-        }
+    fn redo(&self, _buffer: &mut Buffer) -> Position {
+        todo!()
     }
 }

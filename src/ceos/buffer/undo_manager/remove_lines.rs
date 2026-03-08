@@ -1,18 +1,16 @@
 use crate::ceos::buffer::buffer::Buffer;
-use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::undo_manager::edit::Edit;
 use crate::ceos::gui::textpane::position::Position;
 
 #[derive(Debug)]
 pub(crate) struct RemoveLines {
-    line: usize,
     lines: Vec<String>,
+    line: usize,
 }
 
 impl RemoveLines {
-    pub(crate) fn new(line: usize, lines: Vec<Line>) -> Self {
-        let lines = lines.into_iter().map(|line| line.into_content()).collect();
-        Self { line, lines }
+    pub(crate) const fn new(lines: Vec<String>, line: usize) -> Self {
+        Self { lines, line }
     }
 }
 
@@ -25,11 +23,7 @@ impl Edit for RemoveLines {
         }
     }
 
-    fn redo(&self, buffer: &mut Buffer) -> Position {
-        buffer.drain_line_mut(self.line..self.line + self.lines.len());
-        Position {
-            line: self.line,
-            column: 0,
-        }
+    fn redo(&self, _buffer: &mut Buffer) -> Position {
+        todo!()
     }
 }

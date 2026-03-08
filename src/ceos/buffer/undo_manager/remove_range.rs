@@ -24,11 +24,7 @@ impl Edit for RemoveRange {
         }
     }
 
-    fn redo(&self, buffer: &mut Buffer) -> Position {
-        buffer.delete_line_range(self.line, self.offset, self.text.len());
-        Position {
-            line: self.line,
-            column: self.offset,
-        }
+    fn redo(&self, _buffer: &mut Buffer) -> Position {
+        todo!()
     }
 }
