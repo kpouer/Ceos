@@ -24,6 +24,7 @@ use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
 
 const DEFAULT_GROUP_SIZE: usize = 1000;
+const LINE_SEPARATOR_LEN: usize = 1;
 
 #[derive(Debug)]
 pub struct Buffer {
@@ -58,6 +59,7 @@ impl Buffer {
         buffer
     }
 
+    #[inline]
     fn new_with_group_size(sender: Sender<Event>, group_size: usize) -> Self {
         Self {
             path: None,
@@ -158,13 +160,16 @@ impl Buffer {
     /// Push a new line at the end of the buffer.
     /// It is called when creating a new buffer
     fn push_line(&mut self, line: impl Into<Line>) {
-        let last_group = self.content.last_mut().expect("buffer is empty");
         let line = line.into();
-        self.length += line.len() + 1;
+        let last_group = self.content.last_mut().expect("buffer is empty");
+
+        self.length += line.len() + LINE_SEPARATOR_LEN;
         last_group.push(line);
+
         if last_group.is_full() {
             last_group.eventually_compress();
             last_group.free();
+
             let next_first = last_group.first_line() + last_group.line_count();
             self.content
                 .push(LineGroup::new(next_first, self.group_size));
@@ -186,19 +191,24 @@ impl Buffer {
         let end_line = text_range.end_line.min(line_count.saturating_sub(1));
 
         if start_line == end_line {
+            // We just delete text in one line
             if let Some((group_index, line_in_group)) = self.find_group_index(start_line) {
                 let line_group = &mut self.content[group_index];
-                line_group.filter_line_mut(line_in_group, |line| {
-                    {
-                        let drain = line.drain(text_range.start_column..text_range.end_column);
-                        self.undo_manager.push(Box::new(RemoveRange::new(
-                            start_line,
-                            text_range.start_column,
-                            drain.as_str().to_string(),
-                        )))
-                    }
+                let edit = line_group.filter_line_mut(line_in_group, |line| {
+                    let drain = line.drain(text_range.start_column..text_range.end_column);
+                    let remove_range = RemoveRange::new(
+                        start_line,
+                        text_range.start_column,
+                        drain.as_str().to_string(),
+                    );
+                    // need to drop the drain before shrinking the line
+                    drop(drain);
                     line.shrink_to_fit();
+                    remove_range
                 });
+                if let Some(edit) = edit {
+                    self.undo_manager.push(Box::new(edit));
+                }
             }
         } else {
             self.delete_across_lines(
