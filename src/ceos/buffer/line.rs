@@ -20,31 +20,33 @@ impl Line {
         self.content.is_empty()
     }
 
+    #[inline]
     pub(crate) const fn len(&self) -> usize {
         self.content.len()
     }
 
+    #[inline]
     pub(crate) fn content(&self) -> &str {
         &self.content
     }
 
+    #[inline]
     pub fn into_content(self) -> String {
         self.content
     }
 
-    pub(crate) fn contains(&self, needle: &str) -> bool {
-        self.content.contains(needle)
-    }
-
+    #[inline]
     pub(crate) const fn mem(&self) -> usize {
         self.content.capacity()
     }
 
+    #[inline]
     pub(crate) fn shrink_to_fit(&mut self) {
         self.content.shrink_to_fit();
     }
 
     /// Removes and returns a specified range of characters from the `content` field of the struct.
+    #[inline]
     pub(crate) fn drain<R>(&mut self, range: R) -> Drain<'_>
     where
         R: RangeBounds<usize>,
@@ -52,14 +54,17 @@ impl Line {
         self.content.drain(range)
     }
 
+    #[inline]
     pub(crate) fn push_str(&mut self, str: &str) {
         self.content.push_str(str);
     }
 
+    #[inline]
     pub(crate) fn insert_str(&mut self, idx: usize, str: &str) {
         self.content.insert_str(idx, str);
     }
 
+    #[inline]
     pub(crate) fn insert(&mut self, idx: usize, ch: char) {
         self.content.insert(idx, ch);
     }
