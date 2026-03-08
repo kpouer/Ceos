@@ -97,6 +97,7 @@ mod tests {
     fn drain_full_range_empts_line() {
         let mut line = Line::from("hello");
         line.drain(0..5);
+        line.shrink_to_fit();
         assert!(line.is_empty());
         assert_eq!(line.len(), 0);
         assert_eq!(line.content(), "");
@@ -107,6 +108,7 @@ mod tests {
     fn drain_prefix() {
         let mut line = Line::from("hello");
         line.drain(0..2); // remove "he"
+        line.shrink_to_fit();
         assert_eq!(line.content(), "llo");
         assert_eq!(line.len(), 3);
         assert_eq!(line.mem(), 3);
@@ -116,6 +118,7 @@ mod tests {
     fn drain_suffix() {
         let mut line = Line::from("hello");
         line.drain(3..); // remove from index 3 to end: remove "lo"
+        line.shrink_to_fit();
         assert_eq!(line.content(), "hel");
         assert_eq!(line.len(), 3);
         assert_eq!(line.mem(), 3);
@@ -125,6 +128,7 @@ mod tests {
     fn drain_inclusive_middle() {
         let mut line = Line::from("abcdef");
         line.drain(1..=3); // remove b,c,d
+        line.shrink_to_fit();
         assert_eq!(line.content(), "aef");
         assert_eq!(line.len(), 3);
         assert_eq!(line.mem(), 3);
