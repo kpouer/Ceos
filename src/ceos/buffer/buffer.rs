@@ -206,18 +206,15 @@ impl Buffer {
         // We just delete text in one line
         if let Some((group_index, line_in_group)) = self.find_group_index(start_line) {
             let line_group = &mut self.content[group_index];
-            let edit = line_group.filter_line_mut(line_in_group, |line| {
+            line_group.filter_line_mut(line_in_group, |line| {
                 let remove_range = Self::drain_columns_from_line(
                     line,
                     text_range.start_column..text_range.end_column,
                     start_line,
                 );
+                self.undo_manager.push(Box::new(remove_range));
                 line.shrink_to_fit();
-                remove_range
             });
-            if let Some(edit) = edit {
-                self.undo_manager.push(Box::new(edit));
-            }
         }
     }
 
