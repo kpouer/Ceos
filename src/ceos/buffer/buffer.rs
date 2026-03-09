@@ -722,6 +722,18 @@ impl Buffer {
         (start.min(self.line_count()), end.min(self.line_count()))
     }
 
+    fn debug(&self) {
+        println!("Buffer Debug Info:");
+        println!("Line Count: {}", self.line_count());
+        println!("Dirty: {}", self.dirty);
+        println!("Content:");
+        for line_group in &self.content {
+            line_group.debug();
+        }
+    }
+}
+
+impl Buffer {
     fn push_into_line(line: &mut Line, str: &str, line_number: usize) -> InsertText {
         let offset = line.len();
         line.push_str(str);
@@ -755,16 +767,6 @@ impl Buffer {
             line.shrink_to_fit();
             vec![remove_range, insert_text]
         })
-    }
-
-    fn debug(&self) {
-        println!("Buffer Debug Info:");
-        println!("Line Count: {}", self.line_count());
-        println!("Dirty: {}", self.dirty);
-        println!("Content:");
-        for line_group in &self.content {
-            line_group.debug();
-        }
     }
 }
 
