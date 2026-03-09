@@ -191,22 +191,7 @@ impl Buffer {
         let end_line = text_range.end_line.min(line_count.saturating_sub(1));
 
         if start_line == end_line {
-            // We just delete text in one line
-            if let Some((group_index, line_in_group)) = self.find_group_index(start_line) {
-                let line_group = &mut self.content[group_index];
-                let edit = line_group.filter_line_mut(line_in_group, |line| {
-                    let remove_range = Self::drain_columns_from_line(
-                        line,
-                        text_range.start_column..text_range.end_column,
-                        start_line,
-                    );
-                    line.shrink_to_fit();
-                    remove_range
-                });
-                if let Some(edit) = edit {
-                    self.undo_manager.push(Box::new(edit));
-                }
-            }
+            self.delete_in_line(text_range);
         } else {
             self.delete_across_lines(text_range);
         }
@@ -214,6 +199,26 @@ impl Buffer {
         self.compute_length();
         self.recompute_first_lines();
         self.dirty = true;
+    }
+
+    fn delete_in_line(&mut self, text_range: TextRange) {
+        let start_line = text_range.start_line;
+        // We just delete text in one line
+        if let Some((group_index, line_in_group)) = self.find_group_index(start_line) {
+            let line_group = &mut self.content[group_index];
+            let edit = line_group.filter_line_mut(line_in_group, |line| {
+                let remove_range = Self::drain_columns_from_line(
+                    line,
+                    text_range.start_column..text_range.end_column,
+                    start_line,
+                );
+                line.shrink_to_fit();
+                remove_range
+            });
+            if let Some(edit) = edit {
+                self.undo_manager.push(Box::new(edit));
+            }
+        }
     }
 
     /// Delete text on multiple lines
