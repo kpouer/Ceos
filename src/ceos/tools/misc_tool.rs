@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
+use std::ops::{Bound, RangeBounds};
 
 const GZIP_MAGIC: [u8; 2] = [0x1F, 0x8B];
 
@@ -24,4 +25,20 @@ pub(crate) fn gzip_uncompressed_size_fast(path: &std::path::Path) -> std::io::Re
     let mut buf = [0u8; 4];
     f.read_exact(&mut buf)?;
     Ok(u32::from_le_bytes(buf)) // ISIZE
+}
+
+pub(crate) struct RangeTools;
+
+impl RangeTools {
+    #[inline]
+    pub(crate) fn start_bound<T>(range: &T) -> usize
+    where
+        T: RangeBounds<usize>,
+    {
+        match range.start_bound() {
+            Bound::Included(s) => *s,
+            Bound::Excluded(s) => *s + 1,
+            Bound::Unbounded => 0,
+        }
+    }
 }

@@ -8,7 +8,7 @@ use crate::ceos::buffer::undo_manager::insert_text::InsertText;
 use crate::ceos::buffer::undo_manager::remove_lines::RemoveLines;
 use crate::ceos::buffer::undo_manager::remove_range::RemoveRange;
 use crate::ceos::gui::textpane::position::Position;
-use crate::ceos::tools::misc_tool::{gzip_uncompressed_size_fast, is_gzip};
+use crate::ceos::tools::misc_tool::{RangeTools, gzip_uncompressed_size_fast, is_gzip};
 use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use crate::progress_operation::ProgressOperation;
@@ -251,14 +251,9 @@ impl Buffer {
             );
 
             // we drop the lines in between
-            let drain_lines = line_group
-                .drain_lines(start_line_in_group + 1..=end_line_in_group)
-                .map(|lines| -> Box<dyn Edit> {
-                    Box::new(RemoveLines::new(
-                        lines.into_iter().map(|line| line.into_content()).collect(),
-                        start_line_in_group + 1,
-                    ))
-                });
+            let drain_lines =
+                Self::drain_lines(line_group, start_line_in_group + 1..=end_line_in_group);
+
             let edit: Option<Box<dyn Edit>> = match (compound_edit, drain_lines) {
                 (Some(mut edit_list), Some(drain_lines)) => {
                     edit_list.push(drain_lines);
@@ -282,15 +277,7 @@ impl Buffer {
             let end_group = &mut self.content[end_group_index];
             let last_line = &end_group.lines()[end_line_in_group];
             let suffix = last_line.content()[end_col..].to_owned();
-            let drain_lines =
-                end_group
-                    .drain_lines(0..=end_line_in_group)
-                    .map(|lines| -> Box<dyn Edit> {
-                        Box::new(RemoveLines::new(
-                            lines.into_iter().map(|line| line.into_content()).collect(),
-                            0,
-                        ))
-                    });
+            let drain_lines = Self::drain_lines(end_group, 0..=end_line_in_group);
             (drain_lines, suffix)
         };
 
@@ -302,15 +289,7 @@ impl Buffer {
             start_line,
             &suffix,
         );
-        let drain_lines =
-            first_group
-                .drain_lines(start_line_in_group + 1..)
-                .map(|lines| -> Box<dyn Edit> {
-                    Box::new(RemoveLines::new(
-                        lines.into_iter().map(|line| line.into_content()).collect(),
-                        start_line_in_group + 1,
-                    ))
-                });
+        let drain_lines = Self::drain_lines(first_group, start_line_in_group + 1..);
 
         let mut edits: Vec<Box<dyn Edit>> = Vec::new();
         if let Some(drain_lines_end) = compound_edit {
@@ -748,11 +727,7 @@ impl Buffer {
     where
         R: RangeBounds<usize>,
     {
-        let start_col: usize = match range.start_bound() {
-            Bound::Included(s) => *s,
-            Bound::Excluded(s) => *s + 1,
-            Bound::Unbounded => 0,
-        };
+        let start_col = RangeTools::start_bound(&range);
         let removed_text = line.drain(range);
         RemoveRange::new(line_number, start_col, removed_text.as_str().to_string())
     }
@@ -770,6 +745,19 @@ impl Buffer {
                 Box::new(Self::push_into_line(line, suffix, start_line));
             line.shrink_to_fit();
             vec![remove_range, insert_text]
+        })
+    }
+
+    fn drain_lines<R>(line_group: &mut LineGroup, range: R) -> Option<Box<dyn Edit>>
+    where
+        R: RangeBounds<usize>,
+    {
+        let start_line = RangeTools::start_bound(&range);
+        line_group.drain_lines(range).map(|lines| -> Box<dyn Edit> {
+            Box::new(RemoveLines::new(
+                lines.into_iter().map(|line| line.into_content()).collect(),
+                start_line,
+            ))
         })
     }
 }
