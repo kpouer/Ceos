@@ -239,8 +239,9 @@ impl Buffer {
 
             let line_group = &mut self.content[start_group_index];
             line_group.eventually_decompress();
-
+            // first we take the end of the last line (the suffix)
             let suffix = line_group[end_line_in_group].content()[end_col..].to_owned();
+            // Then push the suffix to replace the end of the fist line
             let compound_edit = Self::replace_with_suffix(
                 line_group,
                 start_line_in_group,
@@ -249,6 +250,7 @@ impl Buffer {
                 &suffix,
             );
 
+            // we drop the lines in between
             let drain_lines = line_group
                 .drain_lines(start_line_in_group + 1..=end_line_in_group)
                 .map(|lines| -> Box<dyn Edit> {
