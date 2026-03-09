@@ -52,7 +52,7 @@ impl SearchToolbar {
             {
                 self.last_search_failed = false;
                 self.search_matcher = self.build_search_matcher().ok();
-                let _ = self.do_search_from_start(textarea_properties);
+                self.do_search_from_start(textarea_properties);
             }
 
             if self.last_search_failed {
@@ -65,7 +65,7 @@ impl SearchToolbar {
             }
 
             if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                let _ = self.do_search(textarea_properties);
+                self.do_search(textarea_properties);
             }
 
             if self.should_focus {

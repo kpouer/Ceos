@@ -208,12 +208,7 @@ impl Buffer {
                 }
             }
         } else {
-            self.delete_across_lines(
-                start_line,
-                text_range.start_column,
-                end_line,
-                text_range.end_column,
-            );
+            self.delete_across_lines(text_range);
         }
 
         self.compute_length();
@@ -222,13 +217,11 @@ impl Buffer {
     }
 
     /// Delete text on multiple lines
-    fn delete_across_lines(
-        &mut self,
-        start_line: usize,
-        start_col: usize,
-        end_line: usize,
-        end_col: usize,
-    ) {
+    fn delete_across_lines(&mut self, text_range: TextRange) {
+        let start_line = text_range.start_line;
+        let start_col = text_range.start_column;
+        let end_line = text_range.end_line.min(self.line_count().saturating_sub(1));
+        let end_col = text_range.end_column;
         let Some((start_group_index, start_line_in_group)) = self.find_group_index(start_line)
         else {
             warn!("start_line out of bounds");
@@ -758,7 +751,7 @@ impl Buffer {
         line_group.filter_line_mut(start_line_in_group, |line| {
             let remove_range = Box::new(Self::drain_columns_from_line(line, col.., start_line));
             let insert_text: Box<dyn Edit> =
-                Box::new(Self::push_into_line(line, &suffix, start_line));
+                Box::new(Self::push_into_line(line, suffix, start_line));
             line.shrink_to_fit();
             vec![remove_range, insert_text]
         })

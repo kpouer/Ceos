@@ -52,23 +52,22 @@ impl Renderer for Search {
         _has_focus: bool,
     ) {
         let line = &textarea.buffer[line];
-        if let Some(search_matcher) = &self.search_matcher {
-            if let Some((start, end)) = search_matcher.search(line.content(), 0) {
-                let x1 = start as f32 * textarea.char_width;
-                let x2 = end as f32 * textarea.char_width;
-                let top_left = Pos2::new(drawing_pos.x + x1, drawing_pos.y);
-                let bottom_right =
-                    Pos2::new(drawing_pos.x + x2, drawing_pos.y + textarea.line_height);
-                let line_rect = Rect::from_min_max(top_left, bottom_right);
-                let painter = ui.painter();
-                painter.rect(
-                    line_rect,
-                    0.0,
-                    theme.deleting,
-                    Stroke::default(),
-                    StrokeKind::Inside,
-                );
-            }
+        if let Some(search_matcher) = &self.search_matcher
+            && let Some((start, end)) = search_matcher.search(line.content(), 0)
+        {
+            let x1 = start as f32 * textarea.char_width;
+            let x2 = end as f32 * textarea.char_width;
+            let top_left = Pos2::new(drawing_pos.x + x1, drawing_pos.y);
+            let bottom_right = Pos2::new(drawing_pos.x + x2, drawing_pos.y + textarea.line_height);
+            let line_rect = Rect::from_min_max(top_left, bottom_right);
+            let painter = ui.painter();
+            painter.rect(
+                line_rect,
+                0.0,
+                theme.deleting,
+                Stroke::default(),
+                StrokeKind::Inside,
+            );
         }
     }
 }
