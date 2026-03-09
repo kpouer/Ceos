@@ -220,57 +220,47 @@ impl Buffer {
 
     /// Delete text on multiple lines
     fn delete_across_lines(&mut self, text_range: TextRange) {
-        let start_line = text_range.start_line;
-        let start_col = text_range.start_column;
-        let end_line = text_range.end_line.min(self.line_count().saturating_sub(1));
-        let end_col = text_range.end_column;
-        let Some((start_group_index, start_line_in_group)) = self.find_group_index(start_line)
+        let Some((start_group_index, start_line_in_group)) =
+            self.find_group_index(text_range.start_line)
         else {
             warn!("start_line out of bounds");
             return;
         };
+        let end_line = text_range.end_line.min(self.line_count().saturating_sub(1));
         let Some((end_group_index, end_line_in_group)) = self.find_group_index(end_line) else {
             warn!("end_line out of bounds");
             return;
         };
 
         if start_group_index == end_group_index {
-            info!("start group and end group are the same");
-
-            let line_group = &mut self.content[start_group_index];
-            line_group.eventually_decompress();
-            // first we take the end of the last line (the suffix)
-            let suffix = line_group[end_line_in_group].content()[end_col..].to_owned();
-            // Then push the suffix to replace the end of the fist line
-            let compound_edit = Self::replace_with_suffix(
-                line_group,
+            self.delete_across_lines_in_single_group(
+                &text_range,
+                start_group_index,
                 start_line_in_group,
-                start_col,
-                start_line,
-                &suffix,
+                end_line_in_group,
             );
-
-            // we drop the lines in between
-            let drain_lines =
-                Self::drain_lines(line_group, start_line_in_group + 1..=end_line_in_group);
-
-            let edit: Option<Box<dyn Edit>> = match (compound_edit, drain_lines) {
-                (Some(mut edit_list), Some(drain_lines)) => {
-                    edit_list.push(drain_lines);
-                    Some(Box::new(CompoundEdit::new(edit_list)) as Box<dyn Edit>)
-                }
-                (Some(edit_list), None) => {
-                    Some(Box::new(CompoundEdit::new(edit_list)) as Box<dyn Edit>)
-                }
-                (None, Some(drain_lines)) => Some(drain_lines),
-                (None, None) => None,
-            };
-            if let Some(edit) = edit {
-                self.undo_manager.push(edit);
-            }
-
-            return;
+        } else {
+            self.delete_across_lines_in_multiple_group(
+                &text_range,
+                start_group_index,
+                start_line_in_group,
+                end_group_index,
+                end_line_in_group,
+            );
         }
+    }
+
+    fn delete_across_lines_in_multiple_group(
+        &mut self,
+        text_range: &TextRange,
+        start_group_index: usize,
+        start_line_in_group: usize,
+        end_group_index: usize,
+        end_line_in_group: usize,
+    ) {
+        let start_line = text_range.start_line;
+        let start_col = text_range.start_column;
+        let end_col = text_range.end_column;
 
         let (drain_lines_end, suffix) = {
             // process the end group and retrieve the suffix
@@ -304,6 +294,50 @@ impl Buffer {
         // drain the linegroups between the start and the end group
         if start_group_index + 1 < end_group_index {
             self.content.drain(start_group_index + 1..end_group_index);
+        }
+    }
+
+    fn delete_across_lines_in_single_group(
+        &mut self,
+        text_range: &TextRange,
+        start_group_index: usize,
+        start_line_in_group: usize,
+        end_line_in_group: usize,
+    ) {
+        info!("start group and end group are the same");
+        let start_line = text_range.start_line;
+        let start_col = text_range.start_column;
+        let end_col = text_range.end_column;
+        let line_group = &mut self.content[start_group_index];
+        line_group.eventually_decompress();
+        // first we take the end of the last line (the suffix)
+        let suffix = line_group[end_line_in_group].content()[end_col..].to_owned();
+        // Then push the suffix to replace the end of the fist line
+        let compound_edit = Self::replace_with_suffix(
+            line_group,
+            start_line_in_group,
+            start_col,
+            start_line,
+            &suffix,
+        );
+
+        // we drop the lines in between
+        let drain_lines =
+            Self::drain_lines(line_group, start_line_in_group + 1..=end_line_in_group);
+
+        let edit: Option<Box<dyn Edit>> = match (compound_edit, drain_lines) {
+            (Some(mut edit_list), Some(drain_lines)) => {
+                edit_list.push(drain_lines);
+                Some(Box::new(CompoundEdit::new(edit_list)) as Box<dyn Edit>)
+            }
+            (Some(edit_list), None) => {
+                Some(Box::new(CompoundEdit::new(edit_list)) as Box<dyn Edit>)
+            }
+            (None, Some(drain_lines)) => Some(drain_lines),
+            (None, None) => None,
+        };
+        if let Some(edit) = edit {
+            self.undo_manager.push(edit);
         }
     }
 
