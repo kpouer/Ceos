@@ -237,6 +237,7 @@ impl Buffer {
                 &text_range,
                 start_group_index,
                 start_line_in_group,
+                end_group_index,
                 end_line_in_group,
             );
         } else {
@@ -287,19 +288,19 @@ impl Buffer {
         text_range: &TextRange,
         start_group_index: usize,
         start_line_in_group: usize,
+        end_group_index: usize,
         end_line_in_group: usize,
     ) {
-        info!("start group and end group are the same");
         let start_line = text_range.start_line;
         let start_col = text_range.start_column;
         let end_col = text_range.end_column;
-        let line_group = &mut self.content[start_group_index];
-        line_group.eventually_decompress();
-        // first we take the end of the last line (the suffix)
-        let suffix = line_group[end_line_in_group][end_col..].to_owned();
-        // Then push the suffix to replace the end of the fist line
+
+        let mut end_group = &mut self.content[end_group_index];
+        let suffix = end_group.line(end_line_in_group)[end_col..].to_owned();
+        let first_group = &mut self.content[start_group_index];
+        first_group.eventually_decompress();
         let compound_edit = Self::replace_with_suffix(
-            line_group,
+            first_group,
             start_line_in_group,
             start_col,
             start_line,
@@ -308,7 +309,7 @@ impl Buffer {
 
         // we drop the lines in between
         let drain_lines =
-            Self::drain_lines(line_group, start_line_in_group + 1..=end_line_in_group);
+            Self::drain_lines(first_group, start_line_in_group + 1..=end_line_in_group);
 
         self.push_edits(compound_edit, drain_lines, None);
     }
