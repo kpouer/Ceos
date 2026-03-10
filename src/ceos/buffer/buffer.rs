@@ -232,40 +232,12 @@ impl Buffer {
             return;
         };
 
-        if start_group_index == end_group_index {
-            self.delete_across_lines_in_single_group(
-                &text_range,
-                start_group_index,
-                start_line_in_group,
-                end_group_index,
-                end_line_in_group,
-            );
-        } else {
-            self.delete_across_lines_in_multiple_group(
-                &text_range,
-                start_group_index,
-                start_line_in_group,
-                end_group_index,
-                end_line_in_group,
-            );
-        }
-    }
-
-    fn delete_across_lines_in_multiple_group(
-        &mut self,
-        text_range: &TextRange,
-        start_group_index: usize,
-        start_line_in_group: usize,
-        end_group_index: usize,
-        end_line_in_group: usize,
-    ) {
         let start_line = text_range.start_line;
         let start_col = text_range.start_column;
         let end_col = text_range.end_column;
 
-        let mut end_group = &mut self.content[end_group_index];
+        let end_group = &self.content[end_group_index];
         let suffix = end_group.line(end_line_in_group)[end_col..].to_owned();
-        let drain_lines_end = Self::drain_lines(&mut end_group, 0..=end_line_in_group);
 
         let first_group = &mut self.content[start_group_index];
         let compound_edit = Self::replace_with_suffix(
@@ -275,43 +247,20 @@ impl Buffer {
             start_line,
             &suffix,
         );
+
         let drain_lines = Self::drain_lines(first_group, start_line_in_group + 1..);
+
+        let drain_lines_end = if start_group_index != end_group_index {
+            Self::drain_lines(&mut self.content[end_group_index], 0..=end_line_in_group)
+        } else {
+            None
+        };
         self.push_edits(compound_edit, drain_lines, drain_lines_end);
+
         // drain the linegroups between the start and the end group
         if start_group_index + 1 < end_group_index {
             self.content.drain(start_group_index + 1..end_group_index);
         }
-    }
-
-    fn delete_across_lines_in_single_group(
-        &mut self,
-        text_range: &TextRange,
-        start_group_index: usize,
-        start_line_in_group: usize,
-        end_group_index: usize,
-        end_line_in_group: usize,
-    ) {
-        let start_line = text_range.start_line;
-        let start_col = text_range.start_column;
-        let end_col = text_range.end_column;
-
-        let mut end_group = &mut self.content[end_group_index];
-        let suffix = end_group.line(end_line_in_group)[end_col..].to_owned();
-        let first_group = &mut self.content[start_group_index];
-        first_group.eventually_decompress();
-        let compound_edit = Self::replace_with_suffix(
-            first_group,
-            start_line_in_group,
-            start_col,
-            start_line,
-            &suffix,
-        );
-
-        // we drop the lines in between
-        let drain_lines =
-            Self::drain_lines(first_group, start_line_in_group + 1..=end_line_in_group);
-
-        self.push_edits(compound_edit, drain_lines, None);
     }
 
     pub(crate) fn undo(&mut self) -> Option<Position> {
