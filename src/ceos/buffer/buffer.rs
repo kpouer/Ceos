@@ -265,7 +265,7 @@ impl Buffer {
         let (drain_lines_end, suffix) = {
             // process the end group and retrieve the suffix
             let end_group = &mut self.content[end_group_index];
-            let last_line = &end_group.lines()[end_line_in_group];
+            let last_line = &end_group.line(end_line_in_group);
             let suffix = last_line.content()[end_col..].to_owned();
             let drain_lines = Self::drain_lines(end_group, 0..=end_line_in_group);
             (drain_lines, suffix)

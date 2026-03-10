@@ -175,6 +175,17 @@ impl LineGroup {
         self.compressed = None;
     }
 
+    pub(crate) fn line(&self, line_number_within_group: usize) -> Cow<'_, Line> {
+        if let Some(lines) = &self.lines {
+            let line = &lines[line_number_within_group];
+            Cow::Borrowed(line)
+        } else {
+            let decompressed_lines = self.decompress_lines();
+            let line = &decompressed_lines[line_number_within_group];
+            Cow::Owned(line.to_owned())
+        }
+    }
+
     pub(crate) fn lines(&self) -> Cow<'_, [Line]> {
         if let Some(lines) = &self.lines {
             return Cow::Borrowed(lines);
