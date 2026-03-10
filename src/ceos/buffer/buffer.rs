@@ -280,17 +280,7 @@ impl Buffer {
             &suffix,
         );
         let drain_lines = Self::drain_lines(first_group, start_line_in_group + 1..);
-
-        let mut edits: Vec<Box<dyn Edit>> = Vec::new();
-        if let Some(drain_lines_end) = compound_edit {
-            edits.extend(drain_lines_end);
-        }
-        if let Some(drain_lines) = drain_lines {
-            edits.push(drain_lines);
-        }
-        if let Some(drain_lines) = drain_lines_end {
-            edits.push(drain_lines);
-        }
+        self.push_edits(compound_edit, drain_lines, drain_lines_end);
         // drain the linegroups between the start and the end group
         if start_group_index + 1 < end_group_index {
             self.content.drain(start_group_index + 1..end_group_index);
@@ -325,20 +315,7 @@ impl Buffer {
         let drain_lines =
             Self::drain_lines(line_group, start_line_in_group + 1..=end_line_in_group);
 
-        let edit: Option<Box<dyn Edit>> = match (compound_edit, drain_lines) {
-            (Some(mut edit_list), Some(drain_lines)) => {
-                edit_list.push(drain_lines);
-                Some(Box::new(CompoundEdit::new(edit_list)) as Box<dyn Edit>)
-            }
-            (Some(edit_list), None) => {
-                Some(Box::new(CompoundEdit::new(edit_list)) as Box<dyn Edit>)
-            }
-            (None, Some(drain_lines)) => Some(drain_lines),
-            (None, None) => None,
-        };
-        if let Some(edit) = edit {
-            self.undo_manager.push(edit);
-        }
+        self.push_edits(compound_edit, drain_lines, None);
     }
 
     pub(crate) fn undo(&mut self) -> Option<Position> {
@@ -697,6 +674,35 @@ impl Buffer {
         for g in &mut self.content {
             g.set_first_line(first_line);
             first_line += g.line_count();
+        }
+    }
+
+    fn push_edits(
+        &mut self,
+        compound_edit: Option<Vec<Box<dyn Edit>>>,
+        drain_lines: Option<Box<dyn Edit>>,
+        drain_lines_end: Option<Box<dyn Edit>>,
+    ) {
+        let mut edits: Vec<Box<dyn Edit>> = Vec::new();
+        if let Some(drain_lines_end) = compound_edit {
+            edits.extend(drain_lines_end);
+        }
+        if let Some(drain_lines) = drain_lines {
+            edits.push(drain_lines);
+        }
+        if let Some(drain_lines) = drain_lines_end {
+            edits.push(drain_lines);
+        }
+        let edit = match edits.len() {
+            0 => None,
+            1 => edits.pop(),
+            _ => {
+                let compound_edit: Box<dyn Edit> = Box::new(CompoundEdit::new(edits));
+                Some(compound_edit)
+            }
+        };
+        if let Some(edit) = edit {
+            self.undo_manager.push(edit);
         }
     }
 
