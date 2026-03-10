@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
-use std::ops::RangeBounds;
+use std::ops::{Index, RangeBounds};
+use std::slice::SliceIndex;
 use std::string::Drain;
 
 #[derive(Default, Debug, Clone)]
@@ -67,6 +68,15 @@ impl Line {
     #[inline]
     pub(crate) fn insert(&mut self, idx: usize, ch: char) {
         self.content.insert(idx, ch);
+    }
+}
+
+impl<I: SliceIndex<str>> Index<I> for Line {
+    type Output = I::Output;
+
+    #[inline]
+    fn index(&self, index: I) -> &Self::Output {
+        &self.content[index]
     }
 }
 
@@ -155,5 +165,14 @@ mod tests {
         assert_eq!(line.content(), "hello world");
         assert_eq!(line.len(), 11);
         assert!(!line.is_empty());
+    }
+
+    #[test]
+    fn indexing_returns_slice() {
+        let line = Line::from("hello world");
+        assert_eq!(&line[0..5], "hello");
+        assert_eq!(&line[6..], "world");
+        assert_eq!(&line[..], "hello world");
+        assert_eq!(&line[0..=4], "hello");
     }
 }

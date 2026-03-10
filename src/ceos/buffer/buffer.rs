@@ -266,7 +266,7 @@ impl Buffer {
             // process the end group and retrieve the suffix
             let end_group = &mut self.content[end_group_index];
             let last_line = &end_group.line(end_line_in_group);
-            let suffix = last_line.content()[end_col..].to_owned();
+            let suffix = last_line[end_col..].to_owned();
             let drain_lines = Self::drain_lines(end_group, 0..=end_line_in_group);
             (drain_lines, suffix)
         };
@@ -301,7 +301,7 @@ impl Buffer {
         let line_group = &mut self.content[start_group_index];
         line_group.eventually_decompress();
         // first we take the end of the last line (the suffix)
-        let suffix = line_group[end_line_in_group].content()[end_col..].to_owned();
+        let suffix = line_group[end_line_in_group][end_col..].to_owned();
         // Then push the suffix to replace the end of the fist line
         let compound_edit = Self::replace_with_suffix(
             line_group,
@@ -557,7 +557,7 @@ impl Buffer {
                 let line_group = &mut self.content[gi];
                 let mut suffix = String::new();
                 line_group.filter_line_mut(li, |l| {
-                    suffix = l.content()[col..].to_owned();
+                    suffix = l[col..].to_owned();
                     l.drain(col..);
                     l.shrink_to_fit();
                 });
