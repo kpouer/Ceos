@@ -232,21 +232,22 @@ impl Buffer {
             return;
         };
 
-        let start_line = text_range.start_line;
-        let start_col = text_range.start_column;
-        let end_col = text_range.end_column;
-
         let end_group = &self.content[end_group_index];
-        let suffix = end_group.line(end_line_in_group)[end_col..].to_owned();
+        let suffix = end_group.line(end_line_in_group)[text_range.end_column..].to_owned();
 
         let first_group = &mut self.content[start_group_index];
-        let compound_edit = Self::replace_with_suffix(
-            first_group,
-            start_line_in_group,
-            start_col,
-            start_line,
-            &suffix,
-        );
+
+        let compound_edit = first_group.filter_line_mut(start_line_in_group, |line| {
+            let remove_range = Box::new(Self::drain_columns_from_line(
+                line,
+                text_range.start_column..,
+                text_range.start_line,
+            ));
+            let insert_text: Box<dyn Edit> =
+                Box::new(Self::push_into_line(line, &suffix, text_range.start_line));
+            line.shrink_to_fit();
+            vec![remove_range, insert_text]
+        });
 
         let drain_lines = Self::drain_lines(first_group, start_line_in_group + 1..);
 
@@ -715,22 +716,6 @@ impl Buffer {
         let start_col = RangeTools::start_bound(&range);
         let removed_text = line.drain(range);
         RemoveRange::new(line_number, start_col, removed_text.as_str().to_string())
-    }
-
-    fn replace_with_suffix(
-        line_group: &mut LineGroup,
-        start_line_in_group: usize,
-        col: usize,
-        start_line: usize,
-        suffix: &str,
-    ) -> Option<Vec<Box<dyn Edit>>> {
-        line_group.filter_line_mut(start_line_in_group, |line| {
-            let remove_range = Box::new(Self::drain_columns_from_line(line, col.., start_line));
-            let insert_text: Box<dyn Edit> =
-                Box::new(Self::push_into_line(line, suffix, start_line));
-            line.shrink_to_fit();
-            vec![remove_range, insert_text]
-        })
     }
 
     fn drain_lines<R>(line_group: &mut LineGroup, range: R) -> Option<Box<dyn Edit>>
