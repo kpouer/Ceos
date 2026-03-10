@@ -262,9 +262,9 @@ impl Buffer {
         let start_col = text_range.start_column;
         let end_col = text_range.end_column;
 
-        let suffix = self.content[end_group_index].line(end_line_in_group)[end_col..].to_owned();
-        let drain_lines_end =
-            Self::drain_lines(&mut self.content[end_group_index], 0..=end_line_in_group);
+        let mut end_group = &mut self.content[end_group_index];
+        let suffix = end_group.line(end_line_in_group)[end_col..].to_owned();
+        let drain_lines_end = Self::drain_lines(&mut end_group, 0..=end_line_in_group);
 
         let first_group = &mut self.content[start_group_index];
         let compound_edit = Self::replace_with_suffix(
