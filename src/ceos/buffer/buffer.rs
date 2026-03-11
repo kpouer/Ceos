@@ -183,14 +183,16 @@ impl Buffer {
     ///
     pub(crate) fn delete_range(&mut self, text_range: TextRange) {
         let line_count = self.line_count();
-        if line_count == 0 || text_range.start_line >= line_count || text_range.is_empty() {
+        if line_count == 0
+            || text_range.start_line >= line_count
+            || text_range.is_empty()
+            || text_range.end_line >= line_count
+        {
+            warn!("delete_range: invalid range {text_range:?}");
             return;
         }
 
-        let start_line = text_range.start_line;
-        let end_line = text_range.end_line.min(line_count.saturating_sub(1));
-
-        if start_line == end_line {
+        if text_range.start_line == text_range.end_line {
             self.delete_in_line(text_range);
         } else {
             self.delete_across_lines(text_range);
@@ -243,8 +245,12 @@ impl Buffer {
                 text_range.start_column..,
                 text_range.start_line,
             ));
-            let insert_text: Box<dyn Edit> =
-                Box::new(Self::push_into_line(line, &suffix, text_range.start_line));
+            let text = {
+                let offset = line.len();
+                line.push_str(&suffix);
+                InsertText::new(text_range.start_line, offset, suffix.len())
+            };
+            let insert_text: Box<dyn Edit> = Box::new(text);
             line.shrink_to_fit();
             vec![remove_range, insert_text]
         });
@@ -703,12 +709,6 @@ impl Buffer {
 }
 
 impl Buffer {
-    fn push_into_line(line: &mut Line, str: &str, line_number: usize) -> InsertText {
-        let offset = line.len();
-        line.push_str(str);
-        InsertText::new(line_number, offset, str.len())
-    }
-
     fn drain_columns_from_line<R>(line: &mut Line, range: R, line_number: usize) -> RemoveRange
     where
         R: RangeBounds<usize>,
