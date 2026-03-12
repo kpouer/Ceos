@@ -41,13 +41,6 @@ impl Line {
         self.content.capacity()
     }
 
-    #[inline]
-    pub(crate) fn shrink_to_fit(&mut self) {
-        if self.content.capacity() - self.content.len() > 1000 {
-            self.content.shrink_to_fit();
-        }
-    }
-
     /// Removes and returns a specified range of characters from the `content` field of the struct.
     #[inline]
     pub(crate) fn drain<R>(&mut self, range: R) -> Drain<'_>
@@ -114,7 +107,6 @@ mod tests {
     fn drain_full_range_empts_line() {
         let mut line = Line::from("hello");
         line.drain(0..5);
-        line.shrink_to_fit();
         assert!(line.is_empty());
         assert_eq!(line.len(), 0);
         assert_eq!(line.content(), "");
@@ -124,7 +116,6 @@ mod tests {
     fn drain_prefix() {
         let mut line = Line::from("hello");
         line.drain(0..2); // remove "he"
-        line.shrink_to_fit();
         assert_eq!(line.content(), "llo");
         assert_eq!(line.len(), 3);
     }
@@ -133,7 +124,6 @@ mod tests {
     fn drain_suffix() {
         let mut line = Line::from("hello");
         line.drain(3..); // remove from index 3 to end: remove "lo"
-        line.shrink_to_fit();
         assert_eq!(line.content(), "hel");
         assert_eq!(line.len(), 3);
     }
@@ -142,7 +132,6 @@ mod tests {
     fn drain_inclusive_middle() {
         let mut line = Line::from("abcdef");
         line.drain(1..=3); // remove b,c,d
-        line.shrink_to_fit();
         assert_eq!(line.content(), "aef");
         assert_eq!(line.len(), 3);
     }

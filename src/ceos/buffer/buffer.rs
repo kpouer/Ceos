@@ -13,7 +13,7 @@ use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use crate::progress_operation::ProgressOperation;
 use flate2::bufread::GzDecoder;
-use log::{info, warn};
+use log::{error, info, warn};
 use rayon::prelude::*;
 use std::fs::File;
 use std::io;
@@ -193,7 +193,10 @@ impl Buffer {
         }
 
         if text_range.start_line == text_range.end_line {
-            self.delete_in_line(text_range);
+            self.delete_in_line(
+                text_range.start_line,
+                text_range.start_column..text_range.end_column,
+            );
         } else {
             self.delete_across_lines(text_range);
         }
@@ -203,20 +206,21 @@ impl Buffer {
         self.dirty = true;
     }
 
-    fn delete_in_line(&mut self, text_range: TextRange) {
-        let start_line = text_range.start_line;
-        // We just delete text in one line
-        if let Some((group_index, line_in_group)) = self.find_group_index(start_line) {
+    // Delete a range of text in a line
+    fn delete_in_line<R>(&mut self, line_index: usize, range: R)
+    where
+        R: RangeBounds<usize> + Clone,
+    {
+        if let Some((group_index, line_in_group)) = self.find_group_index(line_index) {
             let line_group = &mut self.content[group_index];
-            line_group.filter_line_mut(line_in_group, |line| {
-                let remove_range = Self::drain_columns_from_line(
-                    line,
-                    text_range.start_column..text_range.end_column,
-                    start_line,
-                );
-                self.undo_manager.push(Box::new(remove_range));
-                line.shrink_to_fit();
+            let remove_range = line_group.filter_line_mut(line_in_group, |line| {
+                Self::drain_columns_from_line(line, line_index, range.clone())
             });
+            if let Some(remove_range) = remove_range {
+                self.undo_manager.push(Box::new(remove_range));
+            }
+        } else {
+            error!("delete_in_line: line index out of bounds {line_index}");
         }
     }
 
@@ -242,8 +246,8 @@ impl Buffer {
         let compound_edit = first_group.filter_line_mut(start_line_in_group, |line| {
             let remove_range = Box::new(Self::drain_columns_from_line(
                 line,
-                text_range.start_column..,
                 text_range.start_line,
+                text_range.start_column..,
             ));
             let text = {
                 let offset = line.len();
@@ -251,7 +255,6 @@ impl Buffer {
                 InsertText::new(text_range.start_line, offset, suffix.len())
             };
             let insert_text: Box<dyn Edit> = Box::new(text);
-            line.shrink_to_fit();
             vec![remove_range, insert_text]
         });
 
@@ -503,15 +506,14 @@ impl Buffer {
         }
     }
 
-    pub(crate) fn insert_newline(&mut self, line: usize, col: usize) {
-        if let Some((gi, li)) = self.find_group_index(line) {
+    pub(crate) fn insert_newline(&mut self, line_index: usize, col: usize) {
+        if let Some((gi, li)) = self.find_group_index(line_index) {
             let suffix = {
                 let line_group = &mut self.content[gi];
                 let mut suffix = String::new();
-                line_group.filter_line_mut(li, |l| {
-                    suffix = l[col..].to_owned();
-                    l.drain(col..);
-                    l.shrink_to_fit();
+                line_group.filter_line_mut(li, |line| {
+                    suffix = line[col..].to_owned();
+                    line.drain(col..);
                 });
                 suffix
             };
@@ -555,12 +557,11 @@ impl Buffer {
         }
     }
 
-    pub(crate) fn delete_line_range(&mut self, line: usize, offset: usize, length: usize) {
-        if let Some((gi, li)) = self.find_group_index(line) {
+    pub(crate) fn delete_line_range(&mut self, line_index: usize, offset: usize, length: usize) {
+        if let Some((gi, li)) = self.find_group_index(line_index) {
             let line_group = &mut self.content[gi];
-            line_group.filter_line_mut(li, |l| {
-                l.drain(offset..offset + length);
-                l.shrink_to_fit();
+            line_group.filter_line_mut(li, |line| {
+                line.drain(offset..offset + length);
             });
             self.compute_length();
             self.dirty = true;
@@ -709,7 +710,7 @@ impl Buffer {
 }
 
 impl Buffer {
-    fn drain_columns_from_line<R>(line: &mut Line, range: R, line_number: usize) -> RemoveRange
+    fn drain_columns_from_line<R>(line: &mut Line, line_number: usize, range: R) -> RemoveRange
     where
         R: RangeBounds<usize>,
     {
