@@ -43,7 +43,9 @@ impl Line {
 
     #[inline]
     pub(crate) fn shrink_to_fit(&mut self) {
-        self.content.shrink_to_fit();
+        if self.content.capacity() - self.content.len() > 1000 {
+            self.content.shrink_to_fit();
+        }
     }
 
     /// Removes and returns a specified range of characters from the `content` field of the struct.
@@ -116,7 +118,6 @@ mod tests {
         assert!(line.is_empty());
         assert_eq!(line.len(), 0);
         assert_eq!(line.content(), "");
-        assert_eq!(line.mem(), 0);
     }
 
     #[test]
@@ -126,7 +127,6 @@ mod tests {
         line.shrink_to_fit();
         assert_eq!(line.content(), "llo");
         assert_eq!(line.len(), 3);
-        assert_eq!(line.mem(), 3);
     }
 
     #[test]
@@ -136,7 +136,6 @@ mod tests {
         line.shrink_to_fit();
         assert_eq!(line.content(), "hel");
         assert_eq!(line.len(), 3);
-        assert_eq!(line.mem(), 3);
     }
 
     #[test]
@@ -146,7 +145,6 @@ mod tests {
         line.shrink_to_fit();
         assert_eq!(line.content(), "aef");
         assert_eq!(line.len(), 3);
-        assert_eq!(line.mem(), 3);
     }
 
     #[test]
