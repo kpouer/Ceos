@@ -4,6 +4,7 @@ use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::buffer::undo_manager::UndoManager;
 use crate::ceos::buffer::undo_manager::compound_edit::CompoundEdit;
 use crate::ceos::buffer::undo_manager::edit::Edit;
+use crate::ceos::buffer::undo_manager::insert_new_line::InsertNewLine;
 use crate::ceos::buffer::undo_manager::insert_text::InsertText;
 use crate::ceos::buffer::undo_manager::remove_lines::RemoveLines;
 use crate::ceos::buffer::undo_manager::remove_range::RemoveRange;
@@ -252,7 +253,13 @@ impl Buffer {
             let text = {
                 let offset = line.len();
                 line.push_str(&suffix);
-                InsertText::new(text_range.start_line, offset, suffix.len())
+                InsertText::new(
+                    Position {
+                        line: text_range.start_line,
+                        column: offset,
+                    },
+                    suffix.len(),
+                )
             };
             let insert_text: Box<dyn Edit> = Box::new(text);
             vec![remove_range, insert_text]
@@ -491,58 +498,54 @@ impl Buffer {
         self.content.iter().map(|g| g.line_count()).sum()
     }
 
-    pub(crate) fn insert_char(&mut self, line: usize, col: usize, ch: char) {
+    pub(crate) fn insert_char(&mut self, position: Position, ch: char) {
         if ch == '\n' {
-            self.insert_newline(line, col);
+            self.insert_newline(position);
             return;
         }
-        if let Some((gi, _)) = self.find_group_index(line) {
-            let relative_line = line - self.content[gi].first_line();
+        if let Some((gi, _)) = self.find_group_index(position.line) {
+            let relative_line = position.line - self.content[gi].first_line();
             self.content[gi].filter_line_mut(relative_line, |l| {
-                l.insert(col, ch);
+                l.insert(position.column, ch);
             });
             self.compute_length();
             self.dirty = true;
         }
     }
 
-    pub(crate) fn insert_newline(&mut self, line_index: usize, col: usize) {
-        if let Some((gi, li)) = self.find_group_index(line_index) {
-            let suffix = {
-                let line_group = &mut self.content[gi];
-                let mut suffix = String::new();
-                line_group.filter_line_mut(li, |line| {
-                    suffix = line[col..].to_owned();
-                    line.drain(col..);
-                });
-                suffix
-            };
-
-            let line_group = &mut self.content[gi];
-            line_group.insert_line(li + 1, Line::from(suffix));
-
+    pub(crate) fn insert_newline(&mut self, position: Position) {
+        if let Some((group_index, relative_line_index)) = self.find_group_index(position.line) {
+            let line_group = &mut self.content[group_index];
+            let suffix = line_group
+                .filter_line_mut(relative_line_index, |line| {
+                    line.drain(position.column..).as_str().to_owned()
+                })
+                .unwrap_or_default();
+            self.undo_manager
+                .push(Box::new(InsertNewLine::new(position.line)));
+            line_group.insert_line(relative_line_index + 1, Line::from(suffix));
             self.compute_length();
             self.recompute_first_lines();
             self.dirty = true;
         }
     }
 
-    pub(crate) fn insert_str(&mut self, line: usize, col: usize, text: &str) {
-        if let Some((gi, li)) = self.find_group_index(line) {
+    pub(crate) fn insert_str(&mut self, position: Position, text: &str) {
+        if let Some((gi, li)) = self.find_group_index(position.line) {
             let line_group = &mut self.content[gi];
-            line_group.filter_line_mut(li, |l| {
-                l.insert_str(col, text);
+            line_group.filter_line_mut(li, |line| {
+                line.insert_str(position.column, text);
             });
             self.compute_length();
             self.dirty = true;
         }
     }
 
-    pub(crate) fn insert_lines(&mut self, line_idx: usize, lines: Vec<String>) {
+    pub(crate) fn insert_lines(&mut self, line_index: usize, lines: Vec<String>) {
         if lines.is_empty() {
             return;
         }
-        if let Some((gi, li)) = self.find_group_index(line_idx) {
+        if let Some((gi, li)) = self.find_group_index(line_index) {
             let line_group = &mut self.content[gi];
             for (i, line_text) in lines.into_iter().enumerate() {
                 line_group.insert_line(li + i, Line::from(line_text));
@@ -550,18 +553,18 @@ impl Buffer {
             self.compute_length();
             self.recompute_first_lines();
             self.dirty = true;
-        } else if line_idx == self.line_count() {
+        } else if line_index == self.line_count() {
             for line_text in lines {
                 self.push_line(line_text);
             }
         }
     }
 
-    pub(crate) fn delete_line_range(&mut self, line_index: usize, offset: usize, length: usize) {
-        if let Some((gi, li)) = self.find_group_index(line_index) {
+    pub(crate) fn delete_line_range(&mut self, position: Position, length: usize) {
+        if let Some((gi, li)) = self.find_group_index(position.line) {
             let line_group = &mut self.content[gi];
             line_group.filter_line_mut(li, |line| {
-                line.drain(offset..offset + length);
+                line.drain(position.column..position.column + length);
             });
             self.compute_length();
             self.dirty = true;
@@ -716,7 +719,13 @@ impl Buffer {
     {
         let start_col = RangeTools::start_bound(&range);
         let removed_text = line.drain(range);
-        RemoveRange::new(line_number, start_col, removed_text.as_str().to_string())
+        RemoveRange::new(
+            Position {
+                line: line_number,
+                column: start_col,
+            },
+            removed_text.as_str().to_string(),
+        )
     }
 
     fn drain_lines<R>(line_group: &mut LineGroup, range: R) -> Option<Box<dyn Edit>>

@@ -3,21 +3,20 @@ use crate::ceos::buffer::undo_manager::edit::Edit;
 use crate::ceos::gui::textpane::position::Position;
 
 #[derive(Debug)]
-pub(crate) struct InsertText {
-    position: Position,
-    length: usize,
+pub(crate) struct InsertNewLine {
+    line: usize,
 }
 
-impl InsertText {
-    pub(crate) const fn new(position: Position, length: usize) -> Self {
-        Self { position, length }
+impl InsertNewLine {
+    pub(crate) const fn new(line: usize) -> Self {
+        Self { line }
     }
 }
 
-impl Edit for InsertText {
+impl Edit for InsertNewLine {
     fn undo(&self, buffer: &mut Buffer) -> Position {
-        buffer.delete_line_range(self.position, self.length);
-        self.position
+        buffer.
+        panic!();
     }
 
     fn redo(&self, _buffer: &mut Buffer) -> Position {

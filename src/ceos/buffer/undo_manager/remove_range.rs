@@ -4,24 +4,20 @@ use crate::ceos::gui::textpane::position::Position;
 
 #[derive(Debug)]
 pub(crate) struct RemoveRange {
-    line: usize,
-    offset: usize,
+    position: Position,
     text: String,
 }
 
 impl RemoveRange {
-    pub(crate) const fn new(line: usize, offset: usize, text: String) -> Self {
-        Self { line, offset, text }
+    pub(crate) const fn new(position: Position, text: String) -> Self {
+        Self { position, text }
     }
 }
 
 impl Edit for RemoveRange {
     fn undo(&self, buffer: &mut Buffer) -> Position {
-        buffer.insert_str(self.line, self.offset, &self.text);
-        Position {
-            line: self.line,
-            column: self.offset,
-        }
+        buffer.insert_str(self.position, &self.text);
+        self.position
     }
 
     fn redo(&self, _buffer: &mut Buffer) -> Position {

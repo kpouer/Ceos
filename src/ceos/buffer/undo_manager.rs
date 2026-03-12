@@ -3,6 +3,7 @@ use log::debug;
 
 pub(crate) mod compound_edit;
 pub(crate) mod edit;
+pub(crate) mod insert_new_line;
 pub(crate) mod insert_text;
 pub(crate) mod remove_lines;
 pub(crate) mod remove_range;

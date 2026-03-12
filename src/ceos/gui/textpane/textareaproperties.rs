@@ -142,8 +142,7 @@ impl TextAreaProperties {
             if ch == '\r' || ch == '\x08' || ch == '\x7f' {
                 continue;
             }
-            self.buffer
-                .insert_char(self.caret_position.line, self.caret_position.column, ch);
+            self.buffer.insert_char(self.caret_position, ch);
             if ch == '\n' {
                 self.caret_position.line += 1;
                 self.caret_position.column = 0;
@@ -311,8 +310,7 @@ impl TextAreaProperties {
 
     pub(crate) fn input_enter(&mut self) {
         self.delete_selection();
-        self.buffer
-            .insert_newline(self.caret_position.line, self.caret_position.column);
+        self.buffer.insert_newline(self.caret_position);
         self.caret_position.line += 1;
         self.caret_position.column = 0;
     }
