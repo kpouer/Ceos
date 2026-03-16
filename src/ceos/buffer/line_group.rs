@@ -1,6 +1,7 @@
 use crate::ceos::buffer::line::Line;
 use log::{debug, error, warn};
 use std::borrow::Cow;
+use std::fmt::Display;
 use std::io::{Read, Write};
 use std::ops::Index;
 use std::ops::RangeBounds;
@@ -399,6 +400,7 @@ impl LineGroup {
             .unwrap_or_default()
     }
 
+    #[cfg(test)]
     pub(crate) fn debug(&self) {
         println!(
             "LineGroup {{ line_count: {}, length: {}, max_line_length: {}, first_line: {}, compressed: {:?} }}",
@@ -411,6 +413,22 @@ impl LineGroup {
     }
 }
 
+#[cfg(debug_assertions)]
+impl Display for LineGroup {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = if let Some(lines) = &self.lines {
+            lines
+                .into_iter()
+                .map(|line| line.to_string())
+                .collect::<Vec<_>>()
+                .join("\n")
+        } else {
+            panic!("into_iter called on compressed group");
+        };
+        write!(f, "{str}")
+    }
+}
+
 impl Index<usize> for LineGroup {
     type Output = Line;
 
@@ -419,6 +437,21 @@ impl Index<usize> for LineGroup {
         match &self.lines {
             None => panic!("index called on compressed group"),
             Some(lines) => &lines[index],
+        }
+    }
+}
+
+impl IntoIterator for LineGroup {
+    type Item = Line;
+    type IntoIter = std::vec::IntoIter<Line>;
+
+    fn into_iter(mut self) -> Self::IntoIter {
+        self.eventually_decompress();
+        if let Some(lines) = self.lines.take() {
+            lines.into_iter()
+        } else {
+            warn!("into_iter called on empty group");
+            Vec::new().into_iter()
         }
     }
 }

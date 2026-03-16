@@ -1,4 +1,5 @@
 use crate::ceos::buffer::buffer::Buffer;
+use crate::ceos::buffer::caret_possition::CaretPosition;
 use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::gui::textpane::gutter;
 use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
@@ -323,17 +324,18 @@ impl TextAreaProperties {
 
         if self.caret_position.column > 0 {
             let range = TextRange::new(
-                self.caret_position.line,
-                self.caret_position.column - 1,
-                self.caret_position.line,
-                self.caret_position.column,
+                Position::new(self.caret_position.line, self.caret_position.column - 1),
+                self.caret_position,
             );
             self.buffer.delete_range(range);
             self.caret_position.column -= 1;
         } else if self.caret_position.line > 0 {
             let prev_line_idx = self.caret_position.line - 1;
             let prev_line_len = self.buffer.line_text(prev_line_idx).len();
-            let range = TextRange::new(prev_line_idx, prev_line_len, self.caret_position.line, 0);
+            let range = TextRange::new(
+                Position::new(prev_line_idx, prev_line_len),
+                Position::new(self.caret_position.line, 0),
+            );
             self.buffer.delete_range(range);
             self.caret_position.line = prev_line_idx;
             self.caret_position.column = prev_line_len;
@@ -343,14 +345,26 @@ impl TextAreaProperties {
     pub(crate) fn undo(&mut self) {
         info!("undo");
         if let Some(position) = self.buffer.undo() {
-            self.caret_position = position;
+            match position {
+                CaretPosition::Selection(selection) => self.selection = Some(selection),
+                CaretPosition::Position(position) => {
+                    self.selection = None;
+                    self.caret_position = position;
+                }
+            }
         }
     }
 
     pub(crate) fn redo(&mut self) {
         info!("redo");
         if let Some(position) = self.buffer.redo() {
-            self.caret_position = position;
+            match position {
+                CaretPosition::Selection(selection) => self.selection = Some(selection),
+                CaretPosition::Position(position) => {
+                    self.selection = None;
+                    self.caret_position = position;
+                }
+            }
         }
     }
 
@@ -364,18 +378,14 @@ impl TextAreaProperties {
         let line_count = self.buffer.line_count();
         if self.caret_position.column < line_len {
             let range = TextRange::new(
-                self.caret_position.line,
-                self.caret_position.column,
-                self.caret_position.line,
-                self.caret_position.column + 1,
+                self.caret_position,
+                Position::new(self.caret_position.line, self.caret_position.column + 1),
             );
             self.buffer.delete_range(range);
         } else if self.caret_position.line + 1 < line_count {
             let range = TextRange::new(
-                self.caret_position.line,
-                line_len,
-                self.caret_position.line + 1,
-                0,
+                Position::new(self.caret_position.line, line_len),
+                Position::new(self.caret_position.line + 1, 0),
             );
             self.buffer.delete_range(range);
         }

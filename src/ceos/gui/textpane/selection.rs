@@ -23,11 +23,6 @@ impl Selection {
 
 impl From<&Selection> for TextRange {
     fn from(selection: &Selection) -> TextRange {
-        TextRange::new(
-            selection.start.line,
-            selection.start.column,
-            selection.end.line,
-            selection.end.column,
-        )
+        TextRange::new(selection.start, selection.end)
     }
 }

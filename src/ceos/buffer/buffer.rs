@@ -1,13 +1,10 @@
+use crate::ceos::buffer::caret_possition::CaretPosition;
 use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::line_group::LineGroup;
 use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::buffer::undo_manager::UndoManager;
-use crate::ceos::buffer::undo_manager::compound_edit::CompoundEdit;
-use crate::ceos::buffer::undo_manager::edit::Edit;
-use crate::ceos::buffer::undo_manager::insert_new_line::InsertNewLine;
-use crate::ceos::buffer::undo_manager::insert_text::InsertText;
-use crate::ceos::buffer::undo_manager::remove_lines::RemoveLines;
-use crate::ceos::buffer::undo_manager::remove_range::RemoveRange;
+use crate::ceos::buffer::undo_manager::insert::Insert;
+use crate::ceos::buffer::undo_manager::remove::Remove;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::tools::misc_tool::{RangeTools, gzip_uncompressed_size_fast, is_gzip};
 use crate::event::Event;
@@ -16,6 +13,7 @@ use crate::progress_operation::ProgressOperation;
 use flate2::bufread::GzDecoder;
 use log::{error, info, warn};
 use rayon::prelude::*;
+use std::fmt::Display;
 use std::fs::File;
 use std::io;
 use std::io::BufRead;
@@ -185,21 +183,21 @@ impl Buffer {
     pub(crate) fn delete_range(&mut self, text_range: TextRange) {
         let line_count = self.line_count();
         if line_count == 0
-            || text_range.start_line >= line_count
+            || text_range.start.line >= line_count
             || text_range.is_empty()
-            || text_range.end_line >= line_count
+            || text_range.end.line >= line_count
         {
             warn!("delete_range: invalid range {text_range:?}");
             return;
         }
 
-        if text_range.start_line == text_range.end_line {
+        if text_range.start.line == text_range.end.line {
             self.delete_in_line(
-                text_range.start_line,
-                text_range.start_column..text_range.end_column,
+                text_range.start.line,
+                text_range.start.column..text_range.end.column,
             );
         } else {
-            self.delete_across_lines(text_range);
+            self.delete_in_lines(text_range);
         }
 
         self.compute_length();
@@ -214,11 +212,19 @@ impl Buffer {
     {
         if let Some((group_index, line_in_group)) = self.find_group_index(line_index) {
             let line_group = &mut self.content[group_index];
-            let remove_range = line_group.filter_line_mut(line_in_group, |line| {
-                Self::drain_columns_from_line(line, line_index, range.clone())
+            let remove = line_group.filter_line_mut(line_in_group, |line| {
+                let start_col = RangeTools::start_bound(&range);
+                let removed_text = line.drain(range.clone());
+                Remove::new(
+                    Position {
+                        line: line_index,
+                        column: start_col,
+                    },
+                    vec![removed_text.as_str().to_string()],
+                )
             });
-            if let Some(remove_range) = remove_range {
-                self.undo_manager.push(Box::new(remove_range));
+            if let Some(remove) = remove {
+                self.undo_manager.push(Box::new(remove));
             }
         } else {
             error!("delete_in_line: line index out of bounds {line_index}");
@@ -226,74 +232,100 @@ impl Buffer {
     }
 
     /// Delete text on multiple lines
-    fn delete_across_lines(&mut self, text_range: TextRange) {
+    fn delete_in_lines(&mut self, text_range: TextRange) {
         let Some((start_group_index, start_line_in_group)) =
-            self.find_group_index(text_range.start_line)
+            self.find_group_index(text_range.start.line)
         else {
             warn!("start_line out of bounds");
             return;
         };
-        let end_line = text_range.end_line.min(self.line_count().saturating_sub(1));
+        let end_line = text_range.end.line.min(self.line_count().saturating_sub(1));
         let Some((end_group_index, end_line_in_group)) = self.find_group_index(end_line) else {
             warn!("end_line out of bounds");
             return;
         };
 
-        let end_group = &self.content[end_group_index];
-        let suffix = end_group.line(end_line_in_group)[text_range.end_column..].to_owned();
+        let suffix = {
+            let end_group = &mut self.content[end_group_index];
+            // the suffix is the remaining text of the last line of the range
+            end_group.line(end_line_in_group)[text_range.end.column..].to_owned()
+        };
 
         let first_group = &mut self.content[start_group_index];
 
-        let compound_edit = first_group.filter_line_mut(start_line_in_group, |line| {
-            let remove_range = Box::new(Self::drain_columns_from_line(
-                line,
-                text_range.start_line,
-                text_range.start_column..,
-            ));
-            let text = {
-                let offset = line.len();
-                line.push_str(&suffix);
-                InsertText::new(
-                    Position {
-                        line: text_range.start_line,
-                        column: offset,
-                    },
-                    suffix.len(),
-                )
-            };
-            let insert_text: Box<dyn Edit> = Box::new(text);
-            vec![remove_range, insert_text]
+        // let's process the first group first.
+        // We will remove the end of the first line then add the suffix.
+        let mut removed_content = Vec::with_capacity(text_range.line_count());
+        first_group.filter_line_mut(start_line_in_group, |line| {
+            let removed = line.drain(text_range.start.column..).as_str().to_owned();
+            line.push_str(&suffix);
+            removed_content.push(removed);
         });
 
-        let drain_lines = Self::drain_lines(first_group, start_line_in_group + 1..);
-
-        let drain_lines_end = if start_group_index != end_group_index {
-            Self::drain_lines(&mut self.content[end_group_index], 0..=end_line_in_group)
+        // now we have to drain the remaining lines
+        if start_group_index == end_group_index {
+            let drain = first_group.drain_lines(start_line_in_group + 1..=end_line_in_group);
+            if let Some(drain_lines) = drain {
+                removed_content.extend(drain_lines.into_iter().map(|line| line.into_content()));
+                if let Some(last) = removed_content.last_mut() {
+                    last.drain(text_range.end.column..);
+                }
+            }
         } else {
-            None
-        };
-        self.push_edits(compound_edit, drain_lines, drain_lines_end);
+            let drain = first_group.drain_lines(start_line_in_group + 1..);
+            if let Some(drain_lines) = drain {
+                drain_lines.into_iter().for_each(|line| {
+                    removed_content.push(line.into_content());
+                });
+            }
+            // drain the linegroups between the start and the end group
+            if start_group_index + 1 < end_group_index {
+                let drain = self.content.drain(start_group_index + 1..end_group_index);
+                drain
+                    .into_iter()
+                    .flat_map(|line_group| line_group.into_iter())
+                    .for_each(|line| removed_content.push(line.into_content()));
+            }
 
-        // drain the linegroups between the start and the end group
-        if start_group_index + 1 < end_group_index {
-            self.content.drain(start_group_index + 1..end_group_index);
+            if start_group_index != end_group_index {
+                let end_group = &mut self.content[end_group_index];
+                // the last group is different we have to drain it's first lines too.
+                let drain_lines = end_group.drain_lines(0..=end_line_in_group);
+                if let Some(drain_lines) = drain_lines {
+                    drain_lines.into_iter().for_each(|line| {
+                        removed_content.push(line.into_content());
+                    });
+                }
+            }
+        };
+
+        if removed_content.is_empty() {
+            return;
         }
+        let remove = Remove::new(text_range.start, removed_content);
+        self.undo_manager.push(Box::new(remove));
     }
 
-    pub(crate) fn undo(&mut self) -> Option<Position> {
-        if let Some(edit) = self.undo_manager.pop() {
+    pub(crate) fn undo(&mut self) -> Option<CaretPosition> {
+        if let Some(edit) = self.undo_manager.pop_undo() {
             let new_position = edit.undo(self);
+            self.undo_manager.push_redo(edit);
             return Some(new_position);
         }
         None
     }
 
-    pub(crate) fn redo(&self) -> Option<Position> {
-        todo!()
+    pub(crate) fn redo(&mut self) -> Option<CaretPosition> {
+        if let Some(edit) = self.undo_manager.pop_undo() {
+            let new_position = edit.redo(self);
+            self.undo_manager.push(edit);
+            return Some(new_position);
+        }
+        None
     }
 
     pub(crate) fn can_undo(&self) -> bool {
-        self.undo_manager.can_undo()
+        self.undo_manager.can_redo()
     }
 
     pub(crate) fn line_groups(&self) -> &[LineGroup] {
@@ -355,7 +387,20 @@ impl Buffer {
         new_length
     }
 
-    pub(crate) fn filter_line_mut<F>(&mut self, filter: F) -> usize
+    pub(crate) fn filter_line_mut<R>(
+        &mut self,
+        line_number: usize,
+        filter: impl FnMut(&mut Line) -> R,
+    ) -> Option<R> {
+        let Some((group_index, line_index)) = self.find_group_index(line_number) else {
+            warn!("line_index out of bounds");
+            return None;
+        };
+        let line_group = &mut self.content[group_index];
+        line_group.filter_line_mut(line_index, filter)
+    }
+
+    pub(crate) fn filter_lines_mut<F>(&mut self, filter: F) -> usize
     where
         F: FnMut(&mut Line) + Clone + Sync,
     {
@@ -522,7 +567,7 @@ impl Buffer {
                 })
                 .unwrap_or_default();
             self.undo_manager
-                .push(Box::new(InsertNewLine::new(position.line)));
+                .push(Box::new(Insert::new(position, vec![String::new()])));
             line_group.insert_line(relative_line_index + 1, Line::from(suffix));
             self.compute_length();
             self.recompute_first_lines();
@@ -543,6 +588,7 @@ impl Buffer {
 
     pub(crate) fn insert_lines(&mut self, line_index: usize, lines: Vec<String>) {
         if lines.is_empty() {
+            warn!("insert_lines called with empty lines");
             return;
         }
         if let Some((gi, li)) = self.find_group_index(line_index) {
@@ -633,35 +679,6 @@ impl Buffer {
         }
     }
 
-    fn push_edits(
-        &mut self,
-        compound_edit: Option<Vec<Box<dyn Edit>>>,
-        drain_lines: Option<Box<dyn Edit>>,
-        drain_lines_end: Option<Box<dyn Edit>>,
-    ) {
-        let mut edits: Vec<Box<dyn Edit>> = Vec::new();
-        if let Some(drain_lines_end) = compound_edit {
-            edits.extend(drain_lines_end);
-        }
-        if let Some(drain_lines) = drain_lines {
-            edits.push(drain_lines);
-        }
-        if let Some(drain_lines) = drain_lines_end {
-            edits.push(drain_lines);
-        }
-        let edit = match edits.len() {
-            0 => None,
-            1 => edits.pop(),
-            _ => {
-                let compound_edit: Box<dyn Edit> = Box::new(CompoundEdit::new(edits));
-                Some(compound_edit)
-            }
-        };
-        if let Some(edit) = edit {
-            self.undo_manager.push(edit);
-        }
-    }
-
     /// Finds the index of the group and the corresponding line within that group,
     /// given a line number in the aggregated content.
     ///
@@ -701,6 +718,7 @@ impl Buffer {
         (start.min(self.line_count()), end.min(self.line_count()))
     }
 
+    #[cfg(test)]
     fn debug(&self) {
         println!("Buffer Debug Info:");
         println!("Line Count: {}", self.line_count());
@@ -712,33 +730,19 @@ impl Buffer {
     }
 }
 
-impl Buffer {
-    fn drain_columns_from_line<R>(line: &mut Line, line_number: usize, range: R) -> RemoveRange
-    where
-        R: RangeBounds<usize>,
-    {
-        let start_col = RangeTools::start_bound(&range);
-        let removed_text = line.drain(range);
-        RemoveRange::new(
-            Position {
-                line: line_number,
-                column: start_col,
-            },
-            removed_text.as_str().to_string(),
-        )
-    }
-
-    fn drain_lines<R>(line_group: &mut LineGroup, range: R) -> Option<Box<dyn Edit>>
-    where
-        R: RangeBounds<usize>,
-    {
-        let start_line = RangeTools::start_bound(&range);
-        line_group.drain_lines(range).map(|lines| -> Box<dyn Edit> {
-            Box::new(RemoveLines::new(
-                lines.into_iter().map(|line| line.into_content()).collect(),
-                start_line,
-            ))
-        })
+#[cfg(test)]
+impl Display for Buffer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = self
+            .content
+            .iter()
+            .map(|line_group| {
+                line_group.decompress_lines();
+                line_group.to_string()
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        write!(f, "{str}")
     }
 }
 
@@ -815,7 +819,7 @@ mod tests {
     fn filter_line_mut_updates_all_lines() {
         let (sender, _) = std::sync::mpsc::channel();
         let mut b = Buffer::new_from_string(sender, "a\nbb", 2);
-        let new_len = b.filter_line_mut(|line| {
+        let new_len = b.filter_lines_mut(|line| {
             let mut s = line.to_string();
             s.push('x');
             *line = Line::from(s);
@@ -935,7 +939,7 @@ mod tests {
     fn delete_range_single_line() {
         let (sender, _) = std::sync::mpsc::channel();
         let mut b = Buffer::new_from_string(sender, "abcdef", 2);
-        b.delete_range(TextRange::new(0, 2, 0, 5));
+        b.delete_range(TextRange::new(Position::new(0, 2), Position::new(0, 5)));
         assert_eq!(b.line_text(0), "abf");
         assert_eq!(b.line_count(), 1);
         assert!(b.dirty);
@@ -945,7 +949,7 @@ mod tests {
     fn delete_range_multi_line_merges() {
         let (sender, _) = std::sync::mpsc::channel();
         let mut b = Buffer::new_from_string(sender, "hello\nworld\n!!!", 2);
-        b.delete_range(TextRange::new(0, 2, 1, 3));
+        b.delete_range(TextRange::new(Position::new(0, 2), Position::new(1, 3)));
         assert_eq!(b.line_text(0), "held");
         assert_eq!(b.line_text(1), "!!!");
         assert_eq!(b.line_count(), 2);
@@ -959,7 +963,7 @@ mod tests {
         bbb\n\
         ccc";
         let mut buffer = Buffer::new_from_string(sender, TEXT, 2);
-        let range = TextRange::new(0, 1, 2, 1);
+        let range = TextRange::new(Position::new(0, 1), Position::new(2, 1));
         buffer.delete_range(range);
         buffer.debug();
         assert_eq!(buffer.line_text(0), "acc");
@@ -979,24 +983,39 @@ mod tests {
     #[test]
     fn test_undo_remove_range() {
         let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "Hello World", 100);
-        buffer.delete_range(TextRange::new(0, 5, 0, 11));
+        let input = "Hello World";
+        let mut buffer = Buffer::new_from_string(sender, input, 100);
+        buffer.delete_range(TextRange::new(Position::new(0, 5), Position::new(0, 11)));
         assert_eq!(buffer.line_text(0), "Hello");
+        assert!(buffer.undo_manager.can_undo());
+        if let Some(edit) = buffer.undo_manager.last_undo() {
+            assert_eq!(
+                "Remove { position: Position { line: 0, column: 5 }, lines: ' World' }",
+                edit.to_string()
+            );
+        }
         buffer.undo();
-        assert_eq!(buffer.line_text(0), "Hello World");
+        assert_eq!(buffer.line_text(0), input);
     }
 
     #[test]
     fn test_undo_delete_across_lines() {
         let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "Line 1\nLine 2\nLine 3", 100);
-        buffer.delete_range(TextRange::new(0, 4, 2, 4));
+        let input = "AAAA 1\nBBBB 2\nCCCC 3";
+        let mut buffer = Buffer::new_from_string(sender, input, 100);
+        buffer.delete_range(TextRange::new(Position::new(0, 4), Position::new(2, 4)));
         assert_eq!(buffer.line_count(), 1);
-        assert_eq!(buffer.line_text(0), "Line 3");
+        assert_eq!(buffer.line_text(0), "AAAA 3");
+        assert!(buffer.undo_manager.can_undo());
+        if let Some(edit) = buffer.undo_manager.last_undo() {
+            assert_eq!(
+                "Remove { position: Position { line: 0, column: 4 }, lines: ' 1\nBBBB 2\nCCCC' }",
+                edit.to_string()
+            );
+        }
         buffer.undo();
         assert_eq!(buffer.line_count(), 3);
-        assert_eq!(buffer.line_text(0), "Line 1");
-        assert_eq!(buffer.line_text(1), "Line 2");
-        assert_eq!(buffer.line_text(2), "Line 3");
+        let content = buffer.to_string();
+        assert_eq!(input, content);
     }
 }

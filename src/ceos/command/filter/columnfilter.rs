@@ -70,7 +70,7 @@ impl Command for ColumnFilter {}
 impl Action for ColumnFilter {
     fn execute(&self, buffer: &mut Buffer) {
         let line_count = buffer.line_count();
-        let new_length = buffer.filter_line_mut(|line| self.apply_to_line(line));
+        let new_length = buffer.filter_lines_mut(|line| self.apply_to_line(line));
         debug!(
             "Applied filter removed {} lines, new length {}",
             line_count - buffer.line_count(),

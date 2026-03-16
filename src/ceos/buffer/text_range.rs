@@ -1,28 +1,24 @@
+use crate::ceos::gui::textpane::position::Position;
+
 #[derive(Debug)]
 pub(crate) struct TextRange {
-    pub(super) start_line: usize,
-    pub(super) start_column: usize,
-    pub(super) end_line: usize,
-    pub(super) end_column: usize,
+    pub(super) start: Position,
+    pub(super) end: Position,
 }
 
 impl TextRange {
-    pub(crate) fn new(
-        start_line: usize,
-        start_column: usize,
-        end_line: usize,
-        end_column: usize,
-    ) -> Self {
-        Self {
-            start_line,
-            start_column,
-            end_line,
-            end_column,
-        }
+    pub(crate) const fn new(start: Position, end: Position) -> Self {
+        Self { start, end }
     }
 
+    #[inline]
     pub(crate) fn is_empty(&self) -> bool {
-        self.start_line == self.end_line && self.start_column == self.end_column
+        self.start == self.end
+    }
+
+    #[inline]
+    pub(crate) const fn line_count(&self) -> usize {
+        self.end.line - self.start.line + 1
     }
 }
 
@@ -32,7 +28,7 @@ mod tests {
 
     #[test]
     fn test_text_range_is_empty() {
-        let range = TextRange::new(0, 0, 0, 0);
+        let range = TextRange::new(Position::ZERO, Position::ZERO);
         assert!(range.is_empty());
     }
 }
