@@ -356,10 +356,8 @@ impl LineGroup {
             return None;
         };
         self.compressed = None;
-        let removed_lines = {
-            let drain = lines.drain(range);
-            drain.collect::<Vec<_>>()
-        };
+        let removed_lines = lines.drain(range).collect::<Vec<_>>();
+
         self.compute_metadata();
         if was_compressed {
             self.compress();
@@ -386,18 +384,15 @@ impl LineGroup {
         let vec_overhead = std::mem::size_of::<Vec<Line>>();
         if let Some(lines) = &self.lines {
             let array_mem = lines.capacity() * std::mem::size_of::<Line>();
-            let strings_mem: usize = lines.iter().map(|line| line.mem()).sum();
+            let strings_mem: usize = lines.iter().map(Line::mem).sum();
             vec_overhead + array_mem + strings_mem + self.compressed_size()
         } else {
             vec_overhead + self.compressed_size()
         }
     }
 
-    pub fn compressed_size(&self) -> usize {
-        self.compressed
-            .as_ref()
-            .map(|data| data.len())
-            .unwrap_or_default()
+    pub(crate) fn compressed_size(&self) -> usize {
+        self.compressed.as_ref().map_or(0, Vec::len)
     }
 
     #[cfg(test)]
@@ -418,8 +413,8 @@ impl Display for LineGroup {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = if let Some(lines) = &self.lines {
             lines
-                .into_iter()
-                .map(|line| line.to_string())
+                .iter()
+                .map(Line::to_string)
                 .collect::<Vec<_>>()
                 .join("\n")
         } else {

@@ -266,7 +266,7 @@ impl Buffer {
         if start_group_index == end_group_index {
             let drain = first_group.drain_lines(start_line_in_group + 1..=end_line_in_group);
             if let Some(drain_lines) = drain {
-                removed_content.extend(drain_lines.into_iter().map(|line| line.into_content()));
+                removed_content.extend(drain_lines.into_iter().map(Line::into_content));
                 if let Some(last) = removed_content.last_mut() {
                     last.drain(text_range.end.column..);
                 }
@@ -540,7 +540,7 @@ impl Buffer {
     }
 
     pub(crate) fn line_count(&self) -> usize {
-        self.content.iter().map(|g| g.line_count()).sum()
+        self.content.iter().map(LineGroup::line_count).sum()
     }
 
     pub(crate) fn insert_char(&mut self, position: Position, ch: char) {
@@ -627,7 +627,7 @@ impl Buffer {
     pub(crate) fn max_line_length(&self) -> usize {
         self.content
             .iter()
-            .map(|g| g.max_line_length())
+            .map(LineGroup::max_line_length)
             .max()
             .unwrap_or(0)
     }
@@ -647,28 +647,24 @@ impl Buffer {
     pub(crate) fn decompressed_line_count(&self) -> usize {
         self.content
             .iter()
-            .map(|g| g.decompressed_line_count())
+            .map(LineGroup::decompressed_line_count)
             .sum()
     }
 
     pub(crate) fn compute_length(&mut self) -> usize {
-        self.length = self
-            .content
-            .iter()
-            .map(|line_group| line_group.len())
-            .sum::<usize>();
+        self.length = self.content.iter().map(LineGroup::len).sum::<usize>();
         self.length
     }
 
     pub(crate) fn mem(&self) -> usize {
         let vec_overhead = std::mem::size_of::<Vec<LineGroup>>();
         let array_mem = self.content.capacity() * std::mem::size_of::<LineGroup>();
-        let groups_mem: usize = self.content.iter().map(|line_group| line_group.mem()).sum();
+        let groups_mem: usize = self.content.iter().map(LineGroup::mem).sum();
         vec_overhead + array_mem + groups_mem
     }
 
     pub(crate) fn compressed_size(&self) -> usize {
-        self.content.iter().map(|data| data.compressed_size()).sum()
+        self.content.iter().map(LineGroup::compressed_size).sum()
     }
 
     fn recompute_first_lines(&mut self) {
