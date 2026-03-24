@@ -667,6 +667,8 @@ impl Buffer {
         self.content.iter().map(LineGroup::compressed_size).sum()
     }
 
+    /// Each linegroup know it's first line.
+    /// todo : optimize this
     fn recompute_first_lines(&mut self) {
         let mut first_line = 0;
         for g in &mut self.content {
