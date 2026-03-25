@@ -13,7 +13,6 @@ use crate::progress_operation::ProgressOperation;
 use flate2::bufread::GzDecoder;
 use log::{error, info, warn};
 use rayon::prelude::*;
-use std::fmt::Display;
 use std::fs::File;
 use std::io;
 use std::io::BufRead;
@@ -733,7 +732,7 @@ impl Buffer {
 }
 
 #[cfg(test)]
-impl Display for Buffer {
+impl std::fmt::Display for Buffer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = self
             .content
