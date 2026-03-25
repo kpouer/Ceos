@@ -13,6 +13,7 @@ use crate::progress_operation::ProgressOperation;
 use flate2::bufread::GzDecoder;
 use log::{error, info, warn};
 use rayon::prelude::*;
+use std::borrow::Cow;
 use std::fs::File;
 use std::io;
 use std::io::BufRead;
@@ -516,11 +517,11 @@ impl Buffer {
 
     /// Returns the text of the line at the given index.
     /// The given index is 0-based
-    pub(crate) fn line_text(&self, line: usize) -> &str {
+    pub(crate) fn line_text(&self, line: usize) -> Cow<'_, str> {
         let (gi, li) = self
             .find_group_index(line)
             .expect("line index out of bounds");
-        self.content[gi][li].content()
+        self.content[gi].line(li)
     }
 
     /// Returns the text of the line at the given index.
@@ -1018,5 +1019,139 @@ mod tests {
         assert_eq!(buffer.line_count(), 3);
         let content = buffer.to_string();
         assert_eq!(input, content);
+    }
+
+    #[test]
+    fn test_insert_char_at_line_beginning() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        buffer.insert_char(Position::new(0, 0), 'X');
+        assert_eq!(buffer.line_text(0), "Xhello");
+        assert!(buffer.dirty);
+    }
+
+    #[test]
+    fn test_insert_char_in_line_middle() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        buffer.insert_char(Position::new(0, 2), 'X');
+        assert_eq!(buffer.line_text(0), "heXllo");
+        assert!(buffer.dirty);
+    }
+
+    #[test]
+    fn test_insert_char_at_line_end() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        buffer.insert_char(Position::new(0, 5), 'X');
+        assert_eq!(buffer.line_text(0), "helloX");
+        assert!(buffer.dirty);
+    }
+
+    #[test]
+    fn test_insert_newline_splits_line() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        let initial_length = buffer.len();
+        buffer.insert_newline(Position::new(0, 2));
+        assert_eq!(buffer.line_count(), 2);
+        assert_eq!(buffer.line_text(0), "he");
+        assert_eq!(buffer.line_text(1), "llo");
+        assert!(buffer.len() > initial_length);
+        assert!(buffer.dirty);
+    }
+
+    #[test]
+    fn test_insert_newline_at_line_beginning() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        buffer.insert_newline(Position::new(0, 0));
+        assert_eq!(buffer.line_count(), 2);
+        assert_eq!(buffer.line_text(0), "");
+        assert_eq!(buffer.line_text(1), "hello");
+        assert!(buffer.dirty);
+    }
+
+    #[test]
+    fn test_insert_newline_at_line_end() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        buffer.insert_newline(Position::new(0, 5));
+        assert_eq!(buffer.line_count(), 2);
+        assert_eq!(buffer.line_text(0), "hello");
+        assert_eq!(buffer.line_text(1), "");
+        assert!(buffer.dirty);
+    }
+
+    #[test]
+    fn test_insert_char_newline_using_insert_char() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        buffer.insert_char(Position::new(0, 2), '\n');
+        assert_eq!(buffer.line_count(), 2);
+        assert_eq!(buffer.line_text(0), "he");
+        assert_eq!(buffer.line_text(1), "llo");
+    }
+
+    #[test]
+    fn test_insert_multiple_chars_sequentially() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "ab", 2);
+        buffer.insert_char(Position::new(0, 1), 'X');
+        buffer.insert_char(Position::new(0, 2), 'Y');
+        buffer.insert_char(Position::new(0, 3), 'Z');
+        assert_eq!(buffer.line_text(0), "aXYZb");
+        assert!(buffer.dirty);
+    }
+
+    #[test]
+    fn test_insert_chars_across_multiple_lines() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "line1\nline2\nline3", 2);
+        buffer.insert_char(Position::new(0, 2), 'A');
+        buffer.insert_char(Position::new(1, 2), 'B');
+        buffer.insert_char(Position::new(2, 2), 'C');
+        assert_eq!(buffer.line_text(0), "liAne1");
+        assert_eq!(buffer.line_text(1), "liBne2");
+        assert_eq!(buffer.line_text(2), "liCne3");
+    }
+
+    #[test]
+    fn test_insert_char_updates_buffer_length() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        let initial_len = buffer.len();
+        buffer.insert_char(Position::new(0, 2), 'X');
+        assert_eq!(buffer.len(), initial_len + 1);
+    }
+
+    #[test]
+    fn test_insert_char_sets_dirty_flag() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        buffer.dirty = false;
+        buffer.insert_char(Position::new(0, 2), 'X');
+        assert!(buffer.dirty);
+    }
+
+    #[test]
+    fn test_insert_char_invalid_line_position() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        let initial_text = buffer.line_text(0).to_string();
+        buffer.insert_char(Position::new(10, 0), 'X');
+        // Should not panic, buffer should remain unchanged
+        assert_eq!(buffer.line_text(0), initial_text);
+    }
+
+    #[test]
+    fn test_insert_special_characters() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        buffer.insert_char(Position::new(0, 2), '€');
+        assert_eq!(buffer.line_text(0), "he€llo");
+        buffer.insert_char(Position::new(0, 3), '🚀');
+        assert_eq!(buffer.line_text(0), "he€🚀llo");
+        assert!(buffer.dirty);
     }
 }

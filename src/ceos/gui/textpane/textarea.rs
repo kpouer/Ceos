@@ -128,7 +128,7 @@ impl TextArea<'_> {
             .textarea_properties
             .buffer
             .line_text(caret_position.line);
-        let text_tool = TextTool::new(text);
+        let text_tool = TextTool::new(&text);
         let start_col = text_tool.find_word_start(caret_position.column);
 
         let end_col = text_tool.find_word_end(caret_position.column);

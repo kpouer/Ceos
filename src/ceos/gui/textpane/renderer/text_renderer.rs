@@ -31,7 +31,7 @@ impl Renderer for TextRenderer {
             return;
         }
         let painter = ui.painter();
-        let mut tokenizer = Tokenizer::new(text);
+        let mut tokenizer = Tokenizer::new(&text);
         tokenizer.merge_tokens();
         let initial_offset = drawing_pos.x;
         tokenizer.tokens.into_iter().for_each(|chunk| {
