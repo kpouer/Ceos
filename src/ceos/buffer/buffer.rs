@@ -560,14 +560,14 @@ impl Buffer {
     pub(crate) fn insert_newline(&mut self, position: Position) {
         if let Some((group_index, relative_line_index)) = self.find_group_index(position.line) {
             let line_group = &mut self.content[group_index];
-            let suffix = line_group
-                .filter_line_mut(relative_line_index, |line| {
-                    line.drain(position.column..).as_str().to_owned()
-                })
-                .unwrap_or_default();
             self.undo_manager
                 .push(Box::new(Insert::new(position, vec![String::new()])));
-            line_group.insert_line(relative_line_index + 1, Line::from(suffix));
+            let suffix = line_group.filter_line_mut(relative_line_index, |line| {
+                line.drain(position.column..).as_str().to_owned()
+            });
+            if let Some(suffix) = suffix {
+                line_group.insert_line(relative_line_index + 1, suffix);
+            }
             self.compute_length();
             self.recompute_first_lines();
             self.dirty = true;
@@ -597,7 +597,7 @@ impl Buffer {
         if let Some((gi, li)) = self.find_group_index(line_index) {
             let line_group = &mut self.content[gi];
             for (i, line_text) in lines.into_iter().enumerate() {
-                line_group.insert_line(li + i, Line::from(line_text));
+                line_group.insert_line(li + i, line_text);
             }
             self.compute_length();
             self.recompute_first_lines();

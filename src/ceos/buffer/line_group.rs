@@ -365,14 +365,14 @@ impl LineGroup {
         Some(removed_lines)
     }
 
-    pub(crate) fn insert_line(&mut self, line_number: usize, line: Line) {
+    pub(crate) fn insert_line<T: Into<Line>>(&mut self, line_number: usize, line: T) {
         let compressed = self.is_compressed();
         if compressed {
             self.decompress();
         }
         self.compressed = None;
         if let Some(lines) = &mut self.lines {
-            lines.insert(line_number, line);
+            lines.insert(line_number, line.into());
         }
         self.compute_metadata();
         if compressed {
