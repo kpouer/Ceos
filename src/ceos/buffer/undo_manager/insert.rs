@@ -11,7 +11,7 @@ pub(crate) struct Insert {
 }
 
 impl Insert {
-    pub fn new(position: Position, lines: Vec<String>) -> Self {
+    pub(crate) const fn new(position: Position, lines: Vec<String>) -> Self {
         Self { position, lines }
     }
 }
