@@ -62,7 +62,13 @@ impl Line {
 
     #[inline]
     pub(crate) fn insert(&mut self, idx: usize, ch: char) {
-        self.content.insert(idx, ch);
+        let byte_idx = self
+            .content
+            .char_indices()
+            .nth(idx)
+            .map(|(i, _)| i)
+            .unwrap_or(self.content.len());
+        self.content.insert(byte_idx, ch);
     }
 }
 
@@ -161,5 +167,11 @@ mod tests {
         assert_eq!(&line[6..], "world");
         assert_eq!(&line[..], "hello world");
         assert_eq!(&line[0..=4], "hello");
+    }
+
+    #[test]
+    fn insert() {
+        let mut line = Line::from("he€llo");
+        line.insert(3, 'a');
     }
 }
