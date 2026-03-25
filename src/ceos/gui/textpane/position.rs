@@ -9,7 +9,7 @@ pub(crate) struct Position {
 impl Position {
     pub(crate) const ZERO: Position = Position { line: 0, column: 0 };
 
-    pub fn new(line: usize, column: usize) -> Self {
+    pub(crate) const fn new(line: usize, column: usize) -> Self {
         Self { line, column }
     }
 }
