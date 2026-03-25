@@ -575,7 +575,11 @@ impl Buffer {
         }
     }
 
+    /// Insert some text at the given position.
+    /// The text must not be multiline
     pub(crate) fn insert_str(&mut self, position: Position, text: &str) {
+        debug_assert!(text.len() > 0);
+        debug_assert!(!text.contains("\n"));
         if let Some((gi, li)) = self.find_group_index(position.line) {
             let line_group = &mut self.content[gi];
             line_group.filter_line_mut(li, |line| {
