@@ -548,9 +548,8 @@ impl Buffer {
             self.insert_newline(position);
             return;
         }
-        if let Some((gi, _)) = self.find_group_index(position.line) {
-            let relative_line = position.line - self.content[gi].first_line();
-            self.content[gi].filter_line_mut(relative_line, |l| {
+        if let Some((gi, li)) = self.find_group_index(position.line) {
+            self.content[gi].filter_line_mut(li, |l| {
                 l.insert(position.column, ch);
             });
             self.compute_length();
