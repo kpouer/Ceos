@@ -549,9 +549,12 @@ impl Buffer {
             return;
         }
         if let Some((gi, li)) = self.find_group_index(position.line) {
-            self.content[gi].filter_line_mut(li, |l| {
-                l.insert(position.column, ch);
+            self.content[gi].filter_line_mut(li, |line| {
+                line.insert(position.column, ch);
             });
+            self.undo_manager
+                .push(Box::new(Insert::new(position, vec![ch.to_string()])));
+
             self.compute_length();
             self.dirty = true;
         }

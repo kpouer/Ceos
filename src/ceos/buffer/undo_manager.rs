@@ -11,10 +11,14 @@ pub(crate) mod remove;
 pub(crate) struct UndoManager {
     undos: Vec<Box<dyn Edit>>,
     redos: Vec<Box<dyn Edit>>,
+    operation_in_progress: bool,
 }
 
 impl UndoManager {
     pub(crate) fn push(&mut self, new_edit: Box<dyn Edit>) {
+        if self.operation_in_progress {
+            return;
+        }
         debug!("Pushing edit: {new_edit:?}");
         self.undos.push(new_edit);
         self.redos.clear();
@@ -32,6 +36,10 @@ impl UndoManager {
         self.redos.pop()
     }
 
+    pub(crate) const fn is_operation_in_progress(&self) -> bool {
+        self.operation_in_progress
+    }
+
     pub(crate) const fn can_undo(&self) -> bool {
         !self.undos.is_empty()
     }
@@ -42,8 +50,10 @@ impl UndoManager {
 
     pub(crate) fn undo(&mut self, buffer: &mut Buffer) -> Option<CaretPosition> {
         if let Some(undo) = self.undos.pop() {
+            self.operation_in_progress = true;
             let selection = undo.undo(buffer);
             self.redos.push(undo);
+            self.operation_in_progress = false;
             Some(selection)
         } else {
             None
@@ -52,8 +62,10 @@ impl UndoManager {
 
     pub(crate) fn redo(&mut self, buffer: &mut Buffer) -> Option<CaretPosition> {
         if let Some(redo) = self.redos.pop() {
+            self.operation_in_progress = true;
             let selection = redo.redo(buffer);
             self.undos.push(redo);
+            self.operation_in_progress = false;
             Some(selection)
         } else {
             None

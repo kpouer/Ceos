@@ -20,7 +20,7 @@ impl Edit for Insert {
     fn undo(&self, buffer: &mut Buffer) -> CaretPosition {
         let last_line_pos = self.lines.last().map(|s| s.len()).unwrap_or(0);
         buffer.delete_range(TextRange::new(
-            Position::new(self.position.line, self.position.column),
+            self.position,
             Position::new(self.position.line + self.lines.len(), last_line_pos),
         ));
         CaretPosition::Position(self.position)
