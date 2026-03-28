@@ -78,7 +78,7 @@ impl Default for Ceos {
 }
 
 impl Ceos {
-    pub(crate) fn process_event(&mut self, _ctx: &Context, event: Event) {
+    pub(crate) fn process_event(&mut self, event: Event) {
         match event {
             Event::ClearCommand => {
                 self.command_manager.clear_command();
@@ -154,20 +154,20 @@ impl Ceos {
 }
 
 impl eframe::App for Ceos {
-    fn update(&mut self, ctx: &Context, frame: &mut Frame) {
+    fn ui(&mut self, ui: &mut Ui, frame: &mut Frame) {
         if !self.initialized {
             let theme = Theme::default();
-            self.set_theme(theme, ctx);
+            self.set_theme(theme, ui.ctx());
             self.initialized = true;
         }
         self.frame_history
-            .on_new_frame(ctx.input(|i| i.time), frame.info().cpu_usage);
+            .on_new_frame(ui.ctx().input(|i| i.time), frame.info().cpu_usage);
         while let Ok(event) = self.receiver.try_recv() {
-            self.process_event(ctx, event)
+            self.process_event(event)
         }
 
         if !self.progress_manager.is_empty() {
-            egui::CentralPanel::default().show(ctx, |ui| {
+            egui::CentralPanel::default().show_inside(ui, |ui| {
                 ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
                     self.progress_manager
                         .iter()
@@ -187,17 +187,22 @@ impl eframe::App for Ceos {
                         });
                 });
             });
-            ctx.request_repaint_after(std::time::Duration::from_millis(50));
+            ui.ctx()
+                .request_repaint_after(std::time::Duration::from_millis(50));
             return;
         }
 
-        self.build_menu_panel(ctx);
-        OptionsDialog::new().ui(ctx, &mut self.options, &mut self.widget_status.show_options);
+        self.build_menu_panel(ui);
+        OptionsDialog::new().ui(
+            ui.ctx(),
+            &mut self.options,
+            &mut self.widget_status.show_options,
+        );
         if self.widget_status.show_help {
-            HelpPanel::show(ctx, &mut self.widget_status.show_help);
+            HelpPanel::show(ui.ctx(), &mut self.widget_status.show_help);
         }
         if self.widget_status.show_search {
-            egui::TopBottomPanel::top("search_panel").show(ctx, |ui| {
+            egui::Panel::top("search_panel").show_inside(ui, |ui| {
                 self.search_toolbar.ui(
                     ui,
                     &mut self.widget_status.show_search,
@@ -205,11 +210,11 @@ impl eframe::App for Ceos {
                 );
             });
         }
-        self.build_bottom_panel(ctx);
+        self.build_bottom_panel(ui);
 
         egui::CentralPanel::default()
             .frame(egui::containers::Frame::NONE)
-            .show(ctx, |ui| {
+            .show_inside(ui, |ui| {
                 if self.textarea_properties.char_width == 0.0 {
                     let char_width =
                         gui::tools::char_width(self.textarea_properties.font_id.clone(), ui);
@@ -237,8 +242,8 @@ impl Ceos {
         self.textarea_properties.renderer_manager.before_frame();
     }
 
-    fn build_menu_panel(&mut self, ctx: &Context) {
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+    fn build_menu_panel(&mut self, ui: &mut Ui) {
+        egui::Panel::top("top_panel").show_inside(ui, |ui| {
             // The top panel is often a good place for a menu bar:
 
             egui::MenuBar::new().ui(ui, |ui| {
@@ -362,15 +367,12 @@ impl Ceos {
         ctx.set_visuals(visuals);
     }
 
-    fn build_bottom_panel(&mut self, ctx: &Context) {
-        let mut bottom = egui::TopBottomPanel::bottom("bottom_panel");
+    fn build_bottom_panel(&mut self, ui: &mut Ui) {
+        let mut bottom = egui::Panel::bottom("bottom_panel");
         if self.search_result_panel.search.has_results() {
-            bottom = bottom
-                .max_height(200.0)
-                .default_height(200.0)
-                .resizable(true);
+            bottom = bottom.max_size(200.0).default_size(200.0).resizable(true);
         }
-        bottom.show(ctx, |ui| {
+        bottom.show_inside(ui, |ui| {
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
                     ui.label("Command: ");
