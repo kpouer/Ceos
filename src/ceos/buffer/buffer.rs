@@ -224,7 +224,7 @@ impl Buffer {
                 )
             });
             if let Some(remove) = remove {
-                self.undo_manager.push(Box::new(remove));
+                self.undo_manager.push_undo(Box::new(remove), true);
             }
         } else {
             error!("delete_in_line: line index out of bounds {line_index}");
@@ -303,12 +303,14 @@ impl Buffer {
             return;
         }
         let remove = Remove::new(text_range.start, removed_content);
-        self.undo_manager.push(Box::new(remove));
+        self.undo_manager.push_undo(Box::new(remove), true);
     }
 
     pub(crate) fn undo(&mut self) -> Option<CaretPosition> {
         if let Some(edit) = self.undo_manager.pop_undo() {
+            self.undo_manager.start_operation();
             let new_position = edit.undo(self);
+            self.undo_manager.end_operation();
             self.undo_manager.push_redo(edit);
             return Some(new_position);
         }
@@ -316,9 +318,11 @@ impl Buffer {
     }
 
     pub(crate) fn redo(&mut self) -> Option<CaretPosition> {
-        if let Some(edit) = self.undo_manager.pop_undo() {
+        if let Some(edit) = self.undo_manager.pop_redo() {
+            self.undo_manager.start_operation();
             let new_position = edit.redo(self);
-            self.undo_manager.push(edit);
+            self.undo_manager.end_operation();
+            self.undo_manager.push_undo(edit, false);
             return Some(new_position);
         }
         None
@@ -553,7 +557,7 @@ impl Buffer {
                 line.insert(position.column, ch);
             });
             self.undo_manager
-                .push(Box::new(Insert::new(position, vec![ch.to_string()])));
+                .push_undo(Box::new(Insert::new(position, vec![ch.to_string()])), true);
 
             self.compute_length();
             self.dirty = true;
@@ -564,7 +568,7 @@ impl Buffer {
         if let Some((group_index, relative_line_index)) = self.find_group_index(position.line) {
             let line_group = &mut self.content[group_index];
             self.undo_manager
-                .push(Box::new(Insert::new(position, vec![String::new()])));
+                .push_undo(Box::new(Insert::new(position, vec![String::new()])), true);
             let suffix = line_group.filter_line_mut(relative_line_index, |line| {
                 line.drain(position.column..).as_str().to_owned()
             });

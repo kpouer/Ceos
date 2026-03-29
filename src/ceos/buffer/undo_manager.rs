@@ -15,16 +15,21 @@ pub(crate) struct UndoManager {
 }
 
 impl UndoManager {
-    pub(crate) fn push(&mut self, new_edit: Box<dyn Edit>) {
+    pub(crate) fn push_undo(&mut self, new_edit: Box<dyn Edit>, clear_redo: bool) {
         if self.operation_in_progress {
             return;
         }
         debug!("Pushing edit: {new_edit:?}");
         self.undos.push(new_edit);
-        self.redos.clear();
+        if clear_redo {
+            self.redos.clear();
+        }
     }
 
     pub(crate) fn push_redo(&mut self, edit: Box<dyn Edit>) {
+        if self.operation_in_progress {
+            return;
+        }
         self.redos.push(edit);
     }
 
@@ -48,28 +53,18 @@ impl UndoManager {
         !self.redos.is_empty()
     }
 
-    pub(crate) fn undo(&mut self, buffer: &mut Buffer) -> Option<CaretPosition> {
-        if let Some(undo) = self.undos.pop() {
-            self.operation_in_progress = true;
-            let selection = undo.undo(buffer);
-            self.redos.push(undo);
-            self.operation_in_progress = false;
-            Some(selection)
-        } else {
-            None
-        }
+    pub(crate) fn clear_redo(&mut self) {
+        self.redos.clear();
     }
 
-    pub(crate) fn redo(&mut self, buffer: &mut Buffer) -> Option<CaretPosition> {
-        if let Some(redo) = self.redos.pop() {
-            self.operation_in_progress = true;
-            let selection = redo.redo(buffer);
-            self.undos.push(redo);
-            self.operation_in_progress = false;
-            Some(selection)
-        } else {
-            None
-        }
+    pub(crate) const fn start_operation(&mut self) {
+        assert!(!self.operation_in_progress);
+        self.operation_in_progress = true;
+    }
+
+    pub(crate) const fn end_operation(&mut self) {
+        assert!(self.operation_in_progress);
+        self.operation_in_progress = false;
     }
 }
 
