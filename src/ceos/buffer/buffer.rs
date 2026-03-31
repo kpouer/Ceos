@@ -331,7 +331,7 @@ impl Buffer {
     }
 
     pub(crate) const fn can_undo(&self) -> bool {
-        self.undo_manager.can_redo()
+        self.undo_manager.can_undo()
     }
 
     pub(crate) fn line_groups(&self) -> &[LineGroup] {

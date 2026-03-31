@@ -2,11 +2,8 @@ use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::caret_possition::CaretPosition;
 use crate::ceos::buffer::undo_manager::insert::Insert;
 use crate::ceos::buffer::undo_manager::remove::Remove;
-use edit::Edit;
 use log::debug;
-use std::fmt::Display;
 
-pub(crate) mod edit;
 pub(crate) mod insert;
 pub(crate) mod remove;
 
@@ -44,20 +41,12 @@ impl UndoManager {
         self.redos.pop()
     }
 
-    pub(crate) const fn is_operation_in_progress(&self) -> bool {
-        self.operation_in_progress
-    }
-
     pub(crate) const fn can_undo(&self) -> bool {
         !self.undos.is_empty()
     }
 
     pub(crate) const fn can_redo(&self) -> bool {
         !self.redos.is_empty()
-    }
-
-    pub(crate) fn clear_redo(&mut self) {
-        self.redos.clear();
     }
 
     pub(crate) const fn start_operation(&mut self) {
@@ -70,6 +59,7 @@ impl UndoManager {
         self.operation_in_progress = false;
     }
 
+    #[cfg(test)]
     pub(crate) fn last_undo(&self) -> Option<&UndoOperation> {
         self.undos.last()
     }
@@ -82,7 +72,7 @@ pub(crate) enum UndoOperation {
 }
 
 #[cfg(test)]
-impl Display for UndoOperation {
+impl std::fmt::Display for UndoOperation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             UndoOperation::Insert(insert) => write!(f, "{insert}"),

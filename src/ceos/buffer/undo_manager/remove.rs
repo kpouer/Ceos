@@ -1,8 +1,6 @@
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::caret_possition::CaretPosition;
 use crate::ceos::buffer::text_range::TextRange;
-use crate::ceos::buffer::undo_manager::edit::Edit;
-use crate::ceos::buffer::undo_manager::insert::Insert;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::selection::Selection;
 use std::fmt::{Display, Formatter};
@@ -24,10 +22,8 @@ impl Remove {
     pub const fn new(position: Position, lines: Vec<String>) -> Self {
         Self { position, lines }
     }
-}
 
-impl Edit for Remove {
-    fn undo(&self, buffer: &mut Buffer) -> CaretPosition {
+    pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretPosition {
         if self.lines.len() == 1 {
             buffer.insert_str(self.position, &self.lines[0]);
         } else {
@@ -53,7 +49,7 @@ impl Edit for Remove {
         ))
     }
 
-    fn redo(&self, buffer: &mut Buffer) -> CaretPosition {
+    pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretPosition {
         buffer.delete_range(TextRange::new(
             self.position,
             Position::new(

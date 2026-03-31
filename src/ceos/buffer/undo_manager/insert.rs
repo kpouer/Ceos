@@ -1,7 +1,6 @@
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::caret_possition::CaretPosition;
 use crate::ceos::buffer::text_range::TextRange;
-use crate::ceos::buffer::undo_manager::edit::Edit;
 use crate::ceos::gui::textpane::position::Position;
 use std::fmt::{Display, Formatter};
 
@@ -16,10 +15,8 @@ impl Insert {
     pub(crate) const fn new(position: Position, lines: Vec<String>) -> Self {
         Self { position, lines }
     }
-}
 
-impl Edit for Insert {
-    fn undo(&self, buffer: &mut Buffer) -> CaretPosition {
+    pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretPosition {
         let text_range = if self.lines.len() == 1 {
             TextRange::new(
                 self.position,
@@ -41,7 +38,7 @@ impl Edit for Insert {
         CaretPosition::Position(self.position)
     }
 
-    fn redo(&self, buffer: &mut Buffer) -> CaretPosition {
+    pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretPosition {
         match self.lines.as_slice() {
             [line] => {
                 buffer.insert_str(self.position, line);
