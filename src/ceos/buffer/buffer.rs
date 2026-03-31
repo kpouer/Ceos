@@ -567,8 +567,10 @@ impl Buffer {
     pub(crate) fn insert_newline(&mut self, position: Position) {
         if let Some((group_index, relative_line_index)) = self.find_group_index(position.line) {
             let line_group = &mut self.content[group_index];
-            self.undo_manager
-                .push_undo(Box::new(Insert::new(position, vec![String::new()])), true);
+            self.undo_manager.push_undo(
+                Box::new(Insert::new(position, vec![String::new(), String::new()])),
+                true,
+            );
             let suffix = line_group.filter_line_mut(relative_line_index, |line| {
                 line.drain(position.column..).as_str().to_owned()
             });

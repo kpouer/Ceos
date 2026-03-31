@@ -41,21 +41,33 @@ impl Edit for Insert {
     }
 
     fn redo(&self, buffer: &mut Buffer) -> CaretPosition {
-        buffer.insert_str(self.position, &self.lines[0]);
-        if self.lines.len() > 1 {
-            buffer.insert_lines(self.position.line, self.lines[1..].to_owned());
-        }
+        match self.lines.as_slice() {
+            [line] => {
+                buffer.insert_str(self.position, line);
+                CaretPosition::Position(Position::new(
+                    self.position.line,
+                    self.position.column + line.len(),
+                ))
+            }
+            [first, rest @ .., last] => {
+                // Insère le texte avant le saut de ligne
+                if !first.is_empty() {
+                    buffer.insert_str(self.position, first);
+                }
+                buffer.insert_newline(self.position);
 
-        if self.lines.len() == 1 {
-            CaretPosition::Position(Position::new(
-                self.position.line,
-                self.position.column + self.lines[0].len(),
-            ))
-        } else {
-            CaretPosition::Position(Position::new(
-                self.position.line + self.lines.len() - 1,
-                self.lines[self.lines.len() - 1].len(),
-            ))
+                // Insère les lignes suivantes
+                if !rest.is_empty() {
+                    buffer.insert_lines(self.position.line + 1, rest.to_vec());
+                }
+
+                // Curseur à la fin du dernier segment inséré
+                CaretPosition::Position(Position::new(
+                    self.position.line + self.lines.len() - 1,
+                    self.lines.last().map(|s| s.len()).unwrap_or(0),
+                ))
+            }
+            [] => CaretPosition::Position(self.position),
         }
     }
 
