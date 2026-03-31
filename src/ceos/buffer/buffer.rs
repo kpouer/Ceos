@@ -328,7 +328,7 @@ impl Buffer {
         None
     }
 
-    pub(crate) fn can_undo(&self) -> bool {
+    pub(crate) const fn can_undo(&self) -> bool {
         self.undo_manager.can_redo()
     }
 
