@@ -16,23 +16,18 @@ impl Insert {
     }
 
     pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretPosition {
-        let text_range = if self.lines.len() == 1 {
-            TextRange::new(
-                self.position,
-                Position::new(
-                    self.position.line,
-                    self.position.column + self.lines[0].len(),
-                ),
+        let end_position = if self.lines.len() == 1 {
+            Position::new(
+                self.position.line,
+                self.position.column + self.lines[0].len(),
             )
         } else {
-            TextRange::new(
-                self.position,
-                Position::new(
-                    self.position.line + self.lines.len() - 1,
-                    self.lines[self.lines.len() - 1].len(),
-                ),
+            Position::new(
+                self.position.line + self.lines.len() - 1,
+                self.lines[self.lines.len() - 1].len(),
             )
         };
+        let text_range = TextRange::new(self.position, end_position);
         buffer.delete_range(text_range);
         CaretPosition::Position(self.position)
     }
