@@ -731,6 +731,18 @@ impl Buffer {
             line_group.debug();
         }
     }
+
+    #[cfg(test)]
+    pub(crate) fn new_empty_test_buffer() -> Buffer {
+        let (sender, _) = std::sync::mpsc::channel();
+        Buffer::new_with_group_size(sender, 2)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new_test_buffer(str: &str, group_size: usize) -> Buffer {
+        let (sender, _) = std::sync::mpsc::channel();
+        Buffer::new_from_string(sender, str, group_size)
+    }
 }
 
 #[cfg(test)]
@@ -766,8 +778,7 @@ mod tests {
 
     #[test]
     fn from_str_builds_lines_and_lengths() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new_from_string(sender, "a\nbb\nccc", 2);
+        let mut b = Buffer::new_test_buffer("a\nbb\nccc", 2);
         assert_eq!(b.line_count(), 3);
         // Each line counted as len+1 in our model
         assert_eq!(b.len(), (1 + 1) + (2 + 1) + (3 + 1));
@@ -779,8 +790,7 @@ mod tests {
 
     #[test]
     fn iter_yields_all_lines_in_order() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let b = Buffer::new_from_string(sender, "l1\nl2\nl3", 2);
+        let b = Buffer::new_test_buffer("l1\nl2\nl3", 2);
         let mut collected = Vec::new();
         b.line_groups().iter().for_each(|line_group| {
             line_group
@@ -795,8 +805,7 @@ mod tests {
     #[test]
     fn group_boundary_and_compression_path() {
         // Push exactly DEFAULT_GROUP_SIZE lines to trigger compression of first group
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new_with_group_size(sender, 2);
+        let mut b = Buffer::new_empty_test_buffer();
         for i in 0..b.group_size {
             b.push_line(format!("{:03}", i));
         }
@@ -820,8 +829,7 @@ mod tests {
 
     #[test]
     fn filter_line_mut_updates_all_lines() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new_from_string(sender, "a\nbb", 2);
+        let mut b = Buffer::new_test_buffer("a\nbb", 2);
         let new_len = b.filter_lines_mut(|line| {
             let mut s = line.to_string();
             s.push('x');
@@ -836,8 +844,7 @@ mod tests {
 
     #[test]
     fn retain_line_mut_keeps_predicate_matches() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new_from_string(sender, "a\nbb\nccc\ndddd", 2);
+        let mut b = Buffer::new_test_buffer("a\nbb\nccc\ndddd", 2);
         let _ = b.retain_line_mut(|l| l.len() % 2 == 0); // keep even lengths: 2 and 4
         assert_eq!(b.line_count(), 2);
         assert_eq!(b.line_text(0), "bb");
@@ -847,8 +854,7 @@ mod tests {
 
     #[test]
     fn drain_line_mut_various_ranges() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender.clone(), "l0\nl1\nl2\nl3\nl4", 2);
+        let mut buffer = Buffer::new_test_buffer("l0\nl1\nl2\nl3\nl4", 2);
         // buffer has 5 lines: ["l0", "l1", "l2", "l3", "l4"]
         // group_size = 2
         // groups: G0: [l0, l1], G1: [l2, l3], G2: [l4]
@@ -864,7 +870,7 @@ mod tests {
         assert_eq!(buffer.line_text(2), "l4");
 
         // Remove last element with inclusive range
-        let mut buffer = Buffer::new_from_string(sender.clone(), "l0\nl1\nl2", 2);
+        let mut buffer = Buffer::new_test_buffer("l0\nl1\nl2", 2);
         let _ = buffer.drain_line_mut(2..=2);
         assert_eq!(buffer.line_count(), 2);
         buffer.prepare_range_for_read(..);
@@ -872,7 +878,7 @@ mod tests {
         assert_eq!(buffer.line_text(1), "l1");
 
         // Remove all lines
-        let mut buffer = Buffer::new_from_string(sender, "l0\nl1\nl2", 2);
+        let mut buffer = Buffer::new_test_buffer("l0\nl1\nl2", 2);
         let _ = buffer.drain_line_mut(..);
         assert_eq!(buffer.line_count(), 0);
     }
@@ -891,10 +897,8 @@ mod tests {
 
     #[test]
     fn drain_line_mut_bug_reproduction() {
-        let (sender, _) = std::sync::mpsc::channel();
-
         // Test 1: Drain spanning multiple groups
-        let mut buffer = Buffer::new_from_string(sender.clone(), "l0\nl1\nl2\nl3\nl4", 2);
+        let mut buffer = Buffer::new_test_buffer("l0\nl1\nl2\nl3\nl4", 2);
         // Groups: G0:[l0, l1], G1:[l2, l3], G2:[l4]
         // Drain 1..4 (l1, l2, l3)
         buffer.drain_line_mut(1..4);
@@ -909,7 +913,7 @@ mod tests {
         assert_eq!(buffer.line_text(1), "l4");
 
         // Test 2: should_remove_first_group when spanning multiple groups
-        let mut buffer = Buffer::new_from_string(sender, "l0\nl1\nl2\nl3", 2);
+        let mut buffer = Buffer::new_test_buffer("l0\nl1\nl2\nl3", 2);
         // Groups: G0:[l0, l1], G1:[l2, l3]
         // Drain 0..3 (l0, l1, l2)
         // start_line_in_group = 0
@@ -925,8 +929,7 @@ mod tests {
 
     #[test]
     fn prepare_range_for_read_safe_and_accessible() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new_with_group_size(sender, 2);
+        let mut b = Buffer::new_empty_test_buffer();
         for i in 0..(DEFAULT_GROUP_SIZE * 2 + 10) {
             b.push_line(format!("line{}", i));
         }
@@ -940,8 +943,7 @@ mod tests {
 
     #[test]
     fn delete_range_single_line() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new_from_string(sender, "abcdef", 2);
+        let mut b = Buffer::new_test_buffer("abcdef", 2);
         b.delete_range(TextRange::new(Position::new(0, 2), Position::new(0, 5)));
         assert_eq!(b.line_text(0), "abf");
         assert_eq!(b.line_count(), 1);
@@ -950,8 +952,7 @@ mod tests {
 
     #[test]
     fn delete_range_multi_line_merges() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new_from_string(sender, "hello\nworld\n!!!", 2);
+        let mut b = Buffer::new_test_buffer("hello\nworld\n!!!", 2);
         b.delete_range(TextRange::new(Position::new(0, 2), Position::new(1, 3)));
         assert_eq!(b.line_text(0), "held");
         assert_eq!(b.line_text(1), "!!!");
@@ -961,11 +962,10 @@ mod tests {
 
     #[test]
     fn delete_range_to_line_start() {
-        let (sender, _) = std::sync::mpsc::channel();
         const TEXT: &str = "aaa\n\
         bbb\n\
         ccc";
-        let mut buffer = Buffer::new_from_string(sender, TEXT, 2);
+        let mut buffer = Buffer::new_test_buffer(TEXT, 2);
         let range = TextRange::new(Position::new(0, 1), Position::new(2, 1));
         buffer.delete_range(range);
         buffer.debug();
@@ -976,8 +976,7 @@ mod tests {
 
     #[test]
     fn mem_non_decreasing_after_growth() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut b = Buffer::new_with_group_size(sender, 2);
+        let mut b = Buffer::new_empty_test_buffer();
         let base = b.mem();
         b.push_line("abc");
         assert!(b.mem() >= base);
@@ -985,9 +984,8 @@ mod tests {
 
     #[test]
     fn test_undo_remove_range() {
-        let (sender, _) = std::sync::mpsc::channel();
         let input = "Hello World";
-        let mut buffer = Buffer::new_from_string(sender, input, 100);
+        let mut buffer = Buffer::new_test_buffer(input, 100);
         buffer.delete_range(TextRange::new(Position::new(0, 5), Position::new(0, 11)));
         assert_eq!(buffer.line_text(0), "Hello");
         assert!(buffer.undo_manager.can_undo());
@@ -1003,9 +1001,8 @@ mod tests {
 
     #[test]
     fn test_undo_delete_across_lines() {
-        let (sender, _) = std::sync::mpsc::channel();
         let input = "AAAA 1\nBBBB 2\nCCCC 3";
-        let mut buffer = Buffer::new_from_string(sender, input, 100);
+        let mut buffer = Buffer::new_test_buffer(input, 100);
         buffer.delete_range(TextRange::new(Position::new(0, 4), Position::new(2, 4)));
         assert_eq!(buffer.line_count(), 1);
         assert_eq!(buffer.line_text(0), "AAAA 3");
@@ -1024,8 +1021,7 @@ mod tests {
 
     #[test]
     fn test_insert_char_at_line_beginning() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        let mut buffer = Buffer::new_test_buffer("hello", 2);
         buffer.insert_char(Position::new(0, 0), 'X');
         assert_eq!(buffer.line_text(0), "Xhello");
         assert!(buffer.dirty);
@@ -1033,8 +1029,7 @@ mod tests {
 
     #[test]
     fn test_insert_char_in_line_middle() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        let mut buffer = Buffer::new_test_buffer("hello", 2);
         buffer.insert_char(Position::new(0, 2), 'X');
         assert_eq!(buffer.line_text(0), "heXllo");
         assert!(buffer.dirty);
@@ -1042,8 +1037,7 @@ mod tests {
 
     #[test]
     fn test_insert_char_at_line_end() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        let mut buffer = Buffer::new_test_buffer("hello", 2);
         buffer.insert_char(Position::new(0, 5), 'X');
         assert_eq!(buffer.line_text(0), "helloX");
         assert!(buffer.dirty);
@@ -1051,8 +1045,7 @@ mod tests {
 
     #[test]
     fn test_insert_newline_splits_line() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        let mut buffer = Buffer::new_test_buffer("hello", 2);
         let initial_length = buffer.len();
         buffer.insert_newline(Position::new(0, 2));
         assert_eq!(buffer.line_count(), 2);
@@ -1064,8 +1057,7 @@ mod tests {
 
     #[test]
     fn test_insert_newline_at_line_beginning() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        let mut buffer = Buffer::new_test_buffer("hello", 2);
         buffer.insert_newline(Position::new(0, 0));
         assert_eq!(buffer.line_count(), 2);
         assert_eq!(buffer.line_text(0), "");
@@ -1075,8 +1067,7 @@ mod tests {
 
     #[test]
     fn test_insert_newline_at_line_end() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        let mut buffer = Buffer::new_test_buffer("hello", 2);
         buffer.insert_newline(Position::new(0, 5));
         assert_eq!(buffer.line_count(), 2);
         assert_eq!(buffer.line_text(0), "hello");
@@ -1086,8 +1077,7 @@ mod tests {
 
     #[test]
     fn test_insert_char_newline_using_insert_char() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        let mut buffer = Buffer::new_test_buffer("hello", 2);
         buffer.insert_char(Position::new(0, 2), '\n');
         assert_eq!(buffer.line_count(), 2);
         assert_eq!(buffer.line_text(0), "he");
@@ -1096,8 +1086,7 @@ mod tests {
 
     #[test]
     fn test_insert_multiple_chars_sequentially() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "ab", 2);
+        let mut buffer = Buffer::new_test_buffer("ab", 2);
         buffer.insert_char(Position::new(0, 1), 'X');
         buffer.insert_char(Position::new(0, 2), 'Y');
         buffer.insert_char(Position::new(0, 3), 'Z');
@@ -1107,8 +1096,7 @@ mod tests {
 
     #[test]
     fn test_insert_chars_across_multiple_lines() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "line1\nline2\nline3", 2);
+        let mut buffer = Buffer::new_test_buffer("line1\nline2\nline3", 2);
         buffer.insert_char(Position::new(0, 2), 'A');
         buffer.insert_char(Position::new(1, 2), 'B');
         buffer.insert_char(Position::new(2, 2), 'C');
@@ -1119,8 +1107,7 @@ mod tests {
 
     #[test]
     fn test_insert_char_updates_buffer_length() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        let mut buffer = Buffer::new_test_buffer("hello", 2);
         let initial_len = buffer.len();
         buffer.insert_char(Position::new(0, 2), 'X');
         assert_eq!(buffer.len(), initial_len + 1);
@@ -1128,8 +1115,7 @@ mod tests {
 
     #[test]
     fn test_insert_char_sets_dirty_flag() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        let mut buffer = Buffer::new_test_buffer("hello", 2);
         buffer.dirty = false;
         buffer.insert_char(Position::new(0, 2), 'X');
         assert!(buffer.dirty);
@@ -1137,8 +1123,7 @@ mod tests {
 
     #[test]
     fn test_insert_char_invalid_line_position() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        let mut buffer = Buffer::new_test_buffer("hello", 2);
         let initial_text = buffer.line_text(0).to_string();
         buffer.insert_char(Position::new(10, 0), 'X');
         // Should not panic, buffer should remain unchanged
@@ -1147,8 +1132,7 @@ mod tests {
 
     #[test]
     fn test_insert_special_characters() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let mut buffer = Buffer::new_from_string(sender, "hello", 2);
+        let mut buffer = Buffer::new_test_buffer("hello", 2);
         buffer.insert_char(Position::new(0, 2), '€');
         assert_eq!(buffer.line_text(0), "he€llo");
         buffer.insert_char(Position::new(0, 3), '🚀');

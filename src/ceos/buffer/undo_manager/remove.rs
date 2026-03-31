@@ -3,7 +3,6 @@ use crate::ceos::buffer::caret_possition::CaretPosition;
 use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::selection::Selection;
-use std::fmt::{Display, Formatter};
 
 /// A structure representing a `Remove` operation, typically used to denote
 /// the deletion of a segment of text at a specific position within a document or editor.
@@ -43,8 +42,12 @@ impl Remove {
         CaretPosition::Selection(Selection::new(
             self.position,
             Position {
-                line: self.position.line + self.lines.len(),
-                column: self.lines.last().map(|line| line.len()).unwrap_or_default(),
+                line: self.position.line + self.lines.len() - 1,
+                column: if self.lines.len() == 1 {
+                    self.position.column + self.lines[0].len()
+                } else {
+                    self.lines.last().map(|line| line.len()).unwrap_or_default()
+                },
             },
         ))
     }
@@ -53,8 +56,12 @@ impl Remove {
         buffer.delete_range(TextRange::new(
             self.position,
             Position::new(
-                self.position.line + self.lines.len(),
-                self.lines.last().map(|line| line.len()).unwrap_or_default(),
+                self.position.line + self.lines.len() - 1,
+                if self.lines.len() == 1 {
+                    self.position.column + self.lines[0].len()
+                } else {
+                    self.lines.last().map(|line| line.len()).unwrap_or_default()
+                },
             ),
         ));
         CaretPosition::Position(self.position)
@@ -62,13 +69,86 @@ impl Remove {
 }
 
 #[cfg(test)]
-impl Display for Remove {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Remove {{ position: {:?}, lines: '{}' }}",
-            self.position,
-            self.lines.join("\n")
-        )
+mod tests {
+    use super::*;
+    use crate::ceos::buffer::buffer::Buffer;
+    use crate::ceos::buffer::caret_possition::CaretPosition;
+    use crate::ceos::gui::textpane::position::Position;
+
+    #[test]
+    fn test_remove_single_line() {
+        let mut buffer = Buffer::new_test_buffer("Initial text", 100);
+
+        let pos = Position::new(0, 7);
+        // " text" has length 5
+        let remove = Remove::new(pos, vec![" text".to_string()]);
+
+        // Redo
+        let caret = remove.redo(&mut buffer);
+        assert_eq!(buffer.line_text(0), "Initial");
+        if let CaretPosition::Position(p) = caret {
+            assert_eq!(p, pos);
+        } else {
+            panic!("Expected Position caret");
+        }
+
+        // Undo
+        let caret = remove.undo(&mut buffer);
+        assert_eq!(buffer.line_text(0), "Initial text");
+        if let CaretPosition::Selection(s) = caret {
+            assert_eq!(s.start, pos);
+            assert_eq!(s.end, Position::new(0, 12));
+        } else {
+            panic!("Expected Selection caret");
+        }
+    }
+
+    #[test]
+    fn test_remove_multiple_lines() {
+        // Initial state:
+        // Line 0: "First"
+        // Line 1: "Middle"
+        // Line 2: "EndLast"
+        let mut buffer = Buffer::new_test_buffer("First\nMiddle\nEndLast", 100);
+
+        let pos = Position::new(0, 5);
+        // lines removed:
+        // line 0: suffix ""
+        // line 1: "Middle"
+        // line 2: "End"
+        let remove = Remove::new(
+            pos,
+            vec!["".to_string(), "Middle".to_string(), "End".to_string()],
+        );
+
+        // Redo
+        let caret = remove.redo(&mut buffer);
+
+        // Analyse du résultat attendu de delete_range((0,5) -> (2,3))
+        // Ligne 0: "First" -> reste "First"
+        // Ligne 2: "EndLast" -> reste "Last"
+        // Fusion des deux : "FirstLast" sur la ligne 0.
+
+        assert_eq!(buffer.line_count(), 1);
+        assert_eq!(buffer.line_text(0), "FirstLast");
+        if let CaretPosition::Position(p) = caret {
+            assert_eq!(p, pos);
+        } else {
+            panic!("Expected Position caret");
+        }
+
+        // Undo
+        let caret = remove.undo(&mut buffer);
+        assert_eq!(buffer.line_count(), 3);
+        assert_eq!(buffer.line_text(0), "First");
+        assert_eq!(buffer.line_text(1), "Middle");
+        assert_eq!(buffer.line_text(2), "EndLast");
+
+        if let CaretPosition::Selection(s) = caret {
+            assert_eq!(s.start, pos);
+            assert_eq!(s.end, Position::new(2, 3));
+        } else {
+            panic!("Expected Selection caret");
+        }
     }
 }
