@@ -618,17 +618,6 @@ impl Buffer {
         }
     }
 
-    pub(crate) fn delete_line_range(&mut self, position: Position, length: usize) {
-        if let Some((gi, li)) = self.find_group_index(position.line) {
-            let line_group = &mut self.content[gi];
-            line_group.filter_line_mut(li, |line| {
-                line.drain(position.column..position.column + length);
-            });
-            self.compute_length();
-            self.dirty = true;
-        }
-    }
-
     /// Returns the buffer length.
     /// It is the number of chars + end of lines
     #[inline]
