@@ -2,8 +2,10 @@ use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::caret_possition::CaretPosition;
 use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::buffer::undo_manager::edit::Edit;
+use crate::ceos::buffer::undo_manager::insert::Insert;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::selection::Selection;
+use std::fmt::{Display, Formatter};
 
 /// A structure representing a `Remove` operation, typically used to denote
 /// the deletion of a segment of text at a specific position within a document or editor.
@@ -61,10 +63,13 @@ impl Edit for Remove {
         ));
         CaretPosition::Position(self.position)
     }
+}
 
-    #[cfg(test)]
-    fn to_string(&self) -> String {
-        format!(
+#[cfg(test)]
+impl Display for Remove {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
             "Remove {{ position: {:?}, lines: '{}' }}",
             self.position,
             self.lines.join("\n")

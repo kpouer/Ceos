@@ -5,6 +5,4 @@ use std::fmt::Debug;
 pub(crate) trait Edit: Debug + Send + Sync {
     fn undo(&self, buffer: &mut Buffer) -> CaretPosition;
     fn redo(&self, buffer: &mut Buffer) -> CaretPosition;
-    #[cfg(test)]
-    fn to_string(&self) -> String;
 }

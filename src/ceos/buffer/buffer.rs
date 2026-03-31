@@ -2,9 +2,9 @@ use crate::ceos::buffer::caret_possition::CaretPosition;
 use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::line_group::LineGroup;
 use crate::ceos::buffer::text_range::TextRange;
-use crate::ceos::buffer::undo_manager::UndoManager;
 use crate::ceos::buffer::undo_manager::insert::Insert;
 use crate::ceos::buffer::undo_manager::remove::Remove;
+use crate::ceos::buffer::undo_manager::{UndoManager, UndoOperation};
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::tools::misc_tool::{RangeTools, gzip_uncompressed_size_fast, is_gzip};
 use crate::event::Event;
@@ -224,7 +224,8 @@ impl Buffer {
                 )
             });
             if let Some(remove) = remove {
-                self.undo_manager.push_undo(Box::new(remove), true);
+                self.undo_manager
+                    .push_undo(UndoOperation::Remove(remove), true);
             }
         } else {
             error!("delete_in_line: line index out of bounds {line_index}");
@@ -303,7 +304,8 @@ impl Buffer {
             return;
         }
         let remove = Remove::new(text_range.start, removed_content);
-        self.undo_manager.push_undo(Box::new(remove), true);
+        self.undo_manager
+            .push_undo(UndoOperation::Remove(remove), true);
     }
 
     pub(crate) fn undo(&mut self) -> Option<CaretPosition> {
@@ -556,8 +558,10 @@ impl Buffer {
             self.content[gi].filter_line_mut(li, |line| {
                 line.insert(position.column, ch);
             });
-            self.undo_manager
-                .push_undo(Box::new(Insert::new(position, vec![ch.to_string()])), true);
+            self.undo_manager.push_undo(
+                UndoOperation::Insert(Insert::new(position, vec![ch.to_string()])),
+                true,
+            );
 
             self.compute_length();
             self.dirty = true;
@@ -568,7 +572,7 @@ impl Buffer {
         if let Some((group_index, relative_line_index)) = self.find_group_index(position.line) {
             let line_group = &mut self.content[group_index];
             self.undo_manager.push_undo(
-                Box::new(Insert::new(position, vec![String::new(), String::new()])),
+                UndoOperation::Insert(Insert::new(position, vec![String::new(), String::new()])),
                 true,
             );
             let suffix = line_group.filter_line_mut(relative_line_index, |line| {

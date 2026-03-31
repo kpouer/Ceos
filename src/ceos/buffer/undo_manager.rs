@@ -1,7 +1,10 @@
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::caret_possition::CaretPosition;
+use crate::ceos::buffer::undo_manager::insert::Insert;
+use crate::ceos::buffer::undo_manager::remove::Remove;
 use edit::Edit;
 use log::debug;
+use std::fmt::Display;
 
 pub(crate) mod edit;
 pub(crate) mod insert;
@@ -9,13 +12,13 @@ pub(crate) mod remove;
 
 #[derive(Default, Debug)]
 pub(crate) struct UndoManager {
-    undos: Vec<Box<dyn Edit>>,
-    redos: Vec<Box<dyn Edit>>,
+    undos: Vec<UndoOperation>,
+    redos: Vec<UndoOperation>,
     operation_in_progress: bool,
 }
 
 impl UndoManager {
-    pub(crate) fn push_undo(&mut self, new_edit: Box<dyn Edit>, clear_redo: bool) {
+    pub(crate) fn push_undo(&mut self, new_edit: UndoOperation, clear_redo: bool) {
         if self.operation_in_progress {
             return;
         }
@@ -26,18 +29,18 @@ impl UndoManager {
         }
     }
 
-    pub(crate) fn push_redo(&mut self, edit: Box<dyn Edit>) {
+    pub(crate) fn push_redo(&mut self, edit: UndoOperation) {
         if self.operation_in_progress {
             return;
         }
         self.redos.push(edit);
     }
 
-    pub(crate) fn pop_undo(&mut self) -> Option<Box<dyn Edit>> {
+    pub(crate) fn pop_undo(&mut self) -> Option<UndoOperation> {
         self.undos.pop()
     }
 
-    pub(crate) fn pop_redo(&mut self) -> Option<Box<dyn Edit>> {
+    pub(crate) fn pop_redo(&mut self) -> Option<UndoOperation> {
         self.redos.pop()
     }
 
@@ -66,11 +69,40 @@ impl UndoManager {
         assert!(self.operation_in_progress);
         self.operation_in_progress = false;
     }
+
+    pub(crate) fn last_undo(&self) -> Option<&UndoOperation> {
+        self.undos.last()
+    }
+}
+
+#[derive(Debug)]
+pub(crate) enum UndoOperation {
+    Insert(Insert),
+    Remove(Remove),
 }
 
 #[cfg(test)]
-impl UndoManager {
-    pub(crate) fn last_undo(&self) -> Option<&Box<dyn Edit>> {
-        self.undos.last()
+impl Display for UndoOperation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UndoOperation::Insert(insert) => write!(f, "{insert}"),
+            UndoOperation::Remove(remove) => write!(f, "{remove}"),
+        }
+    }
+}
+
+impl UndoOperation {
+    pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretPosition {
+        match self {
+            UndoOperation::Insert(insert) => insert.undo(buffer),
+            UndoOperation::Remove(remove) => remove.undo(buffer),
+        }
+    }
+
+    pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretPosition {
+        match self {
+            UndoOperation::Insert(insert) => insert.redo(buffer),
+            UndoOperation::Remove(remove) => remove.redo(buffer),
+        }
     }
 }

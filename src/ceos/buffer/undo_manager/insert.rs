@@ -3,6 +3,7 @@ use crate::ceos::buffer::caret_possition::CaretPosition;
 use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::buffer::undo_manager::edit::Edit;
 use crate::ceos::gui::textpane::position::Position;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
 pub(crate) struct Insert {
@@ -70,10 +71,13 @@ impl Edit for Insert {
             [] => CaretPosition::Position(self.position),
         }
     }
+}
 
-    #[cfg(test)]
-    fn to_string(&self) -> String {
-        format!(
+#[cfg(test)]
+impl Display for Insert {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
             "Insert {{ position: {:?}, lines: {:?} }}",
             self.position, self.lines
         )
