@@ -1,7 +1,7 @@
 use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::gui::textpane::position::Position;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub(crate) struct Selection {
     /// The start position of the selection.
     pub(crate) start: Position,
