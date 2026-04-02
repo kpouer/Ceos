@@ -75,6 +75,7 @@ impl TextAreaProperties {
             buffer.path,
             buffer.line_count()
         );
+        self.caret_position = Position::ZERO;
         self.buffer = buffer
     }
 
