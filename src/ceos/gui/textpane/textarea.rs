@@ -344,7 +344,7 @@ impl TextArea<'_> {
                         unit: _,
                         delta,
                         modifiers,
-                        phase,
+                        phase: _,
                     } => self.handle_mouse_wheel(&modifiers, &delta),
                     Zoom(delta) => self.handle_zoom(delta),
                     egui::Event::Copy => self.textarea_properties.copy(ctx),

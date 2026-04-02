@@ -2,7 +2,7 @@ use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use log::info;
 
 #[derive(Debug)]
-pub(crate) struct Goto {
+pub struct Goto {
     line: usize,
 }
 
