@@ -20,6 +20,16 @@ impl UndoManager {
             return;
         }
         debug!("Pushing edit: {new_edit:?}");
+
+        if let Some(last) = self.undos.last_mut() {
+            if last.try_merge(&new_edit) {
+                if clear_redo {
+                    self.redos.clear();
+                }
+                return;
+            }
+        }
+
         self.undos.push(new_edit);
         if clear_redo {
             self.redos.clear();
@@ -82,6 +92,14 @@ impl std::fmt::Display for UndoOperation {
 }
 
 impl UndoOperation {
+    pub(crate) fn try_merge(&mut self, other: &Self) -> bool {
+        match (self, other) {
+            (UndoOperation::Insert(this), UndoOperation::Insert(other)) => this.try_merge(other),
+            (UndoOperation::Remove(this), UndoOperation::Remove(other)) => this.try_merge(other),
+            _ => false,
+        }
+    }
+
     pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretPosition {
         match self {
             UndoOperation::Insert(insert) => insert.undo(buffer),

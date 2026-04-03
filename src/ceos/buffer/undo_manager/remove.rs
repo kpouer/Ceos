@@ -28,6 +28,71 @@ impl Remove {
         }
     }
 
+    pub(crate) fn try_merge(&mut self, other: &Self) -> bool {
+        // Suppression en arrière (backspace) : 'ba' -> 'b' puis 'a' supprimé.
+        // On supprime d'abord 'a' à pos (0,2), puis 'b' à pos (0,1).
+        // Donc 'self' est (0,2) et 'other' est (0,1).
+        // other.text_range.end == self.position
+        if other.text_range.end == self.position {
+            let other_lines = other.lines.clone();
+            if other_lines.len() == 1 && self.lines.len() == 1 {
+                let mut new_lines = other_lines;
+                new_lines[0].push_str(&self.lines[0]);
+                self.lines = new_lines;
+            } else if other_lines.len() > 1 && self.lines.len() == 1 {
+                let mut new_lines = other_lines;
+                new_lines.last_mut().unwrap().push_str(&self.lines[0]);
+                self.lines = new_lines;
+            } else if other_lines.len() == 1 && self.lines.len() > 1 {
+                let mut new_lines = other_lines;
+                new_lines[0].push_str(&self.lines[0]);
+                new_lines.extend(self.lines.iter().skip(1).cloned());
+                self.lines = new_lines;
+            } else {
+                let mut new_lines = other_lines;
+                new_lines.last_mut().unwrap().push_str(&self.lines[0]);
+                new_lines.extend(self.lines.iter().skip(1).cloned());
+                self.lines = new_lines;
+            }
+            self.position = other.position;
+            self.text_range.start = other.text_range.start;
+            return true;
+        }
+
+        // Suppression en avant (delete) : 'ab' -> 'a' puis 'b' supprimé.
+        // On supprime d'abord 'a' à pos (0,1), puis 'b' à pos (0,1).
+        // Donc self.position == other.position
+        if self.position == other.position {
+            if self.lines.len() == 1 && other.lines.len() == 1 {
+                self.lines[0].push_str(&other.lines[0]);
+                self.text_range.end = other.text_range.end;
+                return true;
+            }
+
+            if self.lines.len() > 1 && other.lines.len() == 1 {
+                self.lines.last_mut().unwrap().push_str(&other.lines[0]);
+                self.text_range.end = other.text_range.end;
+                return true;
+            }
+
+            if self.lines.len() == 1 && other.lines.len() > 1 {
+                self.lines[0].push_str(&other.lines[0]);
+                self.lines.extend(other.lines.iter().skip(1).cloned());
+                self.text_range.end = other.text_range.end;
+                return true;
+            }
+
+            if self.lines.len() > 1 && other.lines.len() > 1 {
+                self.lines.last_mut().unwrap().push_str(&other.lines[0]);
+                self.lines.extend(other.lines.iter().skip(1).cloned());
+                self.text_range.end = other.text_range.end;
+                return true;
+            }
+        }
+
+        false
+    }
+
     pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretPosition {
         if self.lines.len() == 1 {
             buffer.insert_str(self.position, &self.lines[0]);
@@ -45,7 +110,7 @@ impl Remove {
             }
         }
 
-        CaretPosition::Position(self.position)
+        CaretPosition::Selection(Selection::new(self.text_range.start, self.text_range.end))
     }
 
     pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretPosition {
@@ -139,5 +204,41 @@ mod tests {
         } else {
             panic!("Expected Selection caret");
         }
+    }
+
+    #[test]
+    fn test_remove_merge_backspace() {
+        // "Hello World" -> "Hello " (on supprime 'W', 'o', 'r', 'l', 'd' un par un en arrière)
+        let pos1 = Position::new(0, 10); // supprime 'd' à la fin de "Hello World"
+        let range1 = TextRange::new(pos1, Position::new(0, 11));
+        let mut remove1 = Remove::new(pos1, range1, vec!["d".to_string()]);
+
+        let pos2 = Position::new(0, 9); // supprime 'l'
+        let range2 = TextRange::new(pos2, Position::new(0, 10));
+        let remove2 = Remove::new(pos2, range2, vec!["l".to_string()]);
+
+        assert!(remove1.try_merge(&remove2));
+        assert_eq!(remove1.lines, vec!["ld".to_string()]);
+        assert_eq!(remove1.position, Position::new(0, 9));
+        assert_eq!(remove1.text_range.start, Position::new(0, 9));
+        assert_eq!(remove1.text_range.end, Position::new(0, 11));
+    }
+
+    #[test]
+    fn test_remove_merge_delete() {
+        // "Hello World" -> "Hello " (on supprime 'W', 'o', 'r', 'l', 'd' un par un en avant)
+        let pos1 = Position::new(0, 6); // supprime 'W'
+        let range1 = TextRange::new(pos1, Position::new(0, 7));
+        let mut remove1 = Remove::new(pos1, range1, vec!["W".to_string()]);
+
+        let pos2 = Position::new(0, 6); // supprime 'o' (qui a pris la place de 'W')
+        let range2 = TextRange::new(pos2, Position::new(0, 7));
+        let remove2 = Remove::new(pos2, range2, vec!["o".to_string()]);
+
+        assert!(remove1.try_merge(&remove2));
+        assert_eq!(remove1.lines, vec!["Wo".to_string()]);
+        assert_eq!(remove1.position, Position::new(0, 6));
+        assert_eq!(remove1.text_range.start, Position::new(0, 6));
+        assert_eq!(remove1.text_range.end, Position::new(0, 7));
     }
 }

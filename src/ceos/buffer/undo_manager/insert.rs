@@ -30,6 +30,42 @@ impl Insert {
         }
     }
 
+    pub(crate) fn try_merge(&mut self, other: &Self) -> bool {
+        if self.text_range.end != other.position {
+            return false;
+        }
+
+        if self.lines.len() == 1 && other.lines.len() == 1 {
+            self.lines[0].push_str(&other.lines[0]);
+            self.text_range.end = other.text_range.end;
+            return true;
+        }
+
+        if self.lines.len() > 1 && other.lines.len() == 1 {
+            self.lines.last_mut().unwrap().push_str(&other.lines[0]);
+            self.text_range.end = other.text_range.end;
+            return true;
+        }
+
+        if self.lines.len() == 1 && other.lines.len() > 1 {
+            let other_lines = other.lines.clone();
+            self.lines[0].push_str(&other_lines[0]);
+            self.lines.extend(other_lines.iter().skip(1).cloned());
+            self.text_range.end = other.text_range.end;
+            return true;
+        }
+
+        if self.lines.len() > 1 && other.lines.len() > 1 {
+            let other_lines = other.lines.clone();
+            self.lines.last_mut().unwrap().push_str(&other_lines[0]);
+            self.lines.extend(other_lines.iter().skip(1).cloned());
+            self.text_range.end = other.text_range.end;
+            return true;
+        }
+
+        false
+    }
+
     pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretPosition {
         buffer.delete_range(self.text_range);
         CaretPosition::Position(self.position)
@@ -150,5 +186,27 @@ mod tests {
         } else {
             panic!("Expected Position caret");
         }
+    }
+
+    #[test]
+    fn test_insert_merge() {
+        let pos1 = Position::new(0, 0);
+        let mut insert1 = Insert::new(pos1, vec!["Hello".to_string()]);
+        let pos2 = Position::new(0, 5);
+        let insert2 = Insert::new(pos2, vec![" World".to_string()]);
+
+        assert!(insert1.try_merge(&insert2));
+        assert_eq!(insert1.lines, vec!["Hello World".to_string()]);
+        assert_eq!(insert1.text_range.start, Position::new(0, 0));
+        assert_eq!(insert1.text_range.end, Position::new(0, 11));
+
+        let pos3 = Position::new(0, 11);
+        let insert3 = Insert::new(pos3, vec!["".to_string(), "New Line".to_string()]);
+        assert!(insert1.try_merge(&insert3));
+        assert_eq!(
+            insert1.lines,
+            vec!["Hello World".to_string(), "New Line".to_string()]
+        );
+        assert_eq!(insert1.text_range.end, Position::new(1, 8));
     }
 }
