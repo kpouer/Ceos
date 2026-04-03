@@ -12,6 +12,7 @@ use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use crate::progress_operation::ProgressOperation;
 use flate2::bufread::GzDecoder;
 use log::{error, info, warn};
+use logos::Source;
 use rayon::prelude::*;
 use std::borrow::Cow;
 use std::fs::File;
@@ -214,13 +215,21 @@ impl Buffer {
             let line_group = &mut self.content[group_index];
             let remove = line_group.filter_line_mut(line_in_group, |line| {
                 let start_col = RangeTools::start_bound(&range);
-                let removed_text = line.drain(range.clone());
+                let removed_text = line.drain(range.clone()).as_str().to_string();
+                let position = Position {
+                    line: line_index,
+                    column: start_col,
+                };
                 Remove::new(
-                    Position {
-                        line: line_index,
-                        column: start_col,
-                    },
-                    vec![removed_text.as_str().to_string()],
+                    position,
+                    TextRange::new(
+                        position,
+                        Position {
+                            line: line_index,
+                            column: start_col + removed_text.len(),
+                        },
+                    ),
+                    vec![removed_text],
                 )
             });
             if let Some(remove) = remove {
@@ -303,7 +312,7 @@ impl Buffer {
         if removed_content.is_empty() {
             return;
         }
-        let remove = Remove::new(text_range.start, removed_content);
+        let remove = Remove::new(text_range.start, text_range, removed_content);
         self.undo_manager
             .push_undo(UndoOperation::Remove(remove), true);
     }

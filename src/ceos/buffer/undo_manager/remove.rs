@@ -14,12 +14,18 @@ use crate::ceos::gui::textpane::selection::Selection;
 #[derive(Debug)]
 pub(crate) struct Remove {
     position: Position,
+    /// The deleted text range.
+    text_range: TextRange,
     lines: Vec<String>,
 }
 
 impl Remove {
-    pub const fn new(position: Position, lines: Vec<String>) -> Self {
-        Self { position, lines }
+    pub const fn new(position: Position, text_range: TextRange, lines: Vec<String>) -> Self {
+        Self {
+            position,
+            text_range,
+            lines,
+        }
     }
 
     pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretPosition {
@@ -39,31 +45,11 @@ impl Remove {
             }
         }
 
-        CaretPosition::Selection(Selection::new(
-            self.position,
-            Position {
-                line: self.position.line + self.lines.len() - 1,
-                column: if self.lines.len() == 1 {
-                    self.position.column + self.lines[0].len()
-                } else {
-                    self.lines.last().map(|line| line.len()).unwrap_or_default()
-                },
-            },
-        ))
+        CaretPosition::Position(self.position)
     }
 
     pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretPosition {
-        buffer.delete_range(TextRange::new(
-            self.position,
-            Position::new(
-                self.position.line + self.lines.len() - 1,
-                if self.lines.len() == 1 {
-                    self.position.column + self.lines[0].len()
-                } else {
-                    self.lines.last().map(|line| line.len()).unwrap_or_default()
-                },
-            ),
-        ));
+        buffer.delete_range(self.text_range);
         CaretPosition::Position(self.position)
     }
 }
@@ -80,8 +66,9 @@ mod tests {
         let mut buffer = Buffer::new_test_buffer("Initial text", 100);
 
         let pos = Position::new(0, 7);
+        let text_range = TextRange::new(pos, Position::new(0, 12));
         // " text" has length 5
-        let remove = Remove::new(pos, vec![" text".to_string()]);
+        let remove = Remove::new(pos, text_range, vec![" text".to_string()]);
 
         // Redo
         let caret = remove.redo(&mut buffer);
@@ -116,8 +103,10 @@ mod tests {
         // line 0: suffix ""
         // line 1: "Middle"
         // line 2: "End"
+        let text_range = TextRange::new(pos, Position::new(2, 3));
         let remove = Remove::new(
             pos,
+            text_range,
             vec!["".to_string(), "Middle".to_string(), "End".to_string()],
         );
 

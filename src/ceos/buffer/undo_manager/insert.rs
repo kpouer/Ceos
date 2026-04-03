@@ -7,28 +7,31 @@ use crate::ceos::gui::textpane::position::Position;
 pub(crate) struct Insert {
     /// The start position of the inserted lines.
     position: Position,
+    /// The textrange that was inserted
+    text_range: TextRange,
     lines: Vec<String>,
 }
 
 impl Insert {
-    pub(crate) const fn new(position: Position, lines: Vec<String>) -> Self {
-        Self { position, lines }
+    pub(crate) fn new(position: Position, lines: Vec<String>) -> Self {
+        let end_position = if lines.len() == 1 {
+            Position::new(position.line, position.column + lines[0].len())
+        } else {
+            Position::new(
+                position.line + lines.len() - 1,
+                lines[lines.len() - 1].len(),
+            )
+        };
+        let text_range = TextRange::new(position, end_position);
+        Self {
+            position,
+            text_range,
+            lines,
+        }
     }
 
     pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretPosition {
-        let end_position = if self.lines.len() == 1 {
-            Position::new(
-                self.position.line,
-                self.position.column + self.lines[0].len(),
-            )
-        } else {
-            Position::new(
-                self.position.line + self.lines.len() - 1,
-                self.lines[self.lines.len() - 1].len(),
-            )
-        };
-        let text_range = TextRange::new(self.position, end_position);
-        buffer.delete_range(text_range);
+        buffer.delete_range(self.text_range);
         CaretPosition::Position(self.position)
     }
 
