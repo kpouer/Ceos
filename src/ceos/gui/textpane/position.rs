@@ -12,6 +12,27 @@ impl Position {
     pub(crate) const fn new(line: usize, column: usize) -> Self {
         Self { line, column }
     }
+
+    pub(crate) const fn move_left(&self) -> Self {
+        Self {
+            line: self.line,
+            column: self.column - 1,
+        }
+    }
+
+    pub(crate) const fn move_right(&self) -> Self {
+        Self {
+            line: self.line,
+            column: self.column + 1,
+        }
+    }
+
+    pub(crate) const fn move_right_by(&self, amount: usize) -> Self {
+        Self {
+            line: self.line,
+            column: self.column + amount,
+        }
+    }
 }
 
 impl Display for Position {

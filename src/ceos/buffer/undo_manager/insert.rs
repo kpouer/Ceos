@@ -1,6 +1,7 @@
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::caret_state::CaretState;
 use crate::ceos::buffer::text_range::TextRange;
+use crate::ceos::gui::textpane::position;
 use crate::ceos::gui::textpane::position::Position;
 
 #[derive(Debug)]
@@ -15,7 +16,7 @@ pub(crate) struct Insert {
 impl Insert {
     pub(crate) fn new(position: Position, lines: Vec<String>) -> Self {
         let end_position = if lines.len() == 1 {
-            Position::new(position.line, position.column + lines[0].len())
+            position.move_right_by(lines[0].len())
         } else {
             Position::new(
                 position.line + lines.len() - 1,
@@ -81,20 +82,14 @@ impl Insert {
         match self.lines.as_slice() {
             [line] => {
                 buffer.insert_str(self.position, line);
-                CaretState::Position(Position::new(
-                    self.position.line,
-                    self.position.column + line.len(),
-                ))
+                CaretState::Position(self.position.move_right_by(line.len()))
             }
             [first, rest @ .., last] => {
                 // Insère le texte avant le saut de ligne
                 if !first.is_empty() {
                     buffer.insert_str(self.position, first);
                 }
-                buffer.insert_newline(Position::new(
-                    self.position.line,
-                    self.position.column + first.len(),
-                ));
+                buffer.insert_newline(self.position.move_right_by(first.len()));
 
                 // Insère les lignes suivantes
                 if !rest.is_empty() {
@@ -196,14 +191,14 @@ mod tests {
 
     #[test]
     fn test_insert_merge() {
-        let pos1 = Position::new(0, 0);
+        let pos1 = Position::ZERO;
         let mut insert1 = Insert::new(pos1, vec!["Hello".to_string()]);
         let pos2 = Position::new(0, 5);
         let insert2 = Insert::new(pos2, vec![" World".to_string()]);
 
         assert!(insert1.try_merge(&insert2));
         assert_eq!(insert1.lines, vec!["Hello World".to_string()]);
-        assert_eq!(insert1.text_range.start, Position::new(0, 0));
+        assert_eq!(insert1.text_range.start, Position::ZERO);
         assert_eq!(insert1.text_range.end, Position::new(0, 11));
 
         let pos3 = Position::new(0, 11);

@@ -354,16 +354,14 @@ impl TextAreaProperties {
 
         if self.caret_position.position.column > 0 {
             let range = TextRange::new(
-                Position::new(
-                    self.caret_position.position.line,
-                    self.caret_position.position.column - 1,
-                ),
+                self.caret_position.position.move_left(),
                 self.caret_position.position,
             );
             self.buffer.delete_range(range);
             self.caret_position.position.column -= 1;
             self.caret_position.reset_virtual_column();
         } else if self.caret_position.position.line > 0 {
+            // column is 0, but we need to go to the previous line
             let prev_line_idx = self.caret_position.position.line - 1;
             let prev_line_len = self.buffer.line_text(prev_line_idx).len();
             let range = TextRange::new(
@@ -416,10 +414,7 @@ impl TextAreaProperties {
         if self.caret_position.position.column < line_len {
             let range = TextRange::new(
                 self.caret_position.position,
-                Position::new(
-                    self.caret_position.position.line,
-                    self.caret_position.position.column + 1,
-                ),
+                self.caret_position.position.move_right(),
             );
             self.buffer.delete_range(range);
         } else if self.caret_position.position.line + 1 < line_count {

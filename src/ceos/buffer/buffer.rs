@@ -1030,7 +1030,7 @@ mod tests {
     #[test]
     fn test_insert_char_at_line_beginning() {
         let mut buffer = Buffer::new_test_buffer("hello", 2);
-        buffer.insert_char(Position::new(0, 0), 'X');
+        buffer.insert_char(Position::ZERO, 'X');
         assert_eq!(buffer.line_text(0), "Xhello");
         assert!(buffer.dirty);
     }
@@ -1066,7 +1066,7 @@ mod tests {
     #[test]
     fn test_insert_newline_at_line_beginning() {
         let mut buffer = Buffer::new_test_buffer("hello", 2);
-        buffer.insert_newline(Position::new(0, 0));
+        buffer.insert_newline(Position::ZERO);
         assert_eq!(buffer.line_count(), 2);
         assert_eq!(buffer.line_text(0), "");
         assert_eq!(buffer.line_text(1), "hello");
