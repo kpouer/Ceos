@@ -2,8 +2,8 @@ use crate::ceos::gui::textpane::position::Position;
 
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct TextRange {
-    pub(super) start: Position,
-    pub(super) end: Position,
+    pub(crate) start: Position,
+    pub(crate) end: Position,
 }
 
 impl TextRange {

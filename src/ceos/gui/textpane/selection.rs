@@ -26,3 +26,12 @@ impl From<&Selection> for TextRange {
         TextRange::new(selection.start, selection.end)
     }
 }
+
+impl From<TextRange> for Selection {
+    fn from(text_range: TextRange) -> Self {
+        Self {
+            start: text_range.start,
+            end: text_range.end,
+        }
+    }
+}
