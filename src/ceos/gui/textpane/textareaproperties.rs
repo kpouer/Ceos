@@ -304,35 +304,37 @@ impl TextAreaProperties {
     }
 
     fn update_selection_after_caret_move(&mut self, old_caret_position: Position, select: bool) {
-        if select {
-            if let Some(mut selection) = self.selection.take() {
-                if selection.start == old_caret_position {
-                    selection.start = self.caret_position.position;
-                } else if selection.end == old_caret_position {
-                    selection.end = self.caret_position.position;
-                } else {
-                    warn!(
-                        "That's a surprise, old_caret_position {old_caret_position} is neither start nor end of selection {selection:?}"
-                    );
-                };
-                if !selection.is_empty() {
-                    self.selection = Some(selection);
-                }
-            } else {
-                if self.caret_position.position < old_caret_position {
-                    self.selection = Some(Selection::new(
-                        self.caret_position.position,
-                        old_caret_position,
-                    ));
-                } else {
-                    self.selection = Some(Selection::new(
-                        old_caret_position,
-                        self.caret_position.position,
-                    ));
-                }
-            }
-        } else {
+        if !select {
             self.selection = None;
+            return;
+        }
+
+        if let Some(mut selection) = self.selection.take() {
+            if selection.start == old_caret_position {
+                selection.start = self.caret_position.position;
+            } else if selection.end == old_caret_position {
+                selection.end = self.caret_position.position;
+            } else {
+                warn!(
+                    "That's a surprise, old_caret_position {old_caret_position} is neither start nor end of selection {selection:?}"
+                );
+            };
+            if !selection.is_empty() {
+                self.selection = Some(selection);
+            }
+            return;
+        }
+
+        if self.caret_position.position < old_caret_position {
+            self.selection = Some(Selection::new(
+                self.caret_position.position,
+                old_caret_position,
+            ));
+        } else {
+            self.selection = Some(Selection::new(
+                old_caret_position,
+                self.caret_position.position,
+            ));
         }
     }
 
