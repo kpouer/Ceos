@@ -27,13 +27,22 @@ impl KeyboardHandler {
             KeyboardShortcut::new(Modifiers::SHIFT, Key::ArrowRight),
             Action::GoToNextCharacter { select: true },
         );
+
         shortcuts.insert(
             KeyboardShortcut::new(Modifiers::NONE, Key::ArrowUp),
             Action::GoToPrevLine { select: false },
         );
         shortcuts.insert(
+            KeyboardShortcut::new(Modifiers::SHIFT, Key::ArrowUp),
+            Action::GoToPrevLine { select: true },
+        );
+        shortcuts.insert(
             KeyboardShortcut::new(Modifiers::NONE, Key::ArrowDown),
             Action::GoToNextLine { select: false },
+        );
+        shortcuts.insert(
+            KeyboardShortcut::new(Modifiers::SHIFT, Key::ArrowDown),
+            Action::GoToNextLine { select: true },
         );
         shortcuts.insert(
             KeyboardShortcut::new(Modifiers::NONE, Key::Enter),
