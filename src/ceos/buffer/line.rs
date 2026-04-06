@@ -17,6 +17,7 @@ impl<T: Into<String>> From<T> for Line {
 }
 
 impl Line {
+    #[cfg(test)]
     pub(crate) const fn is_empty(&self) -> bool {
         self.content.is_empty()
     }

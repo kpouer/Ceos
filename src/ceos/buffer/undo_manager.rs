@@ -55,10 +55,6 @@ impl UndoManager {
         !self.undos.is_empty()
     }
 
-    pub(crate) const fn can_redo(&self) -> bool {
-        !self.redos.is_empty()
-    }
-
     pub(crate) const fn start_operation(&mut self) {
         assert!(!self.operation_in_progress);
         self.operation_in_progress = true;

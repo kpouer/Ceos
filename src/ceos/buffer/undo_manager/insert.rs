@@ -1,7 +1,6 @@
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::caret_state::CaretState;
 use crate::ceos::buffer::text_range::TextRange;
-use crate::ceos::gui::textpane::position;
 use crate::ceos::gui::textpane::position::Position;
 
 #[derive(Debug)]

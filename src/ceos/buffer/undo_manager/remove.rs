@@ -2,7 +2,6 @@ use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::caret_state::CaretState;
 use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::gui::textpane::position::Position;
-use crate::ceos::gui::textpane::selection::Selection;
 
 /// A structure representing a `Remove` operation, typically used to denote
 /// the deletion of a segment of text at a specific position within a document or editor.
