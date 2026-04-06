@@ -11,6 +11,7 @@ use std::sync::mpsc::Sender;
 use textarea::TextArea;
 use textareaproperties::TextAreaProperties;
 
+pub mod caret_position;
 pub(crate) mod gutter;
 pub(crate) mod interaction_mode;
 pub(crate) mod position;

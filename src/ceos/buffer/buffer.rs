@@ -1,4 +1,4 @@
-use crate::ceos::buffer::caret_possition::CaretPosition;
+use crate::ceos::buffer::caret_state::CaretState;
 use crate::ceos::buffer::line::Line;
 use crate::ceos::buffer::line_group::LineGroup;
 use crate::ceos::buffer::text_range::TextRange;
@@ -12,7 +12,6 @@ use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use crate::progress_operation::ProgressOperation;
 use flate2::bufread::GzDecoder;
 use log::{error, info, warn};
-use logos::Source;
 use rayon::prelude::*;
 use std::borrow::Cow;
 use std::fs::File;
@@ -317,7 +316,7 @@ impl Buffer {
             .push_undo(UndoOperation::Remove(remove), true);
     }
 
-    pub(crate) fn undo(&mut self) -> Option<CaretPosition> {
+    pub(crate) fn undo(&mut self) -> Option<CaretState> {
         if let Some(edit) = self.undo_manager.pop_undo() {
             self.undo_manager.start_operation();
             let new_position = edit.undo(self);
@@ -328,7 +327,7 @@ impl Buffer {
         None
     }
 
-    pub(crate) fn redo(&mut self) -> Option<CaretPosition> {
+    pub(crate) fn redo(&mut self) -> Option<CaretState> {
         if let Some(edit) = self.undo_manager.pop_redo() {
             self.undo_manager.start_operation();
             let new_position = edit.redo(self);
@@ -1000,7 +999,7 @@ mod tests {
         assert!(buffer.undo_manager.can_undo());
         if let Some(edit) = buffer.undo_manager.last_undo() {
             assert_eq!(
-                "Remove { position: Position { line: 0, column: 5 }, lines: ' World' }",
+                "Remove { position: Position { line: 0, column: 5 }, text_range: TextRange { start: Position { line: 0, column: 5 }, end: Position { line: 0, column: 11 } }, lines: [\" World\"] }",
                 edit.to_string()
             );
         }
@@ -1018,7 +1017,7 @@ mod tests {
         assert!(buffer.undo_manager.can_undo());
         if let Some(edit) = buffer.undo_manager.last_undo() {
             assert_eq!(
-                "Remove { position: Position { line: 0, column: 4 }, lines: ' 1\nBBBB 2\nCCCC' }",
+                "Remove { position: Position { line: 0, column: 4 }, text_range: TextRange { start: Position { line: 0, column: 4 }, end: Position { line: 2, column: 4 } }, lines: [\" 1\", \"BBBB 2\", \"CCCC\"] }",
                 edit.to_string()
             );
         }

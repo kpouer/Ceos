@@ -1,6 +1,7 @@
 use crate::ceos::buffer::buffer::Buffer;
-use crate::ceos::buffer::caret_possition::CaretPosition;
+use crate::ceos::buffer::caret_state::CaretState;
 use crate::ceos::buffer::text_range::TextRange;
+use crate::ceos::gui::textpane::caret_position::CaretPosition;
 use crate::ceos::gui::textpane::gutter;
 use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
 use crate::ceos::gui::textpane::position::Position;
@@ -29,7 +30,7 @@ pub(crate) struct TextAreaProperties {
     pub(crate) font_id: FontId,
     pub(crate) char_width: f32,
     pub(crate) renderer_manager: RendererManager,
-    pub(crate) caret_position: Position,
+    pub(crate) caret_position: CaretPosition,
     pub(crate) selection: Option<Selection>,
     pub(crate) interaction_mode: InteractionMode,
     pub(crate) scroll_offset: Vec2,
@@ -48,7 +49,7 @@ impl TextAreaProperties {
             line_height: DEFAULT_LINE_HEIGHT,
             font_id,
             char_width: 0.0,
-            caret_position: Position::default(),
+            caret_position: CaretPosition::ZERO,
             selection: None,
             interaction_mode: InteractionMode::Selection,
             scroll_offset: Vec2::ZERO,
@@ -75,7 +76,7 @@ impl TextAreaProperties {
             buffer.path,
             buffer.line_count()
         );
-        self.caret_position = Position::ZERO;
+        self.caret_position = CaretPosition::ZERO;
         self.buffer = buffer
     }
 
@@ -144,21 +145,26 @@ impl TextAreaProperties {
             if ch == '\r' || ch == '\x08' || ch == '\x7f' {
                 continue;
             }
-            self.buffer.insert_char(self.caret_position, ch);
+            self.buffer.insert_char(self.caret_position.position, ch);
             if ch == '\n' {
-                self.caret_position.line += 1;
-                self.caret_position.column = 0;
+                self.caret_position.position.line += 1;
+                self.caret_position.position.column = 0;
             } else {
-                self.caret_position.column += 1;
+                self.caret_position.position.column += 1;
             }
         }
+        self.caret_position.reset_virtual_column();
     }
 
     /// Delete the selection content if there is one.
     pub(crate) fn delete_selection(&mut self) {
         if let Some(selection) = self.selection.take() {
+            info!("delete selection {selection:?}");
             self.buffer.delete_range(TextRange::from(&selection));
-            self.caret_position = selection.start;
+            self.caret_position.position = selection.start;
+            self.caret_position.reset_virtual_column();
+        } else {
+            info!("delete selection: no selection");
         }
     }
 
@@ -208,88 +214,102 @@ impl TextAreaProperties {
 
     pub(crate) fn go_to_prev_char(&mut self, select: bool) {
         let old_caret_position = self.caret_position;
-        if self.caret_position.column > 0 {
-            self.caret_position.column -= 1;
-        } else if self.caret_position.line > 0 {
-            self.caret_position.line -= 1;
-            self.caret_position.column = self.buffer.line_length(self.caret_position.line);
+        if self.caret_position.position.column > 0 {
+            self.caret_position.position.column -= 1;
+        } else if self.caret_position.position.line > 0 {
+            self.caret_position.position.line -= 1;
+            self.caret_position.position.column =
+                self.buffer.line_length(self.caret_position.position.line);
         }
 
-        self.update_selection_after_caret_move(old_caret_position, select);
+        self.caret_position.reset_virtual_column();
+
+        self.update_selection_after_caret_move(old_caret_position.position, select);
     }
 
     pub(crate) fn go_to_next_char(&mut self, select: bool) {
         let old_caret_position = self.caret_position;
-        if self.caret_position.column < self.buffer.line_length(self.caret_position.line) {
-            self.caret_position.column += 1;
-        } else if self.caret_position.line < self.buffer.line_count() - 1 {
-            self.caret_position.line += 1;
-            self.caret_position.column = 0;
+        if self.caret_position.position.column
+            < self.buffer.line_length(self.caret_position.position.line)
+        {
+            self.caret_position.position.column += 1;
+        } else if self.caret_position.position.line < self.buffer.line_count() - 1 {
+            self.caret_position.position.line += 1;
+            self.caret_position.position.column = 0;
         }
 
-        self.update_selection_after_caret_move(old_caret_position, select);
+        self.caret_position.reset_virtual_column();
+
+        self.update_selection_after_caret_move(old_caret_position.position, select);
     }
 
     pub(crate) fn go_to_prev_line(&mut self, select: bool) {
         let old_caret_position = self.caret_position;
-        if self.caret_position.line > 0 {
-            self.caret_position.line -= 1;
-            self.caret_position.column = self
+        if self.caret_position.position.line > 0 {
+            self.caret_position.position.line -= 1;
+            self.caret_position.position.column = self
                 .caret_position
+                .position
                 .column
-                .min(self.buffer.line_length(self.caret_position.line));
-        }
+                .min(self.buffer.line_length(self.caret_position.position.line))
+                .max(self.caret_position.virtual_column);
 
-        self.update_selection_after_caret_move(old_caret_position, select);
+            self.update_selection_after_caret_move(old_caret_position.position, select);
+        }
     }
 
     pub(crate) fn go_to_next_line(&mut self, select: bool) {
         let old_caret_position = self.caret_position;
-        if self.caret_position.line < self.buffer.line_count() {
-            self.caret_position.line += 1;
-            self.caret_position.column = self
+        if self.caret_position.position.line < self.buffer.line_count() {
+            self.caret_position.position.line += 1;
+            self.caret_position.position.column = self
                 .caret_position
+                .position
                 .column
-                .min(self.buffer.line_length(self.caret_position.line));
+                .min(self.buffer.line_length(self.caret_position.position.line))
+                .max(self.caret_position.virtual_column);
         }
 
-        self.update_selection_after_caret_move(old_caret_position, select);
+        self.update_selection_after_caret_move(old_caret_position.position, select);
     }
 
     pub(crate) fn go_to_start_of_buffer(&mut self, select: bool) {
         let old_caret_position = self.caret_position;
-        self.caret_position = Position::ZERO;
-        self.update_selection_after_caret_move(old_caret_position, select);
+        self.caret_position = CaretPosition::ZERO;
+        self.update_selection_after_caret_move(old_caret_position.position, select);
     }
 
     pub(crate) fn go_to_start_of_line(&mut self, select: bool) {
         let old_caret_position = self.caret_position;
-        self.caret_position.column = 0;
-        self.update_selection_after_caret_move(old_caret_position, select);
+        self.caret_position.position.column = 0;
+        self.caret_position.virtual_column = 0;
+        self.update_selection_after_caret_move(old_caret_position.position, select);
     }
 
     pub(crate) fn go_to_end_of_line(&mut self, select: bool) {
         let old_caret_position = self.caret_position;
-        let current_line_length = self.buffer.line_text(self.caret_position.line);
-        self.caret_position.column = current_line_length.len().saturating_sub(1);
-        self.update_selection_after_caret_move(old_caret_position, select);
+        let current_line_length = self.buffer.line_text(self.caret_position.position.line);
+        self.caret_position.position.column = current_line_length.len().saturating_sub(1);
+        self.caret_position.reset_virtual_column();
+        self.update_selection_after_caret_move(old_caret_position.position, select);
     }
 
     pub(crate) fn go_to_end_of_buffer(&mut self, select: bool) {
         let old_caret_position = self.caret_position;
         let current_line_length = self.buffer.line_text(self.buffer.line_count() - 1);
-        self.caret_position.line = self.buffer.line_count().saturating_sub(1);
-        self.caret_position.column = current_line_length.len().saturating_sub(1);
-        self.update_selection_after_caret_move(old_caret_position, select);
+        self.caret_position.position.line = self.buffer.line_count().saturating_sub(1);
+        self.caret_position.position.column = current_line_length.len().saturating_sub(1);
+        self.caret_position.reset_virtual_column();
+        self.update_selection_after_caret_move(old_caret_position.position, select);
     }
 
     fn update_selection_after_caret_move(&mut self, old_caret_position: Position, select: bool) {
         if select {
             if let Some(mut selection) = self.selection.take() {
                 if selection.start == old_caret_position {
-                    selection.start = self.caret_position;
+                    selection.start = self.caret_position.position;
                 } else if selection.end == old_caret_position {
-                    selection.end = self.caret_position;
+                    selection.end = self.caret_position.position;
                 } else {
                     warn!(
                         "That's a surprise, old_caret_position {old_caret_position} is neither start nor end of selection {selection:?}"
@@ -299,10 +319,16 @@ impl TextAreaProperties {
                     self.selection = Some(selection);
                 }
             } else {
-                if self.caret_position < old_caret_position {
-                    self.selection = Some(Selection::new(self.caret_position, old_caret_position));
+                if self.caret_position.position < old_caret_position {
+                    self.selection = Some(Selection::new(
+                        self.caret_position.position,
+                        old_caret_position,
+                    ));
                 } else {
-                    self.selection = Some(Selection::new(old_caret_position, self.caret_position));
+                    self.selection = Some(Selection::new(
+                        old_caret_position,
+                        self.caret_position.position,
+                    ));
                 }
             }
         } else {
@@ -312,9 +338,10 @@ impl TextAreaProperties {
 
     pub(crate) fn input_enter(&mut self) {
         self.delete_selection();
-        self.buffer.insert_newline(self.caret_position);
-        self.caret_position.line += 1;
-        self.caret_position.column = 0;
+        self.buffer.insert_newline(self.caret_position.position);
+        self.caret_position.position.line += 1;
+        self.caret_position.position.column = 0;
+        self.caret_position.reset_virtual_column();
     }
 
     pub(crate) fn input_backspace(&mut self) {
@@ -323,48 +350,52 @@ impl TextAreaProperties {
             return;
         }
 
-        if self.caret_position.column > 0 {
+        if self.caret_position.position.column > 0 {
             let range = TextRange::new(
-                Position::new(self.caret_position.line, self.caret_position.column - 1),
-                self.caret_position,
+                Position::new(
+                    self.caret_position.position.line,
+                    self.caret_position.position.column - 1,
+                ),
+                self.caret_position.position,
             );
             self.buffer.delete_range(range);
-            self.caret_position.column -= 1;
-        } else if self.caret_position.line > 0 {
-            let prev_line_idx = self.caret_position.line - 1;
+            self.caret_position.position.column -= 1;
+            self.caret_position.reset_virtual_column();
+        } else if self.caret_position.position.line > 0 {
+            let prev_line_idx = self.caret_position.position.line - 1;
             let prev_line_len = self.buffer.line_text(prev_line_idx).len();
             let range = TextRange::new(
                 Position::new(prev_line_idx, prev_line_len),
-                Position::new(self.caret_position.line, 0),
+                Position::new(self.caret_position.position.line, 0),
             );
             self.buffer.delete_range(range);
-            self.caret_position.line = prev_line_idx;
-            self.caret_position.column = prev_line_len;
+            self.caret_position.position.line = prev_line_idx;
+            self.caret_position.position.column = prev_line_len;
+            self.caret_position.reset_virtual_column();
         }
     }
 
     pub(crate) fn undo(&mut self) {
         info!("undo");
-        if let Some(position) = self.buffer.undo() {
-            match position {
-                CaretPosition::Selection(selection) => self.selection = Some(selection),
-                CaretPosition::Position(position) => {
-                    self.selection = None;
-                    self.caret_position = position;
-                }
-            }
+        if let Some(caret_state) = self.buffer.undo() {
+            self.apply_caret_state(caret_state);
         }
     }
 
     pub(crate) fn redo(&mut self) {
         info!("redo");
-        if let Some(position) = self.buffer.redo() {
-            match position {
-                CaretPosition::Selection(selection) => self.selection = Some(selection),
-                CaretPosition::Position(position) => {
-                    self.selection = None;
-                    self.caret_position = position;
-                }
+        if let Some(caret_state) = self.buffer.redo() {
+            self.apply_caret_state(caret_state);
+        }
+    }
+
+    const fn apply_caret_state(&mut self, caret_state: CaretState) {
+        match caret_state {
+            CaretState::Selection(selection) => self.selection = Some(selection),
+            CaretState::Position(position) => {
+                self.selection = None;
+                self.caret_position.position = position;
+                self.caret_position.reset_virtual_column();
             }
         }
     }
@@ -375,18 +406,24 @@ impl TextAreaProperties {
             return;
         }
 
-        let line_len = self.buffer.line_text(self.caret_position.line).len();
+        let line_len = self
+            .buffer
+            .line_text(self.caret_position.position.line)
+            .len();
         let line_count = self.buffer.line_count();
-        if self.caret_position.column < line_len {
+        if self.caret_position.position.column < line_len {
             let range = TextRange::new(
-                self.caret_position,
-                Position::new(self.caret_position.line, self.caret_position.column + 1),
+                self.caret_position.position,
+                Position::new(
+                    self.caret_position.position.line,
+                    self.caret_position.position.column + 1,
+                ),
             );
             self.buffer.delete_range(range);
-        } else if self.caret_position.line + 1 < line_count {
+        } else if self.caret_position.position.line + 1 < line_count {
             let range = TextRange::new(
-                Position::new(self.caret_position.line, line_len),
-                Position::new(self.caret_position.line + 1, 0),
+                Position::new(self.caret_position.position.line, line_len),
+                Position::new(self.caret_position.position.line + 1, 0),
             );
             self.buffer.delete_range(range);
         }
@@ -416,11 +453,15 @@ mod tests {
         #[case] expected_position: Position,
     ) {
         let mut textarea = create_test_textarea(text);
-        textarea.caret_position = start_position;
+        textarea.caret_position = CaretPosition::from_position(start_position);
 
         textarea.go_to_prev_char(false);
 
-        assert_eq!(textarea.caret_position, expected_position);
+        assert_eq!(textarea.caret_position.position, expected_position);
+        assert_eq!(
+            textarea.caret_position.virtual_column,
+            expected_position.column
+        );
     }
 
     #[rstest]
@@ -433,23 +474,27 @@ mod tests {
         #[case] expected_position: Position,
     ) {
         let mut textarea = create_test_textarea(text);
-        textarea.caret_position = start_position;
+        textarea.caret_position = CaretPosition::from_position(start_position);
 
         textarea.go_to_next_char(false);
 
-        assert_eq!(textarea.caret_position, expected_position);
+        assert_eq!(textarea.caret_position.position, expected_position);
+        assert_eq!(
+            textarea.caret_position.virtual_column,
+            expected_position.column
+        );
     }
 
     #[test]
     fn test_handle_text_single_char() {
         let mut textarea = create_test_textarea("");
-        textarea.caret_position = Position::ZERO;
+        textarea.caret_position = CaretPosition::ZERO;
 
         textarea.replace_selection("a");
 
         assert_eq!(textarea.buffer.line_text(0), "a");
-        assert_eq!(textarea.caret_position.line, 0);
-        assert_eq!(textarea.caret_position.column, 1);
+        assert_eq!(textarea.caret_position.position.line, 0);
+        assert_eq!(textarea.caret_position.position.column, 1);
     }
 
     #[test]
@@ -458,8 +503,8 @@ mod tests {
 
         assert_eq!(textarea.buffer.line_text(0), "ab");
         assert_eq!(textarea.buffer.line_text(1), "cd");
-        assert_eq!(textarea.caret_position.line, 1);
-        assert_eq!(textarea.caret_position.column, 2);
+        assert_eq!(textarea.caret_position.position.line, 1);
+        assert_eq!(textarea.caret_position.position.column, 2);
     }
 
     #[test]
@@ -467,7 +512,7 @@ mod tests {
         let textarea = create_test_textarea("a\rb\x08c\x7fd");
 
         assert_eq!(textarea.buffer.line_text(0), "abcd");
-        assert_eq!(textarea.caret_position.column, 4);
+        assert_eq!(textarea.caret_position.position.column, 4);
     }
 
     #[test]
@@ -481,7 +526,7 @@ mod tests {
         textarea.delete_selection();
 
         assert_eq!(textarea.buffer.line_text(0), "c");
-        assert_eq!(textarea.caret_position, Position::ZERO);
+        assert_eq!(textarea.caret_position, CaretPosition::ZERO);
         assert!(textarea.selection.is_none());
     }
 
@@ -498,7 +543,7 @@ mod tests {
     #[test]
     fn test_go_to_start_of_buffer() {
         let mut textarea = create_test_textarea("a\nb");
-        textarea.caret_position = Position { line: 1, column: 1 };
+        textarea.caret_position = CaretPosition::from_position(Position { line: 1, column: 1 });
         textarea.selection = Some(Selection {
             start: Position::ZERO,
             end: Position { line: 1, column: 1 },
@@ -506,87 +551,87 @@ mod tests {
 
         textarea.go_to_start_of_buffer(false);
 
-        assert_eq!(textarea.caret_position, Position::ZERO);
+        assert_eq!(textarea.caret_position, CaretPosition::ZERO);
         assert!(textarea.selection.is_none());
     }
 
     #[test]
     fn test_go_to_start_of_line() {
         let mut textarea = create_test_textarea("abc");
-        textarea.caret_position = Position { line: 0, column: 2 };
+        textarea.caret_position = CaretPosition::from_position(Position { line: 0, column: 2 });
 
         textarea.go_to_start_of_line(false);
 
-        assert_eq!(textarea.caret_position, Position::ZERO);
+        assert_eq!(textarea.caret_position, CaretPosition::ZERO);
         assert!(textarea.selection.is_none());
     }
 
     #[test]
     fn test_go_to_end_of_line() {
         let mut textarea = create_test_textarea("abc");
-        textarea.caret_position = Position::ZERO;
+        textarea.caret_position = CaretPosition::ZERO;
 
         textarea.go_to_end_of_line(false);
 
-        assert_eq!(textarea.caret_position.line, 0);
-        assert_eq!(textarea.caret_position.column, 2);
+        assert_eq!(textarea.caret_position.position.line, 0);
+        assert_eq!(textarea.caret_position.position.column, 2);
         assert!(textarea.selection.is_none());
     }
 
     #[test]
     fn test_go_to_end_of_buffer() {
         let mut textarea = create_test_textarea("a\nbc");
-        textarea.caret_position = Position::ZERO;
+        textarea.caret_position = CaretPosition::ZERO;
 
         textarea.go_to_end_of_buffer(false);
 
-        assert_eq!(textarea.caret_position.line, 1);
-        assert_eq!(textarea.caret_position.column, 1);
+        assert_eq!(textarea.caret_position.position.line, 1);
+        assert_eq!(textarea.caret_position.position.column, 1);
         assert!(textarea.selection.is_none());
     }
 
     #[test]
     fn test_input_enter() {
         let mut textarea = create_test_textarea("ab");
-        textarea.caret_position = Position { line: 0, column: 1 };
+        textarea.caret_position = CaretPosition::from_position(Position { line: 0, column: 1 });
 
         textarea.input_enter();
 
         assert_eq!(textarea.buffer.line_text(0), "a");
         assert_eq!(textarea.buffer.line_text(1), "b");
-        assert_eq!(textarea.caret_position.line, 1);
-        assert_eq!(textarea.caret_position.column, 0);
+        assert_eq!(textarea.caret_position.position.line, 1);
+        assert_eq!(textarea.caret_position.position.column, 0);
     }
 
     #[test]
     fn test_input_backspace_within_line() {
         let mut textarea = create_test_textarea("abc");
-        textarea.caret_position = Position { line: 0, column: 2 };
+        textarea.caret_position = CaretPosition::from_position(Position { line: 0, column: 2 });
 
         textarea.input_backspace();
 
         assert_eq!(textarea.buffer.line_text(0), "ac");
-        assert_eq!(textarea.caret_position.line, 0);
-        assert_eq!(textarea.caret_position.column, 1);
+        assert_eq!(textarea.caret_position.position.line, 0);
+        assert_eq!(textarea.caret_position.position.column, 1);
     }
 
     #[test]
     fn test_input_backspace_at_line_start() {
         let mut textarea = create_test_textarea("ab\nc");
-        textarea.caret_position = Position { line: 1, column: 0 };
+        textarea.caret_position = CaretPosition::from_position(Position { line: 1, column: 0 });
 
         textarea.input_backspace();
 
         assert_eq!(textarea.buffer.line_text(0), "abc");
         assert_eq!(textarea.buffer.line_count(), 1);
-        assert_eq!(textarea.caret_position.line, 0);
-        assert_eq!(textarea.caret_position.column, 2);
+        assert_eq!(textarea.caret_position.position.line, 0);
+        assert_eq!(textarea.caret_position.position.column, 2);
     }
 
     #[test]
     fn test_input_backspace_with_selection() {
         let mut textarea = create_test_textarea("abc");
-        textarea.caret_position = Position { line: 0, column: 2 };
+        textarea.caret_position = CaretPosition::from_position(Position { line: 0, column: 2 });
         textarea.selection = Some(Selection {
             start: Position::ZERO,
             end: Position { line: 0, column: 2 },
@@ -595,39 +640,39 @@ mod tests {
         textarea.input_backspace();
 
         assert_eq!(textarea.buffer.line_text(0), "c");
-        assert_eq!(textarea.caret_position, Position::ZERO);
+        assert_eq!(textarea.caret_position, CaretPosition::ZERO);
         assert!(textarea.selection.is_none());
     }
 
     #[test]
     fn test_input_delete_within_line() {
         let mut textarea = create_test_textarea("abc");
-        textarea.caret_position = Position { line: 0, column: 1 };
+        textarea.caret_position = CaretPosition::from_position(Position { line: 0, column: 1 });
 
         textarea.input_delete();
 
         assert_eq!(textarea.buffer.line_text(0), "ac");
-        assert_eq!(textarea.caret_position.line, 0);
-        assert_eq!(textarea.caret_position.column, 1);
+        assert_eq!(textarea.caret_position.position.line, 0);
+        assert_eq!(textarea.caret_position.position.column, 1);
     }
 
     #[test]
     fn test_input_delete_at_line_end() {
         let mut textarea = create_test_textarea("ab\nc");
-        textarea.caret_position = Position { line: 0, column: 2 };
+        textarea.caret_position = CaretPosition::from_position(Position { line: 0, column: 2 });
 
         textarea.input_delete();
 
         assert_eq!(textarea.buffer.line_text(0), "abc");
         assert_eq!(textarea.buffer.line_count(), 1);
-        assert_eq!(textarea.caret_position.line, 0);
-        assert_eq!(textarea.caret_position.column, 2);
+        assert_eq!(textarea.caret_position.position.line, 0);
+        assert_eq!(textarea.caret_position.position.column, 2);
     }
 
     #[test]
     fn test_input_delete_with_selection() {
         let mut textarea = create_test_textarea("abc");
-        textarea.caret_position = Position::ZERO;
+        textarea.caret_position = CaretPosition::ZERO;
         textarea.selection = Some(Selection {
             start: Position::ZERO,
             end: Position { line: 0, column: 2 },
@@ -636,7 +681,7 @@ mod tests {
         textarea.input_delete();
 
         assert_eq!(textarea.buffer.line_text(0), "c");
-        assert_eq!(textarea.caret_position, Position::ZERO);
+        assert_eq!(textarea.caret_position, CaretPosition::ZERO);
         assert!(textarea.selection.is_none());
     }
 }

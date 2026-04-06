@@ -1,5 +1,5 @@
 pub mod buffer;
-pub mod caret_possition;
+pub mod caret_state;
 pub(crate) mod line;
 pub(super) mod line_group;
 pub(crate) mod text_range;

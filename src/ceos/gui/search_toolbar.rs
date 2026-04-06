@@ -1,4 +1,5 @@
 use crate::ceos::buffer::buffer::Buffer;
+use crate::ceos::gui::textpane::caret_position::CaretPosition;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::selection::Selection;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
@@ -29,7 +30,7 @@ impl SearchToolbar {
         textarea_properties: &mut TextAreaProperties,
     ) {
         if self.start_search_pos.is_none() {
-            self.start_search_pos = Some(textarea_properties.caret_position);
+            self.start_search_pos = Some(textarea_properties.caret_position.position);
         }
 
         ui.horizontal(|ui| {
@@ -90,7 +91,7 @@ impl SearchToolbar {
     }
 
     fn do_search(&mut self, textarea_properties: &mut TextAreaProperties) {
-        let start_pos = textarea_properties.caret_position;
+        let start_pos = textarea_properties.caret_position.position;
         self.do_search_inner(textarea_properties, start_pos, true)
     }
 
@@ -201,12 +202,15 @@ impl SearchToolbar {
             line,
             column: start_col,
         };
-        let end = Position {
-            line,
-            column: end_col,
+        let end = CaretPosition {
+            position: Position {
+                line,
+                column: end_col,
+            },
+            virtual_column: 0,
         };
         textarea_properties.caret_position = end;
-        textarea_properties.selection = Some(Selection::new(start, end));
+        textarea_properties.selection = Some(Selection::new(start, end.position));
         // Simple scroll to make it visible
         textarea_properties.set_first_line(line.saturating_sub(5));
     }

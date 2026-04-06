@@ -1,5 +1,5 @@
 use crate::ceos::buffer::buffer::Buffer;
-use crate::ceos::buffer::caret_possition::CaretPosition;
+use crate::ceos::buffer::caret_state::CaretState;
 use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::gui::textpane::position::Position;
 
@@ -42,7 +42,10 @@ impl Insert {
         }
 
         if self.lines.len() > 1 && other.lines.len() == 1 {
-            self.lines.last_mut().unwrap().push_str(&other.lines[0]);
+            self.lines
+                .last_mut()
+                .expect("Lines cannot be empty")
+                .push_str(&other.lines[0]);
             self.text_range.end = other.text_range.end;
             return true;
         }
@@ -57,7 +60,10 @@ impl Insert {
 
         if self.lines.len() > 1 && other.lines.len() > 1 {
             let other_lines = other.lines.clone();
-            self.lines.last_mut().unwrap().push_str(&other_lines[0]);
+            self.lines
+                .last_mut()
+                .expect("Lines cannot be empty")
+                .push_str(&other_lines[0]);
             self.lines.extend(other_lines.iter().skip(1).cloned());
             self.text_range.end = other.text_range.end;
             return true;
@@ -66,16 +72,16 @@ impl Insert {
         false
     }
 
-    pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretPosition {
+    pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretState {
         buffer.delete_range(self.text_range);
-        CaretPosition::Position(self.position)
+        CaretState::Position(self.position)
     }
 
-    pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretPosition {
+    pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretState {
         match self.lines.as_slice() {
             [line] => {
                 buffer.insert_str(self.position, line);
-                CaretPosition::Position(Position::new(
+                CaretState::Position(Position::new(
                     self.position.line,
                     self.position.column + line.len(),
                 ))
@@ -104,12 +110,12 @@ impl Insert {
                 }
 
                 // Curseur à la fin du dernier segment inséré
-                CaretPosition::Position(Position::new(
+                CaretState::Position(Position::new(
                     self.position.line + self.lines.len() - 1,
                     last.len(),
                 ))
             }
-            [] => CaretPosition::Position(self.position),
+            [] => CaretState::Position(self.position),
         }
     }
 }
@@ -130,7 +136,7 @@ mod tests {
         // Redo
         let caret = insert.redo(&mut buffer);
         assert_eq!(buffer.line_text(0), "Initial text");
-        if let CaretPosition::Position(p) = caret {
+        if let CaretState::Position(p) = caret {
             assert_eq!(p, Position::new(0, 12));
         } else {
             panic!("Expected Position caret");
@@ -139,7 +145,7 @@ mod tests {
         // Undo
         let caret = insert.undo(&mut buffer);
         assert_eq!(buffer.line_text(0), "Initial");
-        if let CaretPosition::Position(p) = caret {
+        if let CaretState::Position(p) = caret {
             assert_eq!(p, pos);
         } else {
             panic!("Expected Position caret");
@@ -170,7 +176,7 @@ mod tests {
         assert_eq!(buffer.line_text(2), "End");
         assert_eq!(buffer.line_text(3), "Last");
 
-        if let CaretPosition::Position(p) = caret {
+        if let CaretState::Position(p) = caret {
             assert_eq!(p, Position::new(2, 3));
         } else {
             panic!("Expected Position caret");
@@ -181,7 +187,7 @@ mod tests {
         assert_eq!(buffer.line_count(), 2);
         assert_eq!(buffer.line_text(0), "First");
         assert_eq!(buffer.line_text(1), "Last");
-        if let CaretPosition::Position(p) = caret {
+        if let CaretState::Position(p) = caret {
             assert_eq!(p, pos);
         } else {
             panic!("Expected Position caret");

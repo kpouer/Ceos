@@ -1,5 +1,5 @@
 use crate::ceos::buffer::buffer::Buffer;
-use crate::ceos::buffer::caret_possition::CaretPosition;
+use crate::ceos::buffer::caret_state::CaretState;
 use crate::ceos::buffer::undo_manager::insert::Insert;
 use crate::ceos::buffer::undo_manager::remove::Remove;
 use log::debug;
@@ -21,13 +21,13 @@ impl UndoManager {
         }
         debug!("Pushing edit: {new_edit:?}");
 
-        if let Some(last) = self.undos.last_mut() {
-            if last.try_merge(&new_edit) {
-                if clear_redo {
-                    self.redos.clear();
-                }
-                return;
+        if let Some(last) = self.undos.last_mut()
+            && last.try_merge(&new_edit)
+        {
+            if clear_redo {
+                self.redos.clear();
             }
+            return;
         }
 
         self.undos.push(new_edit);
@@ -100,14 +100,14 @@ impl UndoOperation {
         }
     }
 
-    pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretPosition {
+    pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretState {
         match self {
             UndoOperation::Insert(insert) => insert.undo(buffer),
             UndoOperation::Remove(remove) => remove.undo(buffer),
         }
     }
 
-    pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretPosition {
+    pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretState {
         match self {
             UndoOperation::Insert(insert) => insert.redo(buffer),
             UndoOperation::Remove(remove) => remove.redo(buffer),

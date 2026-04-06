@@ -127,18 +127,18 @@ impl TextArea<'_> {
         let text = self
             .textarea_properties
             .buffer
-            .line_text(caret_position.line);
+            .line_text(caret_position.position.line);
         let text_tool = TextTool::new(&text);
-        let start_col = text_tool.find_word_start(caret_position.column);
+        let start_col = text_tool.find_word_start(caret_position.position.column);
 
-        let end_col = text_tool.find_word_end(caret_position.column);
+        let end_col = text_tool.find_word_end(caret_position.position.column);
         self.textarea_properties.selection = Some(Selection::new(
             Position {
-                line: caret_position.line,
+                line: caret_position.position.line,
                 column: start_col,
             },
             Position {
-                line: caret_position.line,
+                line: caret_position.position.line,
                 column: end_col,
             },
         ));
@@ -286,7 +286,10 @@ impl TextArea<'_> {
                 .line_text(new_caret_position.line)
                 .len(),
         );
-        self.textarea_properties.caret_position = new_caret_position;
+        self.textarea_properties.caret_position.position = new_caret_position;
+        self.textarea_properties
+            .caret_position
+            .reset_virtual_column();
     }
 
     /// Builds a `Position` object based on the interaction pointer's position within a given rectangular area.
@@ -358,14 +361,15 @@ impl TextArea<'_> {
         }
 
         if old_caret_position != self.textarea_properties.caret_position {
-            let caret_y = self.textarea_properties.caret_position.line as f32 * line_height;
+            let caret_y =
+                self.textarea_properties.caret_position.position.line as f32 * line_height;
             if caret_y < scroll_offset.y {
                 scroll_offset.y = caret_y;
             } else if caret_y + line_height > scroll_offset.y + rect_height {
                 scroll_offset.y = caret_y + line_height - rect_height;
             }
 
-            let caret_x = self.textarea_properties.caret_position.column as f32
+            let caret_x = self.textarea_properties.caret_position.position.column as f32
                 * self.textarea_properties.char_width;
             let rect_width = self.virtual_rect.width();
             if caret_x < scroll_offset.x {

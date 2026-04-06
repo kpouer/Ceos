@@ -1,5 +1,5 @@
 use crate::ceos::buffer::buffer::Buffer;
-use crate::ceos::buffer::caret_possition::CaretPosition;
+use crate::ceos::buffer::caret_state::CaretState;
 use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::selection::Selection;
@@ -41,7 +41,10 @@ impl Remove {
                 self.lines = new_lines;
             } else if other_lines.len() > 1 && self.lines.len() == 1 {
                 let mut new_lines = other_lines;
-                new_lines.last_mut().unwrap().push_str(&self.lines[0]);
+                new_lines
+                    .last_mut()
+                    .expect("Lines cannot be empty")
+                    .push_str(&self.lines[0]);
                 self.lines = new_lines;
             } else if other_lines.len() == 1 && self.lines.len() > 1 {
                 let mut new_lines = other_lines;
@@ -50,7 +53,10 @@ impl Remove {
                 self.lines = new_lines;
             } else {
                 let mut new_lines = other_lines;
-                new_lines.last_mut().unwrap().push_str(&self.lines[0]);
+                new_lines
+                    .last_mut()
+                    .expect("Lines cannot be empty")
+                    .push_str(&self.lines[0]);
                 new_lines.extend(self.lines.iter().skip(1).cloned());
                 self.lines = new_lines;
             }
@@ -70,7 +76,10 @@ impl Remove {
             }
 
             if self.lines.len() > 1 && other.lines.len() == 1 {
-                self.lines.last_mut().unwrap().push_str(&other.lines[0]);
+                self.lines
+                    .last_mut()
+                    .expect("Lines cannot be empty")
+                    .push_str(&other.lines[0]);
                 self.text_range.end = other.text_range.end;
                 return true;
             }
@@ -83,7 +92,10 @@ impl Remove {
             }
 
             if self.lines.len() > 1 && other.lines.len() > 1 {
-                self.lines.last_mut().unwrap().push_str(&other.lines[0]);
+                self.lines
+                    .last_mut()
+                    .expect("Lines cannot be empty")
+                    .push_str(&other.lines[0]);
                 self.lines.extend(other.lines.iter().skip(1).cloned());
                 self.text_range.end = other.text_range.end;
                 return true;
@@ -93,7 +105,7 @@ impl Remove {
         false
     }
 
-    pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretPosition {
+    pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretState {
         if self.lines.len() == 1 {
             buffer.insert_str(self.position, &self.lines[0]);
         } else {
@@ -110,12 +122,12 @@ impl Remove {
             }
         }
 
-        CaretPosition::Selection(Selection::new(self.text_range.start, self.text_range.end))
+        CaretState::Selection(Selection::new(self.text_range.start, self.text_range.end))
     }
 
-    pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretPosition {
+    pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretState {
         buffer.delete_range(self.text_range);
-        CaretPosition::Position(self.position)
+        CaretState::Position(self.position)
     }
 }
 
@@ -123,7 +135,7 @@ impl Remove {
 mod tests {
     use super::*;
     use crate::ceos::buffer::buffer::Buffer;
-    use crate::ceos::buffer::caret_possition::CaretPosition;
+    use crate::ceos::buffer::caret_state::CaretState;
     use crate::ceos::gui::textpane::position::Position;
 
     #[test]
@@ -138,7 +150,7 @@ mod tests {
         // Redo
         let caret = remove.redo(&mut buffer);
         assert_eq!(buffer.line_text(0), "Initial");
-        if let CaretPosition::Position(p) = caret {
+        if let CaretState::Position(p) = caret {
             assert_eq!(p, pos);
         } else {
             panic!("Expected Position caret");
@@ -147,7 +159,7 @@ mod tests {
         // Undo
         let caret = remove.undo(&mut buffer);
         assert_eq!(buffer.line_text(0), "Initial text");
-        if let CaretPosition::Selection(s) = caret {
+        if let CaretState::Selection(s) = caret {
             assert_eq!(s.start, pos);
             assert_eq!(s.end, Position::new(0, 12));
         } else {
@@ -185,7 +197,7 @@ mod tests {
 
         assert_eq!(buffer.line_count(), 1);
         assert_eq!(buffer.line_text(0), "FirstLast");
-        if let CaretPosition::Position(p) = caret {
+        if let CaretState::Position(p) = caret {
             assert_eq!(p, pos);
         } else {
             panic!("Expected Position caret");
@@ -198,7 +210,7 @@ mod tests {
         assert_eq!(buffer.line_text(1), "Middle");
         assert_eq!(buffer.line_text(2), "EndLast");
 
-        if let CaretPosition::Selection(s) = caret {
+        if let CaretState::Selection(s) = caret {
             assert_eq!(s.start, pos);
             assert_eq!(s.end, Position::new(2, 3));
         } else {
