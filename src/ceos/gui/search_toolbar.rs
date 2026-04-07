@@ -157,21 +157,6 @@ impl SearchToolbar {
             return;
         }
 
-        let Some(search_matcher) = &self.search_matcher else {
-            return;
-        };
-
-        let find_in_line =
-            |buffer: &mut Buffer, line_idx: usize, from_col: usize| -> Option<(usize, usize)> {
-                let line_text = buffer.line_text_with_decompress(line_idx);
-
-                if from_col >= line_text.len() && from_col > 0 {
-                    return None;
-                }
-
-                search_matcher.search(line_text, from_col)
-            };
-
         // Search from current position to end of buffer
         for line_idx in start_pos.line..line_count {
             let from_col = if line_idx == start_pos.line {
@@ -185,7 +170,7 @@ impl SearchToolbar {
             };
 
             if let Some((start, end)) =
-                find_in_line(&mut textarea_properties.buffer, line_idx, from_col)
+                self.find_in_line(&mut textarea_properties.buffer, line_idx, from_col)
             {
                 self.apply_found_match(textarea_properties, line_idx, start, end);
                 return;
@@ -208,7 +193,8 @@ impl SearchToolbar {
                 textarea_properties.buffer.line_text(line_idx).len()
             };
 
-            if let Some((start, end)) = find_in_line(&mut textarea_properties.buffer, line_idx, 0)
+            if let Some((start, end)) =
+                self.find_in_line(&mut textarea_properties.buffer, line_idx, 0)
                 && (line_idx < start_pos.line || start <= to_col)
             {
                 self.apply_found_match(textarea_properties, line_idx, start, end);
@@ -259,5 +245,23 @@ impl SearchToolbar {
         textarea_properties.selection = Some(Selection::new(start, end.position));
         // Simple scroll to make it visible
         textarea_properties.set_first_line(line.saturating_sub(5));
+    }
+
+    fn find_in_line(
+        &self,
+        buffer: &mut Buffer,
+        line_idx: usize,
+        from_col: usize,
+    ) -> Option<(usize, usize)> {
+        let Some(search_matcher) = &self.search_matcher else {
+            return None;
+        };
+        let line_text = buffer.line_text_with_decompress(line_idx);
+
+        if from_col >= line_text.len() && from_col > 0 {
+            return None;
+        }
+
+        search_matcher.search(line_text, from_col)
     }
 }
