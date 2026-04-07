@@ -157,64 +157,65 @@ impl SearchToolbar {
             return;
         }
 
-        if let Some(search_matcher) = &self.search_matcher {
-            let find_in_line =
-                |buffer: &mut Buffer, line_idx: usize, from_col: usize| -> Option<(usize, usize)> {
-                    let line_text = buffer.line_text_with_decompress(line_idx);
+        let Some(search_matcher) = &self.search_matcher else {
+            return;
+        };
 
-                    if from_col >= line_text.len() && from_col > 0 {
-                        return None;
-                    }
+        let find_in_line =
+            |buffer: &mut Buffer, line_idx: usize, from_col: usize| -> Option<(usize, usize)> {
+                let line_text = buffer.line_text_with_decompress(line_idx);
 
-                    search_matcher.search(line_text, from_col)
-                };
-
-            // Search from current position to end of buffer
-            for line_idx in start_pos.line..line_count {
-                let from_col = if line_idx == start_pos.line {
-                    if find_next {
-                        start_pos.column + 1
-                    } else {
-                        start_pos.column
-                    }
-                } else {
-                    0
-                };
-
-                if let Some((start, end)) =
-                    find_in_line(&mut textarea_properties.buffer, line_idx, from_col)
-                {
-                    self.apply_found_match(textarea_properties, line_idx, start, end);
-                    return;
+                if from_col >= line_text.len() && from_col > 0 {
+                    return None;
                 }
-            }
 
-            // Wrap around: search from start of buffer to current position
-            for line_idx in 0..=start_pos.line {
-                let to_col = if line_idx == start_pos.line {
-                    if find_next {
-                        start_pos.column
-                    } else {
-                        // if not find_next, we already searched the whole line above starting from start_pos.column
-                        // so we only need to search before start_pos.column?
-                        // actually if we didn't find it from start_pos.column to end,
-                        // we search from 0 to start_pos.column
-                        start_pos.column.saturating_sub(1)
-                    }
+                search_matcher.search(line_text, from_col)
+            };
+
+        // Search from current position to end of buffer
+        for line_idx in start_pos.line..line_count {
+            let from_col = if line_idx == start_pos.line {
+                if find_next {
+                    start_pos.column + 1
                 } else {
-                    textarea_properties.buffer.line_text(line_idx).len()
-                };
-
-                if let Some((start, end)) =
-                    find_in_line(&mut textarea_properties.buffer, line_idx, 0)
-                    && (line_idx < start_pos.line || start <= to_col)
-                {
-                    self.apply_found_match(textarea_properties, line_idx, start, end);
-                    return;
+                    start_pos.column
                 }
+            } else {
+                0
+            };
+
+            if let Some((start, end)) =
+                find_in_line(&mut textarea_properties.buffer, line_idx, from_col)
+            {
+                self.apply_found_match(textarea_properties, line_idx, start, end);
+                return;
             }
-            self.last_search_failed = true;
         }
+
+        // Wrap around: search from start of buffer to current position
+        for line_idx in 0..=start_pos.line {
+            let to_col = if line_idx == start_pos.line {
+                if find_next {
+                    start_pos.column
+                } else {
+                    // if not find_next, we already searched the whole line above starting from start_pos.column
+                    // so we only need to search before start_pos.column?
+                    // actually if we didn't find it from start_pos.column to end,
+                    // we search from 0 to start_pos.column
+                    start_pos.column.saturating_sub(1)
+                }
+            } else {
+                textarea_properties.buffer.line_text(line_idx).len()
+            };
+
+            if let Some((start, end)) = find_in_line(&mut textarea_properties.buffer, line_idx, 0)
+                && (line_idx < start_pos.line || start <= to_col)
+            {
+                self.apply_found_match(textarea_properties, line_idx, start, end);
+                return;
+            }
+        }
+        self.last_search_failed = true;
     }
 
     fn build_search_matcher(&self) -> Result<Box<dyn SearchMatcher>, ()> {
