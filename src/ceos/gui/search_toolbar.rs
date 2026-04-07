@@ -37,59 +37,69 @@ impl SearchToolbar {
         }
 
         ui.vertical(|ui| {
-            ui.horizontal(|ui| {
-                ui.label("Search: ");
-                let search_text_response = ui.text_edit_singleline(&mut self.query);
-
-                self.show_search_options_buttons(
-                    textarea_properties,
-                    ui,
-                    search_text_response.changed(),
-                );
-
-                if self.last_search_failed {
-                    ui.label(egui::RichText::new("No results").color(egui::Color32::RED));
-                }
-
-                if search_text_response.has_focus()
-                    && ui.input(|i| i.key_pressed(egui::Key::Escape))
-                {
-                    *open = false;
-                    self.start_search_pos = None;
-                }
-
-                if search_text_response.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter))
-                {
-                    self.do_search(textarea_properties);
-                }
-
-                if self.should_focus {
-                    search_text_response.request_focus();
-                    self.should_focus = false;
-                }
-
-                ui.allocate_ui(ui.available_size(), |ui: &mut egui::Ui| {
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.button("X").clicked() {
-                            *open = false;
-                            self.start_search_pos = None;
-                        }
-                    });
-                });
-            });
+            self.show_search(open, textarea_properties, ui);
 
             if self.show_replace {
-                ui.horizontal(|ui| {
-                    ui.label("Replace:");
-                    ui.text_edit_singleline(&mut self.replacement);
-                    if ui.button("Replace").clicked() {
-                        textarea_properties.replace_selection(&self.replacement);
-                        self.do_search(textarea_properties);
-                    }
-                    if ui.button("Replace all").clicked() {
-                        // Logique de remplacement global à ajouter
+                self.show_replace(textarea_properties, ui);
+            }
+        });
+    }
+
+    fn show_search(
+        &mut self,
+        open: &mut bool,
+        textarea_properties: &mut TextAreaProperties,
+        ui: &mut Ui,
+    ) {
+        ui.horizontal(|ui| {
+            ui.label("Search: ");
+            let search_text_response = ui.text_edit_singleline(&mut self.query);
+
+            self.show_search_options_buttons(
+                textarea_properties,
+                ui,
+                search_text_response.changed(),
+            );
+
+            if self.last_search_failed {
+                ui.label(egui::RichText::new("No results").color(egui::Color32::RED));
+            }
+
+            if search_text_response.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                *open = false;
+                self.start_search_pos = None;
+            }
+
+            if search_text_response.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                self.do_search(textarea_properties);
+            }
+
+            if self.should_focus {
+                search_text_response.request_focus();
+                self.should_focus = false;
+            }
+
+            ui.allocate_ui(ui.available_size(), |ui: &mut egui::Ui| {
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button("X").clicked() {
+                        *open = false;
+                        self.start_search_pos = None;
                     }
                 });
+            });
+        });
+    }
+
+    fn show_replace(&mut self, textarea_properties: &mut TextAreaProperties, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label("Replace:");
+            ui.text_edit_singleline(&mut self.replacement);
+            if ui.button("Replace").clicked() {
+                textarea_properties.replace_selection(&self.replacement);
+                self.do_search(textarea_properties);
+            }
+            if ui.button("Replace all").clicked() {
+                // Logique de remplacement global à ajouter
             }
         });
     }
