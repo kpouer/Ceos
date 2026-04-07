@@ -81,6 +81,10 @@ impl KeyboardHandler {
             KeyboardShortcut::new(Modifiers::CTRL, Key::F),
             Action::Search,
         );
+        shortcuts.insert(
+            KeyboardShortcut::new(Modifiers::CTRL, Key::R),
+            Action::Replace,
+        );
         shortcuts.insert(KeyboardShortcut::new(Modifiers::CTRL, Key::Z), Action::Undo);
         Self { shortcuts }
     }

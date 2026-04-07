@@ -138,6 +138,12 @@ impl Ceos {
             Event::OperationFinished(label) => self.progress_manager.remove(&label),
             Event::ShowSearch => {
                 self.widget_status.show_search = true;
+                self.search_toolbar.show_replace = false;
+                self.search_toolbar.should_focus = true;
+            }
+            Event::ShowReplace => {
+                self.widget_status.show_search = true;
+                self.search_toolbar.show_replace = true;
                 self.search_toolbar.should_focus = true;
             }
         }

@@ -8,14 +8,17 @@ use crate::ceos::search::regex_search_matcher::RegexSearchMatcher;
 use crate::ceos::search::simple_search_case_sensitive::SimpleSearchCaseSensitiveMatcher;
 use crate::ceos::search::simple_search_matcher_case_insensitive::SimpleSearchCaseInsensitiveMatcher;
 use egui;
+use egui::{Response, Ui};
 use log::info;
 
 #[derive(Debug, Default)]
 pub(crate) struct SearchToolbar {
     pub(crate) query: String,
+    pub(crate) replacement: String,
     pub(crate) case_sensitive: bool,
     pub(crate) whole_words: bool,
     pub(crate) is_regex: bool,
+    pub(crate) show_replace: bool,
     pub(crate) should_focus: bool,
     pub(crate) last_search_failed: bool,
     pub(crate) start_search_pos: Option<Position>,
@@ -33,56 +36,88 @@ impl SearchToolbar {
             self.start_search_pos = Some(textarea_properties.caret_position.position);
         }
 
-        ui.horizontal(|ui| {
-            ui.label("Search:");
-            let response = ui.text_edit_singleline(&mut self.query);
+        ui.vertical(|ui| {
+            ui.horizontal(|ui| {
+                ui.label("Search: ");
+                let search_text_response = ui.text_edit_singleline(&mut self.query);
 
-            if ui
-                .toggle_value(&mut self.case_sensitive, "Cc")
-                .on_hover_text("Case sensitive")
-                .changed()
-                || ui
-                    .toggle_value(&mut self.whole_words, "W")
-                    .on_hover_text("Entire words")
-                    .changed()
-                || ui
-                    .toggle_value(&mut self.is_regex, ".*")
-                    .on_hover_text("Regular expression")
-                    .changed()
-                || response.changed()
-            {
-                self.last_search_failed = false;
-                self.search_matcher = self.build_search_matcher().ok();
-                self.do_search_from_start(textarea_properties);
-            }
+                self.show_search_options_buttons(
+                    textarea_properties,
+                    ui,
+                    search_text_response.changed(),
+                );
 
-            if self.last_search_failed {
-                ui.label(egui::RichText::new("No results").color(egui::Color32::RED));
-            }
+                if self.last_search_failed {
+                    ui.label(egui::RichText::new("No results").color(egui::Color32::RED));
+                }
 
-            if response.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Escape)) {
-                *open = false;
-                self.start_search_pos = None;
-            }
+                if search_text_response.has_focus()
+                    && ui.input(|i| i.key_pressed(egui::Key::Escape))
+                {
+                    *open = false;
+                    self.start_search_pos = None;
+                }
 
-            if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                self.do_search(textarea_properties);
-            }
+                if search_text_response.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter))
+                {
+                    self.do_search(textarea_properties);
+                }
 
-            if self.should_focus {
-                response.request_focus();
-                self.should_focus = false;
-            }
+                if self.should_focus {
+                    search_text_response.request_focus();
+                    self.should_focus = false;
+                }
 
-            ui.allocate_ui(ui.available_size(), |ui: &mut egui::Ui| {
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button("X").clicked() {
-                        *open = false;
-                        self.start_search_pos = None;
-                    }
+                ui.allocate_ui(ui.available_size(), |ui: &mut egui::Ui| {
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui.button("X").clicked() {
+                            *open = false;
+                            self.start_search_pos = None;
+                        }
+                    });
                 });
             });
+
+            if self.show_replace {
+                ui.horizontal(|ui| {
+                    ui.label("Replace:");
+                    ui.text_edit_singleline(&mut self.replacement);
+                    if ui.button("Replace").clicked() {
+                        textarea_properties.replace_selection(&self.replacement);
+                        self.do_search(textarea_properties);
+                    }
+                    if ui.button("Replace all").clicked() {
+                        // Logique de remplacement global à ajouter
+                    }
+                });
+            }
         });
+    }
+
+    fn show_search_options_buttons(
+        &mut self,
+        textarea_properties: &mut TextAreaProperties,
+        ui: &mut Ui,
+        search_text_modified: bool,
+    ) {
+        if ui
+            .toggle_value(&mut self.case_sensitive, "Cc")
+            .on_hover_text("Case sensitive")
+            .changed()
+            || ui
+                .toggle_value(&mut self.whole_words, "W")
+                .on_hover_text("Entire words")
+                .changed()
+            || ui
+                .toggle_value(&mut self.is_regex, ".*")
+                .on_hover_text("Regular expression")
+                .changed()
+            || search_text_modified
+        {
+            self.last_search_failed = false;
+            self.search_matcher = self.build_search_matcher().ok();
+            self.do_search_from_start(textarea_properties);
+        }
     }
 
     fn do_search_from_start(&mut self, textarea_properties: &mut TextAreaProperties) {

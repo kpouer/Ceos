@@ -35,6 +35,8 @@ pub enum Event {
     OperationFinished(ProgressOperation),
     /// Show search bar
     ShowSearch,
+    /// Show replace bar
+    ShowReplace,
 }
 
 impl TryFrom<&str> for Event {

@@ -19,6 +19,7 @@ pub(crate) enum Action {
     Backspace,
     Delete,
     Search,
+    Replace,
     Undo,
     Redo,
 }
@@ -58,6 +59,13 @@ impl Action {
                     .buffer
                     .sender
                     .send(Event::ShowSearch);
+            }
+            Action::Replace => {
+                let _ = context
+                    .textarea_properties
+                    .buffer
+                    .sender
+                    .send(Event::ShowReplace);
             }
         }
     }
