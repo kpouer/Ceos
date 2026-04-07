@@ -19,6 +19,11 @@ impl Selection {
     pub(crate) fn is_empty(&self) -> bool {
         self.start == self.end
     }
+
+    #[inline]
+    pub(crate) const fn is_single_line(&self) -> bool {
+        self.start.line == self.end.line
+    }
 }
 
 impl From<&Selection> for TextRange {
