@@ -140,11 +140,26 @@ impl Ceos {
                 self.widget_status.show_search = true;
                 self.search_toolbar.show_replace = false;
                 self.search_toolbar.should_focus = true;
+                self.set_search_query_from_selection();
             }
             Event::ShowReplace => {
                 self.widget_status.show_search = true;
                 self.search_toolbar.show_replace = true;
                 self.search_toolbar.should_focus = true;
+                self.set_search_query_from_selection();
+            }
+        }
+    }
+
+    fn set_search_query_from_selection(&mut self) {
+        if let Some(selection) = &self.textarea_properties.selection {
+            if selection.is_single_line() {
+                let line_text = self
+                    .textarea_properties
+                    .buffer
+                    .line_text(selection.start.line);
+                self.search_toolbar.query =
+                    line_text[selection.start.column..selection.end.column].to_string();
             }
         }
     }
