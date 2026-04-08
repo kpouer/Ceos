@@ -18,6 +18,7 @@ use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::{FontId, Stroke, StrokeKind};
 use egui::Event::{MouseWheel, Zoom};
 use egui::{Context, EventFilter, InputState, KeyboardShortcut, Modifiers, Response, Ui, Widget};
+use log::error;
 
 #[derive(Debug)]
 pub(crate) struct TextArea<'a> {
@@ -156,11 +157,13 @@ impl TextArea<'_> {
 
     fn handle_dragged(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
         response.mark_changed();
-        let drag_start_position = response.ctx.memory(|m| {
+        let Some(drag_start_position) = response.ctx.memory(|m| {
             m.data
                 .get_temp::<Position>(DRAG_STARTED_ID.into())
-                .expect("there should be a drag_started")
-        });
+        }) else {
+            error!("There is no drag_started position in the memory !!!");
+            return;
+        };
         match self.textarea_properties.interaction_mode {
             InteractionMode::Column => {
                 self.handle_drag_update_column(rect, drag_start_position, pointer_pos)
