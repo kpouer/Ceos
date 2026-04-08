@@ -156,20 +156,21 @@ impl TextArea<'_> {
     }
 
     fn handle_dragged(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
-        response.mark_changed();
-        let Some(drag_start_position) = response.ctx.memory(|m| {
-            m.data
-                .get_temp::<Position>(DRAG_STARTED_ID.into())
-        }) else {
+        let Some(drag_start_position) = response
+            .ctx
+            .memory(|m| m.data.get_temp::<Position>(DRAG_STARTED_ID.into()))
+        else {
             error!("There is no drag_started position in the memory !!!");
             return;
         };
+        response.mark_changed();
+        let position = self.build_position(rect, pointer_pos);
         match self.textarea_properties.interaction_mode {
             InteractionMode::Column => {
-                self.handle_drag_update_column(rect, drag_start_position, pointer_pos)
+                self.handle_drag_update_column(drag_start_position, position.column)
             }
             InteractionMode::Selection => {
-                self.handle_drag_update_selection(rect, drag_start_position, pointer_pos)
+                self.handle_drag_update_selection(drag_start_position, position)
             }
         }
     }
@@ -183,30 +184,20 @@ impl TextArea<'_> {
 
     fn handle_drag_update_selection(
         &mut self,
-        rect: Rect,
         drag_start_position: Position,
-        pointer_pos: &Pos2,
+        drag_end_position: Position,
     ) {
-        let pointer_pos = self.build_position(rect, pointer_pos);
-        let (start, end) = if drag_start_position < pointer_pos {
-            (drag_start_position, pointer_pos)
+        let (start, end) = if drag_start_position < drag_end_position {
+            (drag_start_position, drag_end_position)
         } else {
-            (pointer_pos, drag_start_position)
+            (drag_end_position, drag_start_position)
         };
         self.textarea_properties.selection = Some(Selection::new(start, end));
     }
 
-    fn handle_drag_update_column(
-        &mut self,
-        rect: Rect,
-        drag_start_position: Position,
-        pointer_pos: &Pos2,
-    ) {
-        let column = self
-            .textarea_properties
-            .x_to_column(pointer_pos.x - rect.left());
-        let start = column.min(drag_start_position.column);
-        let end = column.max(drag_start_position.column);
+    fn handle_drag_update_column(&mut self, drag_start_position: Position, drag_end_column: usize) {
+        let start = drag_end_column.min(drag_start_position.column);
+        let end = drag_end_column.max(drag_start_position.column);
         let _ = self.sender.send(SetCommand(format!("{start}..{end}")));
     }
 
