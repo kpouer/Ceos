@@ -289,7 +289,7 @@ impl TextAreaProperties {
     pub(crate) fn go_to_end_of_line(&mut self, select: bool) {
         let old_caret_position = self.caret_position;
         let current_line_length = self.buffer.line_text(self.caret_position.position.line);
-        self.caret_position.position.column = current_line_length.len().saturating_sub(1);
+        self.caret_position.position.column = current_line_length.len();
         self.caret_position.reset_virtual_column();
         self.update_selection_after_caret_move(old_caret_position.position, select);
     }
@@ -298,7 +298,7 @@ impl TextAreaProperties {
         let old_caret_position = self.caret_position;
         let current_line_length = self.buffer.line_text(self.buffer.line_count() - 1);
         self.caret_position.position.line = self.buffer.line_count().saturating_sub(1);
-        self.caret_position.position.column = current_line_length.len().saturating_sub(1);
+        self.caret_position.position.column = current_line_length.len();
         self.caret_position.reset_virtual_column();
         self.update_selection_after_caret_move(old_caret_position.position, select);
     }
