@@ -18,7 +18,7 @@ use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::{FontId, Stroke, StrokeKind};
 use egui::Event::{MouseWheel, Zoom};
 use egui::{Context, EventFilter, InputState, KeyboardShortcut, Modifiers, Response, Ui, Widget};
-use log::error;
+use log::{error, info};
 
 #[derive(Debug)]
 pub(crate) struct TextArea<'a> {
@@ -146,11 +146,12 @@ impl TextArea<'_> {
     }
 
     fn handle_drag_start(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
+        info!("handle_drag_start");
         self.handle_click(rect, response, pointer_pos);
         response.ctx.memory_mut(|m| {
             m.data.insert_temp(
                 DRAG_STARTED_ID.into(),
-                self.textarea_properties.caret_position,
+                self.textarea_properties.caret_position.position,
             )
         });
     }
@@ -176,6 +177,7 @@ impl TextArea<'_> {
     }
 
     fn handle_drag_stopped(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
+        info!("handle_drag_stopped");
         self.handle_dragged(rect, response, pointer_pos);
         response
             .ctx
