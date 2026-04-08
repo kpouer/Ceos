@@ -2,12 +2,14 @@
 extern crate core;
 
 use ceos::ceos::Ceos;
+use ceos::ceos::tools::app_logger::AppLogger;
 
 const INITIAL_WIDTH: f32 = 1024.0;
 const INITIAL_HEIGHT: f32 = 768.0;
 
 fn main() {
-    env_logger::init();
+    AppLogger::init();
+    log::info!("Starting Ceos");
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_drag_and_drop(true)
