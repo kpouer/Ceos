@@ -33,34 +33,7 @@ impl Remove {
         // Donc 'self' est (0,2) et 'other' est (0,1).
         // other.text_range.end == self.position
         if other.text_range.end == self.position {
-            let other_lines = other.lines.clone();
-            if other_lines.len() == 1 && self.lines.len() == 1 {
-                let mut new_lines = other_lines;
-                new_lines[0].push_str(&self.lines[0]);
-                self.lines = new_lines;
-            } else if other_lines.len() > 1 && self.lines.len() == 1 {
-                let mut new_lines = other_lines;
-                new_lines
-                    .last_mut()
-                    .expect("Lines cannot be empty")
-                    .push_str(&self.lines[0]);
-                self.lines = new_lines;
-            } else if other_lines.len() == 1 && self.lines.len() > 1 {
-                let mut new_lines = other_lines;
-                new_lines[0].push_str(&self.lines[0]);
-                new_lines.extend(self.lines.iter().skip(1).cloned());
-                self.lines = new_lines;
-            } else {
-                let mut new_lines = other_lines;
-                new_lines
-                    .last_mut()
-                    .expect("Lines cannot be empty")
-                    .push_str(&self.lines[0]);
-                new_lines.extend(self.lines.iter().skip(1).cloned());
-                self.lines = new_lines;
-            }
-            self.position = other.position;
-            self.text_range.start = other.text_range.start;
+            self.merge_before(other);
             return true;
         }
 
@@ -102,6 +75,37 @@ impl Remove {
         }
 
         false
+    }
+
+    fn merge_before(&mut self, other: &Remove) {
+        let other_lines = other.lines.clone();
+        if other_lines.len() == 1 && self.lines.len() == 1 {
+            let mut new_lines = other_lines;
+            new_lines[0].push_str(&self.lines[0]);
+            self.lines = new_lines;
+        } else if other_lines.len() > 1 && self.lines.len() == 1 {
+            let mut new_lines = other_lines;
+            new_lines
+                .last_mut()
+                .expect("Lines cannot be empty")
+                .push_str(&self.lines[0]);
+            self.lines = new_lines;
+        } else if other_lines.len() == 1 && self.lines.len() > 1 {
+            let mut new_lines = other_lines;
+            new_lines[0].push_str(&self.lines[0]);
+            new_lines.extend(self.lines.iter().skip(1).cloned());
+            self.lines = new_lines;
+        } else {
+            let mut new_lines = other_lines;
+            new_lines
+                .last_mut()
+                .expect("Lines cannot be empty")
+                .push_str(&self.lines[0]);
+            new_lines.extend(self.lines.iter().skip(1).cloned());
+            self.lines = new_lines;
+        }
+        self.position = other.position;
+        self.text_range.start = other.text_range.start;
     }
 
     pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretState {
