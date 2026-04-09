@@ -4,7 +4,7 @@ use logos::Span;
 #[derive(Debug)]
 pub(crate) struct Chunk<'a> {
     pub(crate) token: Option<Token>,
-    pub(crate) span: Span,
+    span: Span,
     text: &'a str,
 }
 
