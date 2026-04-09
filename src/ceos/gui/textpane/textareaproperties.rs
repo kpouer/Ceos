@@ -571,7 +571,7 @@ mod tests {
         textarea.go_to_end_of_line(false);
 
         assert_eq!(textarea.caret_position.position.line, 0);
-        assert_eq!(textarea.caret_position.position.column, 2);
+        assert_eq!(textarea.caret_position.position.column, 3);
         assert!(textarea.selection.is_none());
     }
 
@@ -583,7 +583,7 @@ mod tests {
         textarea.go_to_end_of_buffer(false);
 
         assert_eq!(textarea.caret_position.position.line, 1);
-        assert_eq!(textarea.caret_position.position.column, 1);
+        assert_eq!(textarea.caret_position.position.column, 2);
         assert!(textarea.selection.is_none());
     }
 

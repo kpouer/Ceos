@@ -220,7 +220,6 @@ impl Buffer {
                     column: start_col,
                 };
                 Remove::new(
-                    position,
                     TextRange::new(
                         position,
                         Position {
@@ -311,7 +310,7 @@ impl Buffer {
         if removed_content.is_empty() {
             return;
         }
-        let remove = Remove::new(text_range.start, text_range, removed_content);
+        let remove = Remove::new(text_range, removed_content);
         self.undo_manager
             .push_undo(UndoOperation::Remove(remove), true);
     }
@@ -999,7 +998,7 @@ mod tests {
         assert!(buffer.undo_manager.can_undo());
         if let Some(edit) = buffer.undo_manager.last_undo() {
             assert_eq!(
-                "Remove { position: Position { line: 0, column: 5 }, text_range: TextRange { start: Position { line: 0, column: 5 }, end: Position { line: 0, column: 11 } }, lines: [\" World\"] }",
+                "Remove { text_range: TextRange { start: Position { line: 0, column: 5 }, end: Position { line: 0, column: 11 } }, lines: [\" World\"] }",
                 edit.to_string()
             );
         }
@@ -1017,7 +1016,7 @@ mod tests {
         assert!(buffer.undo_manager.can_undo());
         if let Some(edit) = buffer.undo_manager.last_undo() {
             assert_eq!(
-                "Remove { position: Position { line: 0, column: 4 }, text_range: TextRange { start: Position { line: 0, column: 4 }, end: Position { line: 2, column: 4 } }, lines: [\" 1\", \"BBBB 2\", \"CCCC\"] }",
+                "Remove { text_range: TextRange { start: Position { line: 0, column: 4 }, end: Position { line: 2, column: 4 } }, lines: [\" 1\", \"BBBB 2\", \"CCCC\"] }",
                 edit.to_string()
             );
         }

@@ -12,35 +12,30 @@ use crate::ceos::gui::textpane::position::Position;
 /// * `text` - The string content that was removed at the specified position.
 #[derive(Debug)]
 pub(crate) struct Remove {
-    position: Position,
     /// The deleted text range.
     text_range: TextRange,
     lines: Vec<String>,
 }
 
 impl Remove {
-    pub const fn new(position: Position, text_range: TextRange, lines: Vec<String>) -> Self {
-        Self {
-            position,
-            text_range,
-            lines,
-        }
+    pub const fn new(text_range: TextRange, lines: Vec<String>) -> Self {
+        Self { text_range, lines }
     }
 
     pub(crate) fn try_merge(&mut self, other: &Self) -> bool {
         // Suppression en arrière (backspace) : 'ba' -> 'b' puis 'a' supprimé.
         // On supprime d'abord 'a' à pos (0,2), puis 'b' à pos (0,1).
         // Donc 'self' est (0,2) et 'other' est (0,1).
-        // other.text_range.end == self.position
-        if other.text_range.end == self.position {
+        // other.text_range.end == self.text_range.start
+        if other.text_range.end == self.text_range.start {
             self.merge_before(other);
             return true;
         }
 
         // Suppression en avant (delete) : 'ab' -> 'a' puis 'b' supprimé.
         // On supprime d'abord 'a' à pos (0,1), puis 'b' à pos (0,1).
-        // Donc self.position == other.position
-        if self.position == other.position {
+        // Donc self.text_range.start == other.position
+        if self.text_range.start == other.text_range.start {
             if self.lines.len() == 1 && other.lines.len() == 1 {
                 self.lines[0].push_str(&other.lines[0]);
                 self.text_range.end = other.text_range.end;
@@ -104,22 +99,24 @@ impl Remove {
             new_lines.extend(self.lines.iter().skip(1).cloned());
             self.lines = new_lines;
         }
-        self.position = other.position;
         self.text_range.start = other.text_range.start;
     }
 
     pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretState {
         if self.lines.len() == 1 {
-            buffer.insert_str(self.position, &self.lines[0]);
+            buffer.insert_str(self.text_range.start, &self.lines[0]);
         } else {
-            let suffix = buffer.filter_line_mut(self.position.line, |line| {
-                let suffix = line.drain(self.position.column..).as_str().to_owned();
+            let suffix = buffer.filter_line_mut(self.text_range.start.line, |line| {
+                let suffix = line
+                    .drain(self.text_range.start.column..)
+                    .as_str()
+                    .to_owned();
                 line.push_str(&self.lines[0]);
                 suffix
             });
-            buffer.insert_lines(self.position.line + 1, self.lines[1..].into());
+            buffer.insert_lines(self.text_range.start.line + 1, self.lines[1..].into());
             if let Some(suffix) = suffix {
-                buffer.filter_line_mut(self.position.line + self.lines.len() - 1, |line| {
+                buffer.filter_line_mut(self.text_range.start.line + self.lines.len() - 1, |line| {
                     line.push_str(&suffix);
                 });
             }
@@ -130,7 +127,7 @@ impl Remove {
 
     pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretState {
         buffer.delete_range(self.text_range);
-        CaretState::Position(self.position)
+        CaretState::Position(self.text_range.start)
     }
 }
 
@@ -148,7 +145,7 @@ mod tests {
         let pos = Position::new(0, 7);
         let text_range = TextRange::new(pos, Position::new(0, 12));
         // " text" has length 5
-        let remove = Remove::new(pos, text_range, vec![" text".to_string()]);
+        let remove = Remove::new(text_range, vec![" text".to_string()]);
 
         // Redo
         let caret = remove.redo(&mut buffer);
@@ -185,7 +182,6 @@ mod tests {
         // line 2: "End"
         let text_range = TextRange::new(pos, Position::new(2, 3));
         let remove = Remove::new(
-            pos,
             text_range,
             vec!["".to_string(), "Middle".to_string(), "End".to_string()],
         );
@@ -226,15 +222,14 @@ mod tests {
         // "Hello World" -> "Hello " (on supprime 'W', 'o', 'r', 'l', 'd' un par un en arrière)
         let pos1 = Position::new(0, 10); // supprime 'd' à la fin de "Hello World"
         let range1 = TextRange::new(pos1, Position::new(0, 11));
-        let mut remove1 = Remove::new(pos1, range1, vec!["d".to_string()]);
+        let mut remove1 = Remove::new(range1, vec!["d".to_string()]);
 
         let pos2 = Position::new(0, 9); // supprime 'l'
         let range2 = TextRange::new(pos2, Position::new(0, 10));
-        let remove2 = Remove::new(pos2, range2, vec!["l".to_string()]);
+        let remove2 = Remove::new(range2, vec!["l".to_string()]);
 
         assert!(remove1.try_merge(&remove2));
         assert_eq!(remove1.lines, vec!["ld".to_string()]);
-        assert_eq!(remove1.position, Position::new(0, 9));
         assert_eq!(remove1.text_range.start, Position::new(0, 9));
         assert_eq!(remove1.text_range.end, Position::new(0, 11));
     }
@@ -244,15 +239,14 @@ mod tests {
         // "Hello World" -> "Hello " (on supprime 'W', 'o', 'r', 'l', 'd' un par un en avant)
         let pos1 = Position::new(0, 6); // supprime 'W'
         let range1 = TextRange::new(pos1, Position::new(0, 7));
-        let mut remove1 = Remove::new(pos1, range1, vec!["W".to_string()]);
+        let mut remove1 = Remove::new(range1, vec!["W".to_string()]);
 
         let pos2 = Position::new(0, 6); // supprime 'o' (qui a pris la place de 'W')
         let range2 = TextRange::new(pos2, Position::new(0, 7));
-        let remove2 = Remove::new(pos2, range2, vec!["o".to_string()]);
+        let remove2 = Remove::new(range2, vec!["o".to_string()]);
 
         assert!(remove1.try_merge(&remove2));
         assert_eq!(remove1.lines, vec!["Wo".to_string()]);
-        assert_eq!(remove1.position, Position::new(0, 6));
         assert_eq!(remove1.text_range.start, Position::new(0, 6));
         assert_eq!(remove1.text_range.end, Position::new(0, 7));
     }
