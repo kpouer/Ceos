@@ -28,7 +28,7 @@ impl Action {
     pub(crate) fn execute(&self, context: &mut action_context::ActionContext) {
         match self {
             Action::Backspace => context.textarea_properties.input_backspace(),
-            Action::Delete => context.textarea_properties.input_backspace(),
+            Action::Delete => context.textarea_properties.input_delete(),
             Action::Enter => context.textarea_properties.input_enter(),
             Action::GoToPrevCharacter { select } => {
                 context.textarea_properties.go_to_prev_char(*select)
