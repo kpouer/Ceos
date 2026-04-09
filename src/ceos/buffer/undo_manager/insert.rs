@@ -5,8 +5,6 @@ use crate::ceos::gui::textpane::position::Position;
 
 #[derive(Debug)]
 pub(crate) struct Insert {
-    /// The start position of the inserted lines.
-    position: Position,
     /// The textrange that was inserted
     text_range: TextRange,
     lines: Vec<String>,
@@ -23,15 +21,11 @@ impl Insert {
             )
         };
         let text_range = TextRange::new(position, end_position);
-        Self {
-            position,
-            text_range,
-            lines,
-        }
+        Self { text_range, lines }
     }
 
     pub(crate) fn try_merge(&mut self, other: &Self) -> bool {
-        if self.text_range.end != other.position {
+        if self.text_range.end != other.text_range.start {
             return false;
         }
 
@@ -74,42 +68,42 @@ impl Insert {
 
     pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretState {
         buffer.delete_range(self.text_range);
-        CaretState::Position(self.position)
+        CaretState::Position(self.text_range.start)
     }
 
     pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretState {
         match self.lines.as_slice() {
             [line] => {
-                buffer.insert_str(self.position, line);
-                CaretState::Position(self.position.move_right_by(line.len()))
+                buffer.insert_str(self.text_range.start, line);
+                CaretState::Position(self.text_range.start.move_right_by(line.len()))
             }
             [first, rest @ .., last] => {
                 // Insère le texte avant le saut de ligne
                 if !first.is_empty() {
-                    buffer.insert_str(self.position, first);
+                    buffer.insert_str(self.text_range.start, first);
                 }
-                buffer.insert_newline(self.position.move_right_by(first.len()));
+                buffer.insert_newline(self.text_range.start.move_right_by(first.len()));
 
                 // Insère les lignes suivantes
                 if !rest.is_empty() {
-                    buffer.insert_lines(self.position.line + 1, rest.to_vec());
+                    buffer.insert_lines(self.text_range.start.line + 1, rest.to_vec());
                 }
 
                 // Insère le dernier segment et le suffixe de la ligne originale
                 if !last.is_empty() {
                     buffer.insert_str(
-                        Position::new(self.position.line + self.lines.len() - 1, 0),
+                        Position::new(self.text_range.start.line + self.lines.len() - 1, 0),
                         last,
                     );
                 }
 
                 // Curseur à la fin du dernier segment inséré
                 CaretState::Position(Position::new(
-                    self.position.line + self.lines.len() - 1,
+                    self.text_range.start.line + self.lines.len() - 1,
                     last.len(),
                 ))
             }
-            [] => CaretState::Position(self.position),
+            [] => CaretState::Position(self.text_range.start),
         }
     }
 }
