@@ -10,7 +10,7 @@ pub(crate) struct DockManager<'a> {
 }
 
 impl<'a> DockManager<'a> {
-    pub(crate) fn new(sender: &'a Sender<Event>, docking_status: &'a mut DockStatus) -> Self {
+    pub(crate) const fn new(sender: &'a Sender<Event>, docking_status: &'a mut DockStatus) -> Self {
         Self {
             sender,
             docking_status,
