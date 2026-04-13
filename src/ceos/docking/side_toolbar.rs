@@ -7,7 +7,7 @@ pub(crate) struct SideToolbar<'a> {
 }
 
 impl<'a> SideToolbar<'a> {
-    pub(crate) fn new(sender: &'a Sender<Event>) -> Self {
+    pub(crate) const fn new(sender: &'a Sender<Event>) -> Self {
         Self { sender }
     }
 }
@@ -18,12 +18,9 @@ impl Widget for SideToolbar<'_> {
             ui.set_width(30.0);
             ui.spacing_mut().item_spacing = Vec2::new(0.0, 5.0);
             ui.with_layout(Layout::top_down(Align::Center), |ui| {
-                // Bouton Répertoire (Dossier)
                 if ui.button("📁").on_hover_text("Open file browser").clicked() {
                     let _ = self.sender.send(Event::ShowBrowser);
                 }
-
-                // Bouton Baguette Magique
                 if ui.button("🪄").on_hover_text("Highlight").clicked() {
                     let _ = self.sender.send(Event::ShowHighlight);
                 }
