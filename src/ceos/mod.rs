@@ -8,6 +8,7 @@ use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
 use crate::ceos::gui::frame_history::FrameHistory;
 use crate::ceos::gui::helppanel::HelpPanel;
 use crate::ceos::gui::options_dialog::OptionsDialog;
+use crate::ceos::gui::progress_manager_panel::ProgressManagerPanel;
 use crate::ceos::gui::search_result_panel::SearchResultPanel;
 use crate::ceos::gui::search_toolbar::SearchToolbar;
 use crate::ceos::gui::textpane::TextPane;
@@ -19,10 +20,8 @@ use crate::event::Event::{BufferClosed, BufferLoaded, GotoLine};
 use crate::progress_operation::ProgressOperation;
 use Event::NewFont;
 use buffer::buffer::Buffer;
-use docking::side_toolbar::SideToolbar;
 use eframe::Frame;
-use eframe::emath::Align;
-use egui::{Context, Key, Layout, ProgressBar, Ui, Visuals, Widget};
+use egui::{Context, Key, Ui, Visuals, Widget};
 use gui::textpane::textareaproperties::TextAreaProperties;
 use gui::theme::Theme;
 use humansize::{DECIMAL, format_size_i};
@@ -197,26 +196,7 @@ impl eframe::App for Ceos {
         }
 
         if !self.progress_manager.is_empty() {
-            egui::CentralPanel::default().show_inside(ui, |ui| {
-                ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
-                    self.progress_manager
-                        .iter()
-                        .map(|(_key, progress)| {
-                            let percent = progress.percent();
-                            ProgressBar::new(percent)
-                                .text(format!(
-                                    "{} {}/100 %",
-                                    progress.label,
-                                    (percent * 100.0) as usize
-                                ))
-                                .corner_radius(10.0)
-                                .desired_width(600.0)
-                        })
-                        .for_each(|progress_bar| {
-                            ui.add(progress_bar);
-                        });
-                });
-            });
+            ProgressManagerPanel::new(&self.progress_manager).ui(ui);
             ui.ctx()
                 .request_repaint_after(std::time::Duration::from_millis(50));
             return;

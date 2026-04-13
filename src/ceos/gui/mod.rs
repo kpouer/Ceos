@@ -2,6 +2,7 @@ pub(crate) mod action;
 pub(crate) mod frame_history;
 pub(crate) mod helppanel;
 pub(crate) mod options_dialog;
+pub(crate) mod progress_manager_panel;
 pub(crate) mod search_result_panel;
 pub(crate) mod search_toolbar;
 pub(crate) mod textpane;
