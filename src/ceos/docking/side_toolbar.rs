@@ -15,7 +15,7 @@ impl<'a> SideToolbar<'a> {
 impl Widget for SideToolbar<'_> {
     fn ui(self, ui: &mut Ui) -> Response {
         ui.vertical(|ui| {
-            ui.set_width(30.0);
+            ui.set_width(20.0);
             ui.spacing_mut().item_spacing = Vec2::new(0.0, 5.0);
             ui.with_layout(Layout::top_down(Align::Center), |ui| {
                 if ui.button("📁").on_hover_text("Open file browser").clicked() {
