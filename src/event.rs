@@ -37,6 +37,10 @@ pub enum Event {
     ShowSearch,
     /// Show replace bar
     ShowReplace,
+    /// Show Browser side panel
+    ShowBrowser,
+    /// Show Highlight side panel
+    ShowHighlight,
 }
 
 impl TryFrom<&str> for Event {

@@ -2,6 +2,8 @@ use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::command::save_action::SaveAction;
 use crate::ceos::command::search::Search;
 use crate::ceos::command_manager::CommandManager;
+use crate::ceos::docking::dock_manager::DockManager;
+use crate::ceos::docking::dock_status::{DockStatus, DockType};
 use crate::ceos::gui::action::keyboard_handler::KeyboardHandler;
 use crate::ceos::gui::frame_history::FrameHistory;
 use crate::ceos::gui::helppanel::HelpPanel;
@@ -17,6 +19,7 @@ use crate::event::Event::{BufferClosed, BufferLoaded, GotoLine};
 use crate::progress_operation::ProgressOperation;
 use Event::NewFont;
 use buffer::buffer::Buffer;
+use docking::side_toolbar::SideToolbar;
 use eframe::Frame;
 use eframe::emath::Align;
 use egui::{Context, Key, Layout, ProgressBar, Ui, Visuals, Widget};
@@ -31,6 +34,7 @@ use std::thread;
 pub mod buffer;
 pub mod command;
 pub mod command_manager;
+pub mod docking;
 pub mod gui;
 pub mod options;
 pub mod progress_manager;
@@ -53,6 +57,7 @@ pub struct Ceos {
     search_toolbar: SearchToolbar,
     options: Options,
     widget_status: WidgetStatus,
+    docking_status: DockStatus,
 }
 
 impl Default for Ceos {
@@ -73,6 +78,7 @@ impl Default for Ceos {
             search_toolbar: SearchToolbar::default(),
             options: Options::load(),
             widget_status: WidgetStatus::default(),
+            docking_status: DockStatus::default(),
         }
     }
 }
@@ -148,6 +154,9 @@ impl Ceos {
                 self.search_toolbar.should_focus = true;
                 self.set_search_query_from_selection();
             }
+            Event::ShowBrowser => self.docking_status.toggle(DockType::Browser),
+
+            Event::ShowHighlight => self.docking_status.toggle(DockType::Browser),
         }
     }
 
@@ -231,6 +240,7 @@ impl eframe::App for Ceos {
                 );
             });
         }
+
         self.build_bottom_panel(ui);
 
         egui::CentralPanel::default()
@@ -242,15 +252,18 @@ impl eframe::App for Ceos {
                     self.textarea_properties.char_width = char_width;
                 }
                 self.before_frame();
-                TextPane::new(
-                    &mut self.textarea_properties,
-                    &self.keyboard_handler,
-                    self.command_manager.current_command_mut(),
-                    &self.theme,
-                    &self.sender,
-                    &self.search_result_panel.search,
-                )
-                .ui(ui)
+                ui.horizontal_top(|ui| {
+                    DockManager::new(&self.sender, &mut self.docking_status).ui(ui);
+                    TextPane::new(
+                        &mut self.textarea_properties,
+                        &self.keyboard_handler,
+                        self.command_manager.current_command_mut(),
+                        &self.theme,
+                        &self.sender,
+                        &self.search_result_panel.search,
+                    )
+                    .ui(ui)
+                })
             });
     }
 }
