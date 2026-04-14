@@ -177,6 +177,7 @@ impl LineGroup {
     }
 
     pub(crate) fn line(&self, line_number_within_group: usize) -> Cow<'_, str> {
+        debug!("line({line_number_within_group})");
         if let Some(lines) = &self.lines {
             let line = &lines[line_number_within_group];
             Cow::Borrowed(line.content())
