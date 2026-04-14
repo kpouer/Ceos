@@ -11,7 +11,7 @@ use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use crate::progress_operation::ProgressOperation;
 use flate2::bufread::GzDecoder;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use rayon::prelude::*;
 use std::borrow::Cow;
 use std::fs::File;
@@ -142,6 +142,7 @@ impl Buffer {
     /// Compress all line groups and free their in-memory lines to reclaim memory.
     /// This is primarily intended for debug/maintenance actions.
     pub(crate) fn compress_all_groups(&mut self) {
+        debug!("compress_all_groups");
         for line_group in &mut self.content {
             if line_group.is_empty() {
                 // Nothing to compress in an empty group
