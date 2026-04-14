@@ -154,8 +154,7 @@ impl Ceos {
                 self.set_search_query_from_selection();
             }
             Event::ShowBrowser => self.docking_status.toggle(DockType::Browser),
-
-            Event::ShowHighlight => self.docking_status.toggle(DockType::Browser),
+            Event::ShowHighlight => self.docking_status.toggle(DockType::Highlight),
         }
     }
 
