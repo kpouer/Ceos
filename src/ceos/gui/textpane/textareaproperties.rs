@@ -7,11 +7,14 @@ use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::renderer::caret_renderer::CaretRenderer;
 use crate::ceos::gui::textpane::renderer::renderer_manager::{
-    CARET_LAYER, RendererManager, SELECTION_LAYER, TEXT_LAYER,
+    CARET_LAYER, HIGHLIGHT_LAYER, RendererManager, SELECTION_LAYER, TEXT_LAYER,
 };
 use crate::ceos::gui::textpane::renderer::selection_renderer::SelectionRenderer;
 use crate::ceos::gui::textpane::renderer::text_renderer::TextRenderer;
 use crate::ceos::gui::textpane::selection::Selection;
+use crate::ceos::highlight::highlight::Highlight;
+use crate::ceos::highlight::highlight_painter::HighlightPainter;
+use crate::ceos::highlight::manager::HighlightManager;
 use crate::event::Event;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::FontId;
@@ -34,6 +37,7 @@ pub(crate) struct TextAreaProperties {
     pub(crate) selection: Option<Selection>,
     pub(crate) interaction_mode: InteractionMode,
     pub(crate) scroll_offset: Vec2,
+    pub(crate) highlight_manager: HighlightManager,
 }
 
 impl TextAreaProperties {
@@ -41,8 +45,9 @@ impl TextAreaProperties {
         let font_id = FontId::new(DEFAULT_LINE_HEIGHT, egui::FontFamily::Monospace);
         let mut renderer_manager = RendererManager::default();
         renderer_manager.add_renderer(TEXT_LAYER, Box::new(TextRenderer::new(font_id.clone())));
-        renderer_manager.add_renderer(SELECTION_LAYER, Box::new(SelectionRenderer {}));
+        renderer_manager.add_renderer(SELECTION_LAYER, Box::new(SelectionRenderer));
         renderer_manager.add_renderer(CARET_LAYER, Box::new(CaretRenderer));
+        renderer_manager.add_renderer(HIGHLIGHT_LAYER, Box::new(HighlightPainter));
         Self {
             buffer: Buffer::new_empty_buffer(sender),
             renderer_manager,
@@ -53,10 +58,21 @@ impl TextAreaProperties {
             selection: None,
             interaction_mode: InteractionMode::Selection,
             scroll_offset: Vec2::ZERO,
+            highlight_manager: HighlightManager::default(),
+        }
+    }
+
+    pub(crate) fn insert_highlight(&mut self) {
+        if let Some(selection) = &self.selection {
+            if selection.is_single_line() {
+                let text = self.buffer.get_text(selection);
+                self.highlight_manager.add_highlight(text);
+            }
         }
     }
 
     pub(crate) fn set_interaction_mode(&mut self, mode: InteractionMode) {
+        info!("set interaction mode: {mode:?}");
         self.interaction_mode = mode;
         if mode == InteractionMode::Column {
             self.selection = None;
@@ -78,6 +94,18 @@ impl TextAreaProperties {
         );
         self.caret_position = CaretPosition::ZERO;
         self.buffer = buffer
+    }
+
+    pub(crate) fn add_highlight(&mut self, highlight: Highlight) {
+        self.highlight_manager.add(highlight.clone());
+        self.renderer_manager
+            .add_renderer(HIGHLIGHT_LAYER, Box::new(highlight));
+    }
+
+    pub(crate) fn remove_highlight(&mut self, index: usize) {
+        if index < self.highlight_manager.len() {
+            self.highlight_manager.remove(index);
+        }
     }
 
     /// Sets the first visible line of the buffer in the view.

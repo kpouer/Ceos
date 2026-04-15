@@ -41,6 +41,10 @@ pub enum Event {
     ShowBrowser,
     /// Show Highlight side panel
     ShowHighlight,
+    /// Add a highlight
+    AddHighlight(String, bool, egui::Color32),
+    /// Remove a highlight by index
+    RemoveHighlight(usize),
 }
 
 impl TryFrom<&str> for Event {
@@ -56,6 +60,15 @@ impl TryFrom<&str> for Event {
             }
         } else if command == "close" {
             return Ok(BufferClosed);
+        } else if command.starts_with("highlight ") {
+            let parts: Vec<&str> = command["highlight ".len()..].split_whitespace().collect();
+            if !parts.is_empty() {
+                let text = parts[0].to_string();
+                let case_insensitive = parts.get(1).map(|&s| s == "i").unwrap_or(false);
+                let color = crate::ceos::highlight::deterministic_color(&text);
+
+                return Ok(Event::AddHighlight(text, case_insensitive, color));
+            }
         } else if command.starts_with("zoom ")
             && let Ok(zoom) = Zoom::try_from(command)
         {

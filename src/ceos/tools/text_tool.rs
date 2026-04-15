@@ -1,3 +1,5 @@
+use std::ops::{Index, Range, RangeFrom, RangeTo};
+
 #[derive(Debug)]
 pub(crate) struct TextTool<'a> {
     text: &'a str,
@@ -53,6 +55,57 @@ impl<'a> TextTool<'a> {
         }
 
         true
+    }
+
+    pub(crate) fn char_to_byte_idx(&self, char_idx: usize) -> usize {
+        if char_idx == 0 {
+            return 0;
+        }
+        self.text
+            .char_indices()
+            .nth(char_idx)
+            .map(|(byte_idx, _)| byte_idx)
+            .unwrap_or(self.text.len())
+    }
+}
+
+impl<'a> From<&'a str> for TextTool<'a> {
+    fn from(value: &'a str) -> Self {
+        Self::new(value)
+    }
+}
+
+impl<'a> AsRef<str> for TextTool<'a> {
+    fn as_ref(&self) -> &str {
+        self.text
+    }
+}
+
+impl<'a> Index<Range<usize>> for TextTool<'a> {
+    type Output = str;
+
+    fn index(&self, index: Range<usize>) -> &Self::Output {
+        let start = self.char_to_byte_idx(index.start);
+        let end = self.char_to_byte_idx(index.end);
+        &self.text[start..end]
+    }
+}
+
+impl<'a> Index<RangeFrom<usize>> for TextTool<'a> {
+    type Output = str;
+
+    fn index(&self, index: RangeFrom<usize>) -> &Self::Output {
+        let start = self.char_to_byte_idx(index.start);
+        &self.text[start..]
+    }
+}
+
+impl<'a> Index<RangeTo<usize>> for TextTool<'a> {
+    type Output = str;
+
+    fn index(&self, index: RangeTo<usize>) -> &Self::Output {
+        let end = self.char_to_byte_idx(index.end);
+        &self.text[..end]
     }
 }
 

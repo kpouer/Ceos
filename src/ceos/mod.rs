@@ -13,6 +13,7 @@ use crate::ceos::gui::search_result_panel::SearchResultPanel;
 use crate::ceos::gui::search_toolbar::SearchToolbar;
 use crate::ceos::gui::textpane::TextPane;
 use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
+use crate::ceos::highlight::highlight::Highlight;
 use crate::ceos::options::Options;
 use crate::ceos::progress_manager::ProgressManager;
 use crate::event::Event;
@@ -35,6 +36,7 @@ pub mod command;
 pub mod command_manager;
 pub mod docking;
 pub mod gui;
+pub mod highlight;
 pub mod options;
 pub mod progress_manager;
 pub mod search;
@@ -154,7 +156,18 @@ impl Ceos {
                 self.set_search_query_from_selection();
             }
             Event::ShowBrowser => self.docking_status.toggle(DockType::Browser),
+
             Event::ShowHighlight => self.docking_status.toggle(DockType::Highlight),
+            Event::AddHighlight(text, case_insensitive, color) => {
+                self.textarea_properties.add_highlight(Highlight::new(
+                    text,
+                    case_insensitive,
+                    color,
+                ));
+            }
+            Event::RemoveHighlight(index) => {
+                self.textarea_properties.remove_highlight(index);
+            }
         }
     }
 
@@ -232,7 +245,12 @@ impl eframe::App for Ceos {
                 }
                 self.before_frame();
                 ui.horizontal_top(|ui| {
-                    DockManager::new(&self.sender, &mut self.docking_status).ui(ui);
+                    DockManager::new(
+                        &self.sender,
+                        &mut self.docking_status,
+                        &mut self.textarea_properties.highlight_manager,
+                    )
+                    .ui(ui);
                     TextPane::new(
                         &mut self.textarea_properties,
                         &self.keyboard_handler,

@@ -1,20 +1,28 @@
 use crate::ceos::docking::dock_status::{DockStatus, DockType};
 use crate::ceos::docking::side_toolbar::SideToolbar;
+use crate::ceos::gui::highlight_panel::HighlightPanel;
+use crate::ceos::highlight::manager::HighlightManager;
 use crate::event::Event;
 use eframe::emath::Vec2;
 use egui::{Response, Ui, Widget};
 use std::sync::mpsc::Sender;
 
 pub(crate) struct DockManager<'a> {
-    sender: &'a Sender<Event>,
-    docking_status: &'a mut DockStatus,
+    pub(crate) sender: &'a Sender<Event>,
+    pub(crate) docking_status: &'a mut DockStatus,
+    pub(crate) highlight_manager: &'a mut HighlightManager,
 }
 
 impl<'a> DockManager<'a> {
-    pub(crate) const fn new(sender: &'a Sender<Event>, docking_status: &'a mut DockStatus) -> Self {
+    pub(crate) const fn new(
+        sender: &'a Sender<Event>,
+        docking_status: &'a mut DockStatus,
+        highlight_manager: &'a mut HighlightManager,
+    ) -> Self {
         Self {
             sender,
             docking_status,
+            highlight_manager,
         }
     }
 
@@ -25,7 +33,11 @@ impl<'a> DockManager<'a> {
             .default_size(self.docking_status.side_panel_width)
             .show_inside(ui, |ui| {
                 ui.spacing_mut().item_spacing = Vec2::ZERO;
-                ui.label(title);
+                if panel_id == "highlight_panel" {
+                    HighlightPanel::new(self.highlight_manager, self.sender).ui(ui);
+                } else {
+                    ui.label(title);
+                }
             })
             .response
     }

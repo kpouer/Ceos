@@ -1,5 +1,6 @@
 use crate::ceos::gui::action::Action;
 use egui::{Key, KeyboardShortcut, Modifiers};
+use log::{debug, info};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -64,6 +65,21 @@ impl KeyboardHandler {
             KeyboardShortcut::new(Modifiers::NONE, Key::End),
             Action::GoToLineEnd { select: false },
         );
+        shortcuts.insert(
+            KeyboardShortcut::new(Modifiers::CTRL | Modifiers::SHIFT, Key::F7),
+            Action::InsertHighlight,
+        );
+        shortcuts.insert(
+            KeyboardShortcut::new(Modifiers::COMMAND | Modifiers::SHIFT, Key::F7),
+            Action::InsertHighlight,
+        );
+        shortcuts.insert(
+            KeyboardShortcut::new(
+                Modifiers::COMMAND | Modifiers::MAC_CMD | Modifiers::SHIFT,
+                Key::F7,
+            ),
+            Action::InsertHighlight,
+        );
         shortcuts.insert(KeyboardShortcut::new(Modifiers::CTRL, Key::Z), Action::Undo);
         shortcuts.insert(
             KeyboardShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::Z),
@@ -85,7 +101,10 @@ impl KeyboardHandler {
             KeyboardShortcut::new(Modifiers::CTRL, Key::R),
             Action::Replace,
         );
-        shortcuts.insert(KeyboardShortcut::new(Modifiers::CTRL, Key::Z), Action::Undo);
+        shortcuts.insert(
+            KeyboardShortcut::new(Modifiers::COMMAND, Key::Z),
+            Action::Undo,
+        );
         Self { shortcuts }
     }
 

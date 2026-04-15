@@ -15,6 +15,7 @@ pub(crate) enum Action {
     GoToLineEnd { select: bool },
     GoToBufferStart { select: bool },
     GoToBufferEnd { select: bool },
+    InsertHighlight,
     Enter,
     Backspace,
     Delete,
@@ -66,6 +67,9 @@ impl Action {
                     .buffer
                     .sender
                     .send(Event::ShowReplace);
+            }
+            Action::InsertHighlight => {
+                context.textarea_properties.insert_highlight();
             }
         }
     }

@@ -6,7 +6,9 @@ use crate::ceos::buffer::undo_manager::insert::Insert;
 use crate::ceos::buffer::undo_manager::remove::Remove;
 use crate::ceos::buffer::undo_manager::{UndoManager, UndoOperation};
 use crate::ceos::gui::textpane::position::Position;
+use crate::ceos::gui::textpane::selection::Selection;
 use crate::ceos::tools::misc_tool::{RangeTools, gzip_uncompressed_size_fast, is_gzip};
+use crate::ceos::tools::text_tool::TextTool;
 use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use crate::progress_operation::ProgressOperation;
@@ -531,11 +533,32 @@ impl Buffer {
 
     /// Returns the text of the line at the given index.
     /// The given index is 0-based
+    #[deprecated]
     pub(crate) fn line_text(&self, line: usize) -> Cow<'_, str> {
         let (gi, li) = self
             .find_group_index(line)
             .expect("line index out of bounds");
         self.content[gi].line(li)
+    }
+
+    pub(crate) fn get_text(&self, selection: &Selection) -> String {
+        let first_line = self.line_text(selection.start.line);
+        let first_line_text_tool = TextTool::new(&first_line);
+        if selection.is_single_line() {
+            return first_line_text_tool[selection.start.column..selection.end.column].to_string();
+        }
+
+        let mut result = first_line_text_tool[selection.start.column..].to_string();
+        for line in selection.start.line + 1..selection.end.line {
+            result.push('\n');
+            result.push_str(&self.line_text(line));
+        }
+        result.push('\n');
+        let last_line = self.line_text(selection.end.line);
+        let last_line_text_tool = TextTool::new(&last_line);
+        result.push_str(&last_line_text_tool[..selection.end.column]);
+
+        result
     }
 
     /// Returns the text of the line at the given index.
@@ -1146,5 +1169,65 @@ mod tests {
         buffer.insert_char(Position::new(0, 3), '🚀');
         assert_eq!(buffer.line_text(0), "he€🚀llo");
         assert!(buffer.dirty);
+    }
+
+    #[test]
+    fn test_get_text_single_line() {
+        let buffer = Buffer::new_test_buffer("hello world", 2);
+        let selection = Selection::new(Position::new(0, 0), Position::new(0, 5));
+        assert_eq!(buffer.get_text(&selection), "hello");
+
+        let selection = Selection::new(Position::new(0, 6), Position::new(0, 11));
+        assert_eq!(buffer.get_text(&selection), "world");
+
+        let selection = Selection::new(Position::new(0, 2), Position::new(0, 7));
+        assert_eq!(buffer.get_text(&selection), "llo w");
+    }
+
+    #[test]
+    fn test_get_text_two_lines() {
+        let buffer = Buffer::new_test_buffer("hello\nworld", 2);
+        let selection = Selection::new(Position::new(0, 2), Position::new(1, 3));
+        assert_eq!(buffer.get_text(&selection), "llo\nwor");
+
+        let selection = Selection::new(Position::new(0, 0), Position::new(1, 5));
+        assert_eq!(buffer.get_text(&selection), "hello\nworld");
+    }
+
+    #[test]
+    fn test_get_text_multiple_lines() {
+        let buffer = Buffer::new_test_buffer("line1\nline2\nline3\nline4", 2);
+        let selection = Selection::new(Position::new(0, 2), Position::new(3, 3));
+        assert_eq!(buffer.get_text(&selection), "ne1\nline2\nline3\nlin");
+
+        let selection = Selection::new(Position::new(1, 1), Position::new(2, 4));
+        assert_eq!(buffer.get_text(&selection), "ine2\nline");
+    }
+
+    #[test]
+    fn test_get_text_line_boundaries() {
+        let buffer = Buffer::new_test_buffer("hello\nworld\ntest", 2);
+        let selection = Selection::new(Position::new(0, 0), Position::new(0, 5));
+        assert_eq!(buffer.get_text(&selection), "hello");
+
+        let selection = Selection::new(Position::new(1, 0), Position::new(1, 5));
+        assert_eq!(buffer.get_text(&selection), "world");
+
+        let selection = Selection::new(Position::new(0, 5), Position::new(2, 0));
+        assert_eq!(buffer.get_text(&selection), "\nworld\n");
+    }
+
+    #[test]
+    fn test_get_text_special_characters_single_line() {
+        let buffer = Buffer::new_test_buffer("hello €🚀 world", 2);
+        let selection = Selection::new(Position::new(0, 6), Position::new(0, 9));
+        assert_eq!(buffer.get_text(&selection), "€🚀 ");
+    }
+
+    #[test]
+    fn test_get_text_special_characters_multiple_lines() {
+        let buffer = Buffer::new_test_buffer("line1 €\nline2 🚀\nline3", 2);
+        let selection = Selection::new(Position::new(0, 5), Position::new(2, 3));
+        assert_eq!(buffer.get_text(&selection), " €\nline2 🚀\nlin");
     }
 }
