@@ -189,12 +189,15 @@ impl TextArea<'_> {
         drag_start_position: Position,
         drag_end_position: Position,
     ) {
-        let (start, end) = if drag_start_position < drag_end_position {
-            (drag_start_position, drag_end_position)
+        if drag_start_position == drag_end_position {
+            return;
+        }
+        let selection = if drag_start_position < drag_end_position {
+            Selection::new(drag_start_position, drag_end_position)
         } else {
-            (drag_end_position, drag_start_position)
+            Selection::new(drag_end_position, drag_start_position)
         };
-        self.textarea_properties.selection = Some(Selection::new(start, end));
+        self.textarea_properties.selection = Some(selection);
     }
 
     fn handle_drag_update_column(&mut self, drag_start_position: Position, drag_end_column: usize) {

@@ -90,6 +90,7 @@ impl KeyboardHandler {
     }
 
     pub(crate) fn get_action(&self, keyboard_shortcut: &KeyboardShortcut) -> Option<&Action> {
+        debug!("get_action {keyboard_shortcut:?}");
         self.shortcuts.get(keyboard_shortcut)
     }
 }
