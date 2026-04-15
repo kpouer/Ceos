@@ -8,7 +8,7 @@ use crate::ceos::search::regex_search_matcher::RegexSearchMatcher;
 use crate::ceos::search::simple_search_case_sensitive::SimpleSearchCaseSensitiveMatcher;
 use crate::ceos::search::simple_search_matcher_case_insensitive::SimpleSearchCaseInsensitiveMatcher;
 use egui;
-use egui::{Response, Ui};
+use egui::Ui;
 use log::info;
 
 #[derive(Debug, Default)]
