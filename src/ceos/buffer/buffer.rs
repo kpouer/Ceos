@@ -533,7 +533,6 @@ impl Buffer {
 
     /// Returns the text of the line at the given index.
     /// The given index is 0-based
-    #[deprecated]
     pub(crate) fn line_text(&self, line: usize) -> Cow<'_, str> {
         let (gi, li) = self
             .find_group_index(line)
