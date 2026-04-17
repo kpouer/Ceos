@@ -168,15 +168,15 @@ impl Ceos {
     }
 
     fn set_search_query_from_selection(&mut self) {
-        if let Some(selection) = &self.textarea_properties.selection {
-            if selection.is_single_line() {
-                let line_text = self
-                    .textarea_properties
-                    .buffer
-                    .line_text(selection.start.line);
-                self.search_toolbar.query =
-                    line_text[selection.start.column..selection.end.column].to_string();
-            }
+        if let Some(selection) = &self.textarea_properties.selection
+            && selection.is_single_line()
+        {
+            let line_text = self
+                .textarea_properties
+                .buffer
+                .line_text(selection.start.line);
+            self.search_toolbar.query =
+                line_text[selection.start.column..selection.end.column].to_string();
         }
     }
 

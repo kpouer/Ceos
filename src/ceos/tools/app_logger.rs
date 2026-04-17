@@ -9,8 +9,8 @@ pub struct AppLogger {
     file: Mutex<Option<File>>,
 }
 
-impl AppLogger {
-    pub fn new() -> Self {
+impl Default for AppLogger {
+    fn default() -> Self {
         let file = OpenOptions::new()
             .create(true)
             .append(true)
@@ -21,9 +21,11 @@ impl AppLogger {
             file: Mutex::new(file),
         }
     }
+}
 
+impl AppLogger {
     pub fn init() {
-        let logger = AppLogger::new();
+        let logger = AppLogger::default();
         log::set_boxed_logger(Box::new(logger)).expect("Could not set logger");
         log::set_max_level(log::LevelFilter::Info);
     }
