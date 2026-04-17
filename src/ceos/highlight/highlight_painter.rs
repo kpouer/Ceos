@@ -15,15 +15,15 @@ impl Renderer for HighlightPainter {
         ui: &mut Ui,
         _theme: &Theme,
         textarea_properties: &TextAreaProperties,
-        line: usize,
+        _line: usize,
+        line_text: &str,
         drawing_pos: Pos2,
         _has_focus: bool,
     ) {
         let highlight_manager = &textarea_properties.highlight_manager;
 
-        let text = textarea_properties.buffer.line_text(line);
         for highlight in highlight_manager.iter() {
-            self.paint_highlight(ui, drawing_pos, &text, highlight, textarea_properties);
+            self.paint_highlight(ui, drawing_pos, line_text, highlight, textarea_properties);
         }
     }
 }

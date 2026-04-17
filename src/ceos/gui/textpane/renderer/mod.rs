@@ -20,6 +20,7 @@ pub(crate) trait Renderer: Debug {
         theme: &Theme,
         textarea_properties: &TextAreaProperties,
         line: usize,
+        line_text: &str,
         drawing_pos: Pos2,
         has_focus: bool,
     );

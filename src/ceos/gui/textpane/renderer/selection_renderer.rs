@@ -14,6 +14,7 @@ impl Renderer for SelectionRenderer {
         _theme: &Theme,
         textarea_properties: &TextAreaProperties,
         line: usize,
+        line_text: &str,
         drawing_pos: Pos2,
         _has_focus: bool,
     ) {
@@ -28,7 +29,7 @@ impl Renderer for SelectionRenderer {
             let end_column = if selection.end.line == line {
                 selection.end.column
             } else if selection.end.line > line {
-                textarea_properties.buffer.line_text(line).len()
+                line_text.len()
             } else {
                 return;
             } as f32;

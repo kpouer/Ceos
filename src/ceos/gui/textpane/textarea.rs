@@ -222,11 +222,13 @@ impl TextArea<'_> {
             .get_row_range_for_rect(self.virtual_rect);
         if row_range.is_empty() {
             if has_focus {
+                let line_text = self.textarea_properties.buffer.line_text(0);
                 CaretRenderer.paint_line(
                     ui,
                     self.theme,
                     self.textarea_properties,
                     0,
+                    &line_text,
                     drawing_pos,
                     true,
                 );
@@ -238,12 +240,14 @@ impl TextArea<'_> {
             .buffer
             .prepare_range_for_read(row_range.clone());
         row_range.into_iter().for_each(|line| {
+            let line_text = self.textarea_properties.buffer.line_text(line);
             if self.search.has_results() {
                 self.search.paint_line(
                     ui,
                     self.theme,
                     self.textarea_properties,
                     line,
+                    &line_text,
                     drawing_pos,
                     has_focus,
                 );
@@ -254,6 +258,7 @@ impl TextArea<'_> {
                     self.theme,
                     self.textarea_properties,
                     line,
+                    &line_text,
                     drawing_pos,
                     has_focus,
                 );
@@ -264,6 +269,7 @@ impl TextArea<'_> {
                 self.theme,
                 self.textarea_properties,
                 line,
+                &line_text,
                 drawing_pos,
                 has_focus,
             );

@@ -41,6 +41,7 @@ impl Renderer for LineDrop {
         theme: &Theme,
         textarea_properties: &TextAreaProperties,
         line: usize,
+        _line_text: &str,
         drawing_pos: Pos2,
         _has_focus: bool,
     ) {

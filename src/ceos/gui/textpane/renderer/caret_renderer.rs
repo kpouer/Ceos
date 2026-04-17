@@ -15,6 +15,7 @@ impl Renderer for CaretRenderer {
         _: &Theme,
         textarea_properties: &TextAreaProperties,
         line: usize,
+        _line_text: &str,
         drawing_pos: Pos2,
         has_focus: bool,
     ) {

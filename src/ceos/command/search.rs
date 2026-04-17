@@ -47,13 +47,13 @@ impl Renderer for Search {
         ui: &mut Ui,
         theme: &Theme,
         textarea: &TextAreaProperties,
-        line: usize,
+        _line: usize,
+        line_text: &str,
         drawing_pos: Pos2,
         _has_focus: bool,
     ) {
-        let line = &textarea.buffer[line];
         if let Some(search_matcher) = &self.search_matcher
-            && let Some((start, end)) = search_matcher.search(line.content(), 0)
+            && let Some((start, end)) = search_matcher.search(line_text, 0)
         {
             let x1 = start as f32 * textarea.char_width;
             let x2 = end as f32 * textarea.char_width;

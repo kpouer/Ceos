@@ -41,12 +41,20 @@ impl RendererManager {
         theme: &Theme,
         textarea_properties: &TextAreaProperties,
         line: usize,
+        line_text: &str,
         drawing_pos: Pos2,
         has_focus: bool,
     ) {
         self.renderers.iter().for_each(|r| {
-            r.renderer
-                .paint_line(ui, theme, textarea_properties, line, drawing_pos, has_focus)
+            r.renderer.paint_line(
+                ui,
+                theme,
+                textarea_properties,
+                line,
+                line_text,
+                drawing_pos,
+                has_focus,
+            )
         });
     }
 }

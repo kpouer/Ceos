@@ -22,16 +22,16 @@ impl Renderer for TextRenderer {
         ui: &mut Ui,
         theme: &Theme,
         textarea: &TextAreaProperties,
-        line: usize,
+        _line: usize,
+        line_text: &str,
         mut drawing_pos: Pos2,
         _has_focus: bool,
     ) {
-        let text = textarea.buffer.line_text(line);
-        if text.trim().is_empty() {
+        if line_text.trim().is_empty() {
             return;
         }
         let painter = ui.painter();
-        let mut tokenizer = Tokenizer::new(&text);
+        let mut tokenizer = Tokenizer::new(line_text);
         tokenizer.merge_tokens();
         let initial_offset = drawing_pos.x;
         tokenizer.tokens.into_iter().for_each(|chunk| {

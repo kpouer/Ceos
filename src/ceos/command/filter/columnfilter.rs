@@ -36,7 +36,8 @@ impl Renderer for ColumnFilter {
         ui: &mut Ui,
         theme: &Theme,
         textarea_properties: &TextAreaProperties,
-        _: usize,
+        _line: usize,
+        _line_text: &str,
         drawing_pos: Pos2,
         _has_focus: bool,
     ) {
