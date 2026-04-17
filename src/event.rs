@@ -1,6 +1,7 @@
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::command::direct::zoom::Zoom;
+use crate::ceos::highlight::highlight::Highlight;
 use crate::event::Event::{BufferClosed, GotoLine, NewFont};
 use crate::progress_operation::ProgressOperation;
 use egui::FontId;
@@ -42,7 +43,7 @@ pub enum Event {
     /// Show Highlight side panel
     ShowHighlight,
     /// Add a highlight
-    AddHighlight(String, bool, egui::Color32),
+    AddHighlight(Highlight),
     /// Remove a highlight by index
     RemoveHighlight(usize),
 }
@@ -67,7 +68,11 @@ impl TryFrom<&str> for Event {
                 let case_insensitive = parts.get(1).map(|&s| s == "i").unwrap_or(false);
                 let color = crate::ceos::highlight::deterministic_color(&text);
 
-                return Ok(Event::AddHighlight(text, case_insensitive, color));
+                return Ok(Event::AddHighlight(Highlight::new(
+                    text,
+                    case_insensitive,
+                    color,
+                )));
             }
         } else if command.starts_with("zoom ")
             && let Ok(zoom) = Zoom::try_from(command)

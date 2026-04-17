@@ -67,7 +67,7 @@ impl TextAreaProperties {
             if selection.is_single_line() {
                 let text = self.buffer.get_text(selection);
                 let highlight = self.highlight_manager.create_highlight(text);
-                self.highlight_manager.add(highlight);
+                let _ = self.buffer.sender.send(Event::AddHighlight(highlight));
             }
         }
     }

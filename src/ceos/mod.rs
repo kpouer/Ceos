@@ -156,12 +156,9 @@ impl Ceos {
                 self.set_search_query_from_selection();
             }
             Event::ShowBrowser => self.docking_status.toggle(DockType::Browser),
-
             Event::ShowHighlight => self.docking_status.toggle(DockType::Highlight),
-            Event::AddHighlight(text, case_insensitive, color) => {
-                self.textarea_properties
-                    .highlight_manager
-                    .add(Highlight::new(text, case_insensitive, color));
+            Event::AddHighlight(highlight) => {
+                self.textarea_properties.highlight_manager.add(highlight);
                 self.docking_status.open(DockType::Highlight);
             }
             Event::RemoveHighlight(index) => {
