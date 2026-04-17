@@ -159,14 +159,12 @@ impl Ceos {
 
             Event::ShowHighlight => self.docking_status.toggle(DockType::Highlight),
             Event::AddHighlight(text, case_insensitive, color) => {
-                self.textarea_properties.add_highlight(Highlight::new(
-                    text,
-                    case_insensitive,
-                    color,
-                ));
+                self.textarea_properties
+                    .highlight_manager
+                    .add(Highlight::new(text, case_insensitive, color));
             }
             Event::RemoveHighlight(index) => {
-                self.textarea_properties.remove_highlight(index);
+                self.textarea_properties.highlight_manager.remove(index);
             }
         }
     }

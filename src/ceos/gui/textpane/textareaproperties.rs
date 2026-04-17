@@ -66,7 +66,8 @@ impl TextAreaProperties {
         if let Some(selection) = &self.selection {
             if selection.is_single_line() {
                 let text = self.buffer.get_text(selection);
-                self.highlight_manager.add_highlight(text);
+                let highlight = self.highlight_manager.create_highlight(text);
+                self.highlight_manager.add(highlight);
             }
         }
     }
@@ -94,16 +95,6 @@ impl TextAreaProperties {
         );
         self.caret_position = CaretPosition::ZERO;
         self.buffer = buffer
-    }
-
-    pub(crate) fn add_highlight(&mut self, highlight: Highlight) {
-        self.highlight_manager.add(highlight.clone());
-    }
-
-    pub(crate) fn remove_highlight(&mut self, index: usize) {
-        if index < self.highlight_manager.len() {
-            self.highlight_manager.remove(index);
-        }
     }
 
     /// Sets the first visible line of the buffer in the view.

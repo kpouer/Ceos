@@ -32,12 +32,11 @@ impl HighlightManager {
         self.highlights.push(highlight);
     }
 
-    pub(crate) fn add_highlight(&mut self, text: String) {
+    pub(crate) fn create_highlight(&mut self, text: String) -> Highlight {
         info!("add_highlight {text}");
         let color = COLORS[self.color_index];
         self.color_index += 1 % COLORS.len();
-        let highlight = Highlight::new(text, false, color);
-        self.add(highlight);
+        Highlight::new(text, false, color)
     }
 
     pub(crate) fn remove(&mut self, index: usize) {
