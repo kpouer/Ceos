@@ -162,6 +162,7 @@ impl Ceos {
                 self.textarea_properties
                     .highlight_manager
                     .add(Highlight::new(text, case_insensitive, color));
+                self.docking_status.open(DockType::Highlight);
             }
             Event::RemoveHighlight(index) => {
                 self.textarea_properties.highlight_manager.remove(index);

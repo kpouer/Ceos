@@ -21,6 +21,11 @@ impl DockStatus {
         }
     }
 
+    #[inline]
+    pub(crate) const fn open(&mut self, dock_type: DockType) {
+        self.current_dock = Some(dock_type);
+    }
+
     pub(crate) fn current(&self) -> Option<DockType> {
         self.current_dock
     }
