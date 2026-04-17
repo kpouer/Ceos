@@ -63,12 +63,12 @@ impl TextAreaProperties {
     }
 
     pub(crate) fn insert_highlight(&mut self) {
-        if let Some(selection) = &self.selection {
-            if selection.is_single_line() {
-                let text = self.buffer.get_text(selection);
-                let highlight = self.highlight_manager.create_highlight(text);
-                let _ = self.buffer.sender.send(Event::AddHighlight(highlight));
-            }
+        if let Some(selection) = &self.selection
+            && selection.is_single_line()
+        {
+            let text = self.buffer.get_text(selection);
+            let highlight = self.highlight_manager.create_highlight(text);
+            let _ = self.buffer.sender.send(Event::AddHighlight(highlight));
         }
     }
 
