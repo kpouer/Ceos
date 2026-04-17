@@ -98,8 +98,6 @@ impl TextAreaProperties {
 
     pub(crate) fn add_highlight(&mut self, highlight: Highlight) {
         self.highlight_manager.add(highlight.clone());
-        self.renderer_manager
-            .add_renderer(HIGHLIGHT_LAYER, Box::new(highlight));
     }
 
     pub(crate) fn remove_highlight(&mut self, index: usize) {
