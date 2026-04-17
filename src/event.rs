@@ -61,8 +61,8 @@ impl TryFrom<&str> for Event {
             }
         } else if command == "close" {
             return Ok(BufferClosed);
-        } else if command.starts_with("highlight ") {
-            let parts: Vec<&str> = command["highlight ".len()..].split_whitespace().collect();
+        } else if let Some(stripped) = command.strip_prefix("highlight ") {
+            let parts: Vec<&str> = stripped.split_whitespace().collect();
             if !parts.is_empty() {
                 let text = parts[0].to_string();
                 let case_insensitive = parts.get(1).map(|&s| s == "i").unwrap_or(false);
