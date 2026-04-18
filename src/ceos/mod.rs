@@ -1,3 +1,4 @@
+use crate::ceos::buffer::buffer_loader::BufferLoader;
 use crate::ceos::command::direct::goto::Goto;
 use crate::ceos::command::save_action::SaveAction;
 use crate::ceos::command::search::Search;
@@ -13,7 +14,6 @@ use crate::ceos::gui::search_result_panel::SearchResultPanel;
 use crate::ceos::gui::search_toolbar::SearchToolbar;
 use crate::ceos::gui::textpane::TextPane;
 use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
-use crate::ceos::highlight::highlight::Highlight;
 use crate::ceos::options::Options;
 use crate::ceos::progress_manager::ProgressManager;
 use crate::event::Event;
@@ -504,7 +504,7 @@ impl Ceos {
         let sender = self.sender.clone();
         thread::spawn(move || {
             let _ = sender.send(BufferClosed);
-            match Buffer::new_from_file(path, sender.clone()) {
+            match BufferLoader::new_from_file(path, sender.clone()) {
                 Ok(buffer) => {
                     let _ = sender.send(BufferLoaded(buffer));
                 }

@@ -5,7 +5,7 @@ use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use flate2::bufread::GzDecoder;
 use std::fs::File;
 use std::io;
-use std::io::BufRead;
+use std::io::{BufRead, Error};
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
@@ -17,10 +17,7 @@ pub(crate) struct BufferLoader {
 }
 
 impl BufferLoader {
-    pub(crate) fn new_from_file(
-        path: PathBuf,
-        sender: Sender<Event>,
-    ) -> Result<Buffer, std::io::Error> {
+    pub(crate) fn new_from_file(path: PathBuf, sender: Sender<Event>) -> Result<Buffer, Error> {
         let mut buffer_loader = Self {
             buffer: Buffer::new_with_group_size(sender.clone(), DEFAULT_GROUP_SIZE),
             sender,
@@ -30,7 +27,7 @@ impl BufferLoader {
         Ok(buffer_loader.buffer)
     }
 
-    fn load_buffer(&mut self, path: PathBuf) -> Result<(), io::Error> {
+    fn load_buffer(&mut self, path: PathBuf) -> Result<(), Error> {
         self.buffer.path = Some(path.clone());
         let file = File::open(&path)?;
 
@@ -58,11 +55,7 @@ impl BufferLoader {
         Ok(())
     }
 
-    fn load_reader(
-        &mut self,
-        file_size: usize,
-        buffer_reader: impl BufRead,
-    ) -> Result<(), io::Error> {
+    fn load_reader(&mut self, file_size: usize, buffer_reader: impl BufRead) -> Result<(), Error> {
         let mut start = Instant::now();
         for line_text in buffer_reader.lines() {
             self.buffer.push_line(line_text?);
@@ -75,5 +68,24 @@ impl BufferLoader {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::ceos::buffer::buffer_loader::BufferLoader;
+    use std::path::PathBuf;
+
+    #[test]
+    fn new_from_file_loads_cargo_toml() {
+        let (sender, _) = std::sync::mpsc::channel();
+        let path = PathBuf::from("Cargo.toml");
+        let mut buffer =
+            BufferLoader::new_from_file(path, sender).expect("Failed to load Cargo.toml");
+
+        assert!(buffer.line_count() > 0);
+        let first_line = buffer.line_text(0);
+        assert!(first_line.contains("[package]"));
+        buffer.compress_all_groups();
     }
 }

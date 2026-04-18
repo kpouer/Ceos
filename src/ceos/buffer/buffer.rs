@@ -738,7 +738,6 @@ impl Index<usize> for Buffer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ceos::buffer::buffer_loader::BufferLoader;
 
     #[test]
     fn from_str_builds_lines_and_lengths() {
@@ -845,19 +844,6 @@ mod tests {
         let mut buffer = Buffer::new_test_buffer("l0\nl1\nl2", 2);
         let _ = buffer.drain_line_mut(..);
         assert_eq!(buffer.line_count(), 0);
-    }
-
-    #[test]
-    fn new_from_file_loads_cargo_toml() {
-        let (sender, _) = std::sync::mpsc::channel();
-        let path = PathBuf::from("Cargo.toml");
-        let mut buffer =
-            BufferLoader::new_from_file(path, sender).expect("Failed to load Cargo.toml");
-
-        assert!(buffer.line_count() > 0);
-        let first_line = buffer.line_text(0);
-        assert!(first_line.contains("[package]"));
-        buffer.compress_all_groups();
     }
 
     #[test]
