@@ -7,24 +7,18 @@ use crate::ceos::buffer::undo_manager::remove::Remove;
 use crate::ceos::buffer::undo_manager::{UndoManager, UndoOperation};
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::selection::Selection;
-use crate::ceos::tools::misc_tool::{RangeTools, gzip_uncompressed_size_fast, is_gzip};
+use crate::ceos::tools::misc_tool::RangeTools;
 use crate::ceos::tools::text_tool::TextTool;
 use crate::event::Event;
-use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use crate::progress_operation::ProgressOperation;
-use flate2::bufread::GzDecoder;
 use log::{debug, error, info, warn};
 use rayon::prelude::*;
 use std::borrow::Cow;
-use std::fs::File;
-use std::io;
-use std::io::BufRead;
 use std::ops::{Bound, Index, RangeBounds};
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
-use std::time::{Duration, Instant};
 
-const DEFAULT_GROUP_SIZE: usize = 1000;
+pub(crate) const DEFAULT_GROUP_SIZE: usize = 1000;
 const LINE_SEPARATOR_LEN: usize = 1;
 
 #[derive(Debug)]
@@ -61,7 +55,7 @@ impl Buffer {
     }
 
     #[inline]
-    fn new_with_group_size(sender: Sender<Event>, group_size: usize) -> Self {
+    pub(super) fn new_with_group_size(sender: Sender<Event>, group_size: usize) -> Self {
         Self {
             path: None,
             content: vec![LineGroup::new(0, group_size)],
@@ -74,71 +68,10 @@ impl Buffer {
         }
     }
 
-    pub(crate) fn new_from_file(
-        path: PathBuf,
-        sender: Sender<Event>,
-    ) -> Result<Self, std::io::Error> {
-        let mut buffer = Self {
-            path: Some(path),
-            ..Self::new_with_group_size(sender, DEFAULT_GROUP_SIZE)
-        };
-
-        buffer.load_buffer()?;
-
-        Ok(buffer)
-    }
-
     pub(crate) fn set_path(&mut self, path: PathBuf) {
         info!("set path to {path:?}");
         self.path = Some(path);
         self.dirty = true;
-    }
-
-    fn load_buffer(&mut self) -> Result<(), io::Error> {
-        let path = self.path.as_ref().expect("buffer has no path");
-        let file = File::open(path)?;
-
-        let mut buffer_reader = io::BufReader::new(file);
-
-        let file_size = std::fs::metadata(path)?.len() as usize;
-        if is_gzip(&mut buffer_reader) {
-            let file_size = match gzip_uncompressed_size_fast(path) {
-                Ok(size) => size as usize,
-                Err(_) => file_size,
-            };
-            let _ = self
-                .sender
-                .send(BufferLoadingStarted(path.clone(), file_size));
-            let decoder = GzDecoder::new(buffer_reader);
-            let mut buffer_reader = io::BufReader::new(decoder);
-            self.load_reader(file_size, &mut buffer_reader)?;
-        } else {
-            let _ = self
-                .sender
-                .send(BufferLoadingStarted(path.clone(), file_size));
-            self.load_reader(file_size, &mut buffer_reader)?;
-        }
-
-        Ok(())
-    }
-
-    fn load_reader(
-        &mut self,
-        file_size: usize,
-        buffer_reader: impl BufRead,
-    ) -> Result<(), io::Error> {
-        let mut start = Instant::now();
-        for line_text in buffer_reader.lines() {
-            self.push_line(line_text?);
-            if start.elapsed() > Duration::from_millis(50) {
-                let path = self.path.clone().expect("buffer has no path");
-                let _ = self
-                    .sender
-                    .send(BufferLoading(path, self.length, file_size));
-                start = Instant::now();
-            }
-        }
-        Ok(())
     }
 
     /// Compress all line groups and free their in-memory lines to reclaim memory.
@@ -161,7 +94,7 @@ impl Buffer {
 
     /// Push a new line at the end of the buffer.
     /// It is called when creating a new buffer
-    fn push_line(&mut self, line: impl Into<Line>) {
+    pub(super) fn push_line(&mut self, line: impl Into<Line>) {
         let line = line.into();
         let last_group = self.content.last_mut().expect("buffer is empty");
 
@@ -805,6 +738,7 @@ impl Index<usize> for Buffer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ceos::buffer::buffer_loader::BufferLoader;
 
     #[test]
     fn from_str_builds_lines_and_lengths() {
@@ -917,7 +851,8 @@ mod tests {
     fn new_from_file_loads_cargo_toml() {
         let (sender, _) = std::sync::mpsc::channel();
         let path = PathBuf::from("Cargo.toml");
-        let mut buffer = Buffer::new_from_file(path, sender).expect("Failed to load Cargo.toml");
+        let mut buffer =
+            BufferLoader::new_from_file(path, sender).expect("Failed to load Cargo.toml");
 
         assert!(buffer.line_count() > 0);
         let first_line = buffer.line_text(0);
