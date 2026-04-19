@@ -12,7 +12,6 @@ use crate::ceos::gui::textpane::renderer::renderer_manager::{
 use crate::ceos::gui::textpane::renderer::selection_renderer::SelectionRenderer;
 use crate::ceos::gui::textpane::renderer::text_renderer::TextRenderer;
 use crate::ceos::gui::textpane::selection::Selection;
-use crate::ceos::highlight::highlight::Highlight;
 use crate::ceos::highlight::highlight_painter::HighlightPainter;
 use crate::ceos::highlight::manager::HighlightManager;
 use crate::event::Event;
