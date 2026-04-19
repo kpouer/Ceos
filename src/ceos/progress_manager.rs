@@ -10,14 +10,7 @@ pub(crate) struct ProgressManager {
 impl ProgressManager {
     pub(crate) fn add(&mut self, id: ProgressOperation, max: usize) {
         let label = id.to_string();
-        self.progress.insert(
-            id,
-            Progress {
-                label,
-                current: 0,
-                max,
-            },
-        );
+        self.progress.insert(id, Progress::new(label, max));
     }
 
     pub(crate) fn update(&mut self, id: &ProgressOperation, current: usize) {
@@ -54,6 +47,14 @@ pub(crate) struct Progress {
 }
 
 impl Progress {
+    const fn new(label: String, max: usize) -> Self {
+        Self {
+            label,
+            current: 0,
+            max,
+        }
+    }
+
     pub(crate) const fn percent(&self) -> f32 {
         if self.current >= self.max {
             1.0
