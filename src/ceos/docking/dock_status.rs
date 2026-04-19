@@ -1,5 +1,3 @@
-use egui::{Response, Ui, Widget};
-
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub(crate) enum DockType {
     Browser,
@@ -37,11 +35,5 @@ impl Default for DockStatus {
             current_dock: None,
             side_panel_width: 200.0,
         }
-    }
-}
-
-impl Widget for DockStatus {
-    fn ui(self, ui: &mut Ui) -> Response {
-        todo!()
     }
 }
