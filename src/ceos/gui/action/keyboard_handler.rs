@@ -1,6 +1,6 @@
 use crate::ceos::gui::action::Action;
 use egui::{Key, KeyboardShortcut, Modifiers};
-use log::{debug, info};
+use log::debug;
 use std::collections::HashMap;
 
 #[derive(Debug)]
