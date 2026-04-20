@@ -43,13 +43,22 @@ impl<'a> TextTool<'a> {
 
     #[inline]
     pub(crate) fn is_whole_word(line_text: &str, start: usize, end: usize) -> bool {
-        let before = line_text[..start].chars().last().unwrap_or(' ');
+        if line_text.is_empty() || start >= end || end > line_text.len() {
+            return false;
+        }
+
+        let before = line_text
+            .get(..start)
+            .and_then(|s| s.chars().last())
+            .unwrap_or(' ');
         if !Self::is_word_separator(&before) {
             return false;
         }
 
-        let after = line_text[end..].chars().next().unwrap_or(' ');
-
+        let after = line_text
+            .get(end..)
+            .and_then(|s| s.chars().next())
+            .unwrap_or(' ');
         if !Self::is_word_separator(&after) {
             return false;
         }
