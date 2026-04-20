@@ -11,11 +11,11 @@ use std::path::PathBuf;
 pub enum Event {
     /// BufferLoading(path, current, size)
     OpenFile(PathBuf),
-    BufferLoadingStarted(PathBuf, usize),
-    BufferLoading(PathBuf, usize, usize),
+    BufferLoadingStarted(PathBuf, u64),
+    BufferLoading(PathBuf, u64, u64),
     // Saving progression events
-    BufferSavingStarted(PathBuf, usize),
-    BufferSaving(PathBuf, usize, usize),
+    BufferSavingStarted(PathBuf, u64),
+    BufferSaving(PathBuf, u64, u64),
     BufferSaved(PathBuf),
     BufferSaveFailed(PathBuf),
     BufferLoaded(Buffer),

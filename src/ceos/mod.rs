@@ -53,7 +53,7 @@ pub struct Ceos {
     frame_history: FrameHistory,
     theme: Theme,
     initialized: bool,
-    progress_manager: ProgressManager,
+    progress_manager: ProgressManager<u64>,
     search_result_panel: SearchResultPanel,
     search_toolbar: SearchToolbar,
     options: Options,
@@ -136,11 +136,13 @@ impl Ceos {
             GotoLine(goto) => goto.execute(&mut self.textarea_properties),
             NewFont(font_id) => self.textarea_properties.set_font_id(font_id),
             Event::OperationStarted(operation, length) => {
-                self.progress_manager.add(operation, length)
+                self.progress_manager.add(operation, length as u64)
             }
-            Event::OperationProgress(label, value) => self.progress_manager.update(&label, value),
+            Event::OperationProgress(label, value) => {
+                self.progress_manager.update(&label, value as u64)
+            }
             Event::OperationIncrement(label, amount) => {
-                self.progress_manager.increment(&label, amount)
+                self.progress_manager.increment(&label, amount as u64)
             }
             Event::OperationFinished(label) => self.progress_manager.remove(&label),
             Event::ShowSearch => {

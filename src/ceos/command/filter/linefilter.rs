@@ -114,7 +114,7 @@ mod tests {
         4 keep me\n";
         let (sender, _) = std::sync::mpsc::channel();
         let mut buffer = Buffer::new_from_string(sender, CONTENT, 2);
-        assert_eq!(CONTENT.len(), buffer.len());
+        assert_eq!(CONTENT.len() as u64, buffer.len());
         assert_eq!(4, buffer.line_count());
         filter.execute(&mut buffer);
         assert!(buffer.dirty);

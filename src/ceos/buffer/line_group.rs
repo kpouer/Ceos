@@ -15,7 +15,7 @@ pub(crate) struct LineGroup {
     // number of lines stored in this group (stable even when compressed)
     line_count: usize,
     // total UTF-8 text length of the group with one '\n' separator between lines
-    length: usize,
+    length: u64,
     max_line_length: usize,
     /// Global index (0-based) of the first line contained in this group
     first_line: usize,
@@ -166,7 +166,7 @@ impl LineGroup {
     pub(crate) fn push(&mut self, line: Line) {
         let line_length = line.len();
 
-        self.length += line_length + 1;
+        self.length += (line_length + 1) as u64;
         self.line_count += 1;
         self.max_line_length = line_length.max(self.max_line_length);
         if let Some(lines) = &mut self.lines {
@@ -199,7 +199,7 @@ impl LineGroup {
         self.line_count
     }
 
-    pub(crate) const fn len(&self) -> usize {
+    pub(crate) const fn len(&self) -> u64 {
         self.length
     }
 
@@ -313,9 +313,9 @@ impl LineGroup {
     pub(crate) fn compute_metadata(&mut self) {
         debug_assert!(self.is_decompressed());
         if let Some(lines) = &self.lines {
-            let (length, max_line_length) = lines.iter().fold((0, 0), |(sum, max), line| {
+            let (length, max_line_length) = lines.iter().fold((0u64, 0), |(sum, max), line| {
                 let len = line.len() + 1;
-                (sum + len, max.max(len))
+                (sum + len as u64, max.max(len))
             });
             self.line_count = lines.len();
             self.length = length;

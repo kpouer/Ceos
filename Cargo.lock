@@ -658,6 +658,7 @@ dependencies = [
  "logos",
  "lz4",
  "memchr",
+ "num-traits",
  "rayon",
  "regex",
  "rfd",

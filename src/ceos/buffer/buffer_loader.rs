@@ -33,12 +33,13 @@ impl BufferLoader {
 
         let mut buffer_reader = io::BufReader::new(file);
 
-        let file_size = std::fs::metadata(&path)?.len() as usize;
+        let file_size = std::fs::metadata(&path)?.len();
         if is_gzip(&mut buffer_reader) {
             let file_size = match gzip_uncompressed_size_fast(&path) {
-                Ok(size) => size as usize,
+                Ok(size) => size as u64,
                 Err(_) => file_size,
-            };
+            }
+            .max(file_size);
             let _ = self
                 .sender
                 .send(BufferLoadingStarted(path.clone(), file_size));
@@ -55,7 +56,7 @@ impl BufferLoader {
         Ok(())
     }
 
-    fn load_reader(&mut self, file_size: usize, buffer_reader: impl BufRead) -> Result<(), Error> {
+    fn load_reader(&mut self, file_size: u64, buffer_reader: impl BufRead) -> Result<(), Error> {
         let mut start = Instant::now();
         for line_text in buffer_reader.lines() {
             self.buffer.push_line(line_text?);

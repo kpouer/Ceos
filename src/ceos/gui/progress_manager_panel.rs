@@ -1,18 +1,30 @@
 use crate::ceos::progress_manager::ProgressManager;
 use eframe::emath::Align;
 use egui::{Layout, ProgressBar, Response, Ui, Widget};
+use num_traits::{ToPrimitive, Zero};
+use std::fmt::Debug;
+use std::ops::AddAssign;
 
-pub(crate) struct ProgressManagerPanel<'a> {
-    progress_manager: &'a ProgressManager,
+pub(crate) struct ProgressManagerPanel<'a, T>
+where
+    T: PartialOrd + ToPrimitive + Zero + Default + AddAssign + Debug,
+{
+    progress_manager: &'a ProgressManager<T>,
 }
 
-impl<'a> ProgressManagerPanel<'a> {
-    pub const fn new(progress_manager: &'a ProgressManager) -> Self {
+impl<'a, T> ProgressManagerPanel<'a, T>
+where
+    T: PartialOrd + ToPrimitive + Zero + Default + AddAssign + Debug,
+{
+    pub const fn new(progress_manager: &'a ProgressManager<T>) -> Self {
         Self { progress_manager }
     }
 }
 
-impl Widget for ProgressManagerPanel<'_> {
+impl<T> Widget for ProgressManagerPanel<'_, T>
+where
+    T: PartialOrd + ToPrimitive + Zero + Default + AddAssign + Debug,
+{
     fn ui(self, ui: &mut Ui) -> Response {
         egui::CentralPanel::default()
             .show_inside(ui, |ui| {

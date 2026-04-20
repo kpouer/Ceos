@@ -28,7 +28,7 @@ pub struct Buffer {
     content: Vec<LineGroup>,
     /// a decompressed group for temporary access
     tmp_decompressed_group: usize,
-    length: usize,
+    length: u64,
     pub(crate) dirty: bool,
     pub(crate) sender: Sender<Event>,
     /// The size of the groups used for line compression.
@@ -98,7 +98,7 @@ impl Buffer {
         let line = line.into();
         let last_group = self.content.last_mut().expect("buffer is empty");
 
-        self.length += line.len() + LINE_SEPARATOR_LEN;
+        self.length += (line.len() + LINE_SEPARATOR_LEN) as u64;
         last_group.push(line);
 
         if last_group.is_full() {
@@ -281,7 +281,7 @@ impl Buffer {
         &self.content
     }
 
-    pub(crate) fn drain_line_mut<R>(&mut self, range: R) -> usize
+    pub(crate) fn drain_line_mut<R>(&mut self, range: R) -> u64
     where
         R: RangeBounds<usize>,
     {
@@ -349,7 +349,7 @@ impl Buffer {
         line_group.filter_line_mut(line_index, filter)
     }
 
-    pub(crate) fn filter_lines_mut<F>(&mut self, filter: F) -> usize
+    pub(crate) fn filter_lines_mut<F>(&mut self, filter: F) -> u64
     where
         F: FnMut(&mut Line) + Clone + Sync,
     {
@@ -371,7 +371,7 @@ impl Buffer {
         new_length
     }
 
-    pub(crate) fn retain_line_mut<F>(&mut self, filter: F) -> usize
+    pub(crate) fn retain_line_mut<F>(&mut self, filter: F) -> u64
     where
         F: Fn(&Line) -> bool + Sync + Send + Clone,
     {
@@ -588,7 +588,7 @@ impl Buffer {
     /// Returns the buffer length.
     /// It is the number of chars + end of lines
     #[inline]
-    pub(crate) const fn len(&self) -> usize {
+    pub(crate) const fn len(&self) -> u64 {
         self.length
     }
 
@@ -619,8 +619,8 @@ impl Buffer {
             .sum()
     }
 
-    pub(crate) fn compute_length(&mut self) -> usize {
-        self.length = self.content.iter().map(LineGroup::len).sum::<usize>();
+    pub(crate) fn compute_length(&mut self) -> u64 {
+        self.length = self.content.iter().map(LineGroup::len).sum::<u64>();
         self.length
     }
 
