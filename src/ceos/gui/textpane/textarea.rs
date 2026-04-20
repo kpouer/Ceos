@@ -311,7 +311,7 @@ impl TextArea<'_> {
     ///
     /// The `Position` object represents the calculated column and line, using `textarea_properties`
     /// to map the pointer's x and y coordinates relative to the `rect`.
-    const fn build_position(&self, rect: Rect, pos: &Pos2) -> Position {
+    fn build_position(&self, rect: Rect, pos: &Pos2) -> Position {
         let column = self.textarea_properties.x_to_column(pos.x - rect.left());
         let line = self.textarea_properties.y_to_line(pos.y - rect.top());
         Position { column, line }

@@ -112,7 +112,7 @@ impl TextAreaProperties {
     }
 
     pub(crate) const fn x_to_column(&self, x: f32) -> usize {
-        (x / self.char_width).floor() as usize
+        (x / self.char_width).round() as usize
     }
 
     pub(crate) const fn y_to_line(&self, y: f32) -> usize {
