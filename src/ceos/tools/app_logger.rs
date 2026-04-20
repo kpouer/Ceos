@@ -1,7 +1,7 @@
-use log::{Level, Metadata, Record};
+use log::{Level, Metadata, Record, error};
 use std::fs::{File, OpenOptions};
 use std::io::Write;
-use std::sync::Mutex;
+use std::sync::{LockResult, Mutex};
 
 const LOG_FILE: &str = "activity.log";
 
@@ -31,10 +31,15 @@ impl AppLogger {
     }
 
     fn write_to_file(&self, message: &str) {
-        let mut file_lock = self.file.lock().unwrap();
-
-        if let Some(file) = file_lock.as_mut() {
-            let _ = writeln!(file, "{}", message);
+        match self.file.lock() {
+            Ok(mut file_lock) => {
+                if let Some(file) = file_lock.as_mut() {
+                    let _ = writeln!(file, "{}", message);
+                }
+            }
+            Err(e) => {
+                error!("Unable to lock file {e}");
+            }
         }
     }
 }
