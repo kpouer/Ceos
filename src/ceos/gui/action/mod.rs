@@ -3,6 +3,8 @@ use log::info;
 
 pub(crate) mod action_context;
 pub(crate) mod keyboard_handler;
+mod simple_modifiers;
+mod simple_shortcut;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum Action {

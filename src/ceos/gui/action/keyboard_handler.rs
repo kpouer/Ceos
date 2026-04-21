@@ -1,108 +1,106 @@
 use crate::ceos::gui::action::Action;
+use crate::ceos::gui::action::simple_shortcut::SimpleShortcut;
 use egui::{Key, KeyboardShortcut, Modifiers};
 use log::debug;
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub(crate) struct KeyboardHandler {
-    shortcuts: HashMap<KeyboardShortcut, Action>,
+    shortcuts: HashMap<SimpleShortcut, Action>,
 }
 
 impl KeyboardHandler {
     pub(crate) fn new() -> Self {
         let mut shortcuts = HashMap::new();
-        shortcuts.insert(KeyboardShortcut::new(Modifiers::CTRL, Key::S), Action::Save);
+        shortcuts.insert(SimpleShortcut::new(Modifiers::CTRL, Key::S), Action::Save);
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::NONE, Key::ArrowLeft),
+            SimpleShortcut::new(Modifiers::NONE, Key::ArrowLeft),
             Action::GoToPrevCharacter { select: false },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::SHIFT, Key::ArrowLeft),
+            SimpleShortcut::new(Modifiers::SHIFT, Key::ArrowLeft),
             Action::GoToPrevCharacter { select: true },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::NONE, Key::ArrowRight),
+            SimpleShortcut::new(Modifiers::NONE, Key::ArrowRight),
             Action::GoToNextCharacter { select: false },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::SHIFT, Key::ArrowRight),
+            SimpleShortcut::new(Modifiers::SHIFT, Key::ArrowRight),
             Action::GoToNextCharacter { select: true },
         );
 
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::NONE, Key::ArrowUp),
+            SimpleShortcut::new(Modifiers::NONE, Key::ArrowUp),
             Action::GoToPrevLine { select: false },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::SHIFT, Key::ArrowUp),
+            SimpleShortcut::new(Modifiers::SHIFT, Key::ArrowUp),
             Action::GoToPrevLine { select: true },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::NONE, Key::ArrowDown),
+            SimpleShortcut::new(Modifiers::NONE, Key::ArrowDown),
             Action::GoToNextLine { select: false },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::SHIFT, Key::ArrowDown),
+            SimpleShortcut::new(Modifiers::SHIFT, Key::ArrowDown),
             Action::GoToNextLine { select: true },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::NONE, Key::Enter),
+            SimpleShortcut::new(Modifiers::NONE, Key::Enter),
             Action::Enter,
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::NONE, Key::Backspace),
+            SimpleShortcut::new(Modifiers::NONE, Key::Backspace),
             Action::Backspace,
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::NONE, Key::Delete),
+            SimpleShortcut::new(Modifiers::NONE, Key::Delete),
             Action::Delete,
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::NONE, Key::Home),
+            SimpleShortcut::new(Modifiers::NONE, Key::Home),
             Action::GoToLineStart { select: false },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::NONE, Key::End),
+            SimpleShortcut::new(Modifiers::NONE, Key::End),
             Action::GoToLineEnd { select: false },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::CTRL | Modifiers::SHIFT, Key::F7),
+            SimpleShortcut::new(Modifiers::CTRL | Modifiers::SHIFT, Key::F7),
             Action::InsertHighlight,
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::COMMAND | Modifiers::SHIFT, Key::F7),
+            SimpleShortcut::new(Modifiers::COMMAND | Modifiers::SHIFT, Key::F7),
             Action::InsertHighlight,
         );
         shortcuts.insert(
-            KeyboardShortcut::new(
+            SimpleShortcut::new(
                 Modifiers::COMMAND | Modifiers::MAC_CMD | Modifiers::SHIFT,
                 Key::F7,
             ),
             Action::InsertHighlight,
         );
-        shortcuts.insert(KeyboardShortcut::new(Modifiers::CTRL, Key::Z), Action::Undo);
+        shortcuts.insert(SimpleShortcut::new(Modifiers::CTRL, Key::Z), Action::Undo);
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::Z),
+            SimpleShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::Z),
             Action::Redo,
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::CTRL, Key::Home),
+            SimpleShortcut::new(Modifiers::CTRL, Key::Home),
             Action::GoToBufferStart { select: false },
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::CTRL, Key::End),
+            SimpleShortcut::new(Modifiers::CTRL, Key::End),
             Action::GoToBufferEnd { select: false },
         );
+        shortcuts.insert(SimpleShortcut::new(Modifiers::CTRL, Key::F), Action::Search);
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::CTRL, Key::F),
-            Action::Search,
-        );
-        shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::CTRL, Key::R),
+            SimpleShortcut::new(Modifiers::CTRL, Key::R),
             Action::Replace,
         );
         shortcuts.insert(
-            KeyboardShortcut::new(Modifiers::COMMAND, Key::Z),
+            SimpleShortcut::new(Modifiers::COMMAND, Key::Z),
             Action::Undo,
         );
         Self { shortcuts }
@@ -110,6 +108,8 @@ impl KeyboardHandler {
 
     pub(crate) fn get_action(&self, keyboard_shortcut: &KeyboardShortcut) -> Option<&Action> {
         debug!("get_action {keyboard_shortcut:?}");
-        self.shortcuts.get(keyboard_shortcut)
+        let simple_shortcut =
+            SimpleShortcut::new(keyboard_shortcut.modifiers, keyboard_shortcut.logical_key);
+        self.shortcuts.get(&simple_shortcut)
     }
 }
