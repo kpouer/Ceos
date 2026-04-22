@@ -8,7 +8,7 @@ pub struct SimpleShortcut {
 }
 
 impl SimpleShortcut {
-    pub(super) fn new(modifiers: Modifiers, key: Key) -> Self {
+    pub(crate) fn new(modifiers: Modifiers, key: Key) -> Self {
         Self {
             modifiers: SimpleModifiers::from(modifiers),
             key,
