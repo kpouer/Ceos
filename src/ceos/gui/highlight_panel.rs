@@ -1,6 +1,6 @@
-use crate::ceos::highlight::manager::HighlightManager;
 use crate::event::Event;
 use egui::{Color32, Ui};
+use highlight::manager::HighlightManager;
 use std::sync::mpsc::Sender;
 
 pub(crate) struct HighlightPanel<'a> {

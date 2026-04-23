@@ -1,10 +1,10 @@
 use crate::ceos::docking::dock_status::{DockStatus, DockType};
 use crate::ceos::docking::side_toolbar::SideToolbar;
 use crate::ceos::gui::highlight_panel::HighlightPanel;
-use crate::ceos::highlight::manager::HighlightManager;
 use crate::event::Event;
 use eframe::emath::Vec2;
 use egui::{Response, Ui, Widget};
+use highlight::manager::HighlightManager;
 use std::sync::mpsc::Sender;
 
 pub(crate) struct DockManager<'a> {

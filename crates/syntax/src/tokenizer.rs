@@ -1,16 +1,15 @@
+use crate::chunk::Chunk;
+use crate::token::Token;
 use log::{debug, error};
 use logos::Logos;
 
-use crate::ceos::syntax::chunk::Chunk;
-use crate::ceos::syntax::token::Token;
-
 #[derive(Debug)]
-pub(crate) struct Tokenizer<'a> {
-    pub(crate) tokens: Vec<Chunk<'a>>,
+pub struct Tokenizer<'a> {
+    pub tokens: Vec<Chunk<'a>>,
 }
 
 impl<'a> Tokenizer<'a> {
-    pub(crate) fn new(text: &'a str) -> Self {
+    pub fn new(text: &'a str) -> Self {
         Self {
             tokens: Self::tokenize(text),
         }
@@ -28,7 +27,7 @@ impl<'a> Tokenizer<'a> {
         chunks
     }
 
-    pub(crate) fn merge_tokens(&mut self) {
+    pub fn merge_tokens(&mut self) {
         let len = self.tokens.len();
         if len < 2 {
             return;

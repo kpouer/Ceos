@@ -1,6 +1,6 @@
-use crate::ceos::syntax::token::Token;
 use eframe::epaint::Color32;
 use egui::Visuals;
+use syntax::token::Token;
 
 mod jedit;
 pub(crate) mod solarized;

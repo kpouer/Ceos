@@ -1,9 +1,9 @@
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
-use crate::ceos::syntax::tokenizer::Tokenizer;
 use eframe::emath::Pos2;
 use egui::{FontId, Ui};
+use syntax::tokenizer::Tokenizer;
 
 #[derive(Debug)]
 pub(crate) struct TextRenderer {

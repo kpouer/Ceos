@@ -1,6 +1,4 @@
-pub(crate) mod highlight;
 pub(crate) mod highlight_painter;
-pub(crate) mod manager;
 
 pub(crate) fn deterministic_color(text: &str) -> egui::Color32 {
     let mut hash: u32 = 0;

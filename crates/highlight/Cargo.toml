@@ -1,0 +1,9 @@
+[package]
+name = "highlight"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+eframe = { workspace = true }
+egui = { workspace = true }
+log = { workspace = true }

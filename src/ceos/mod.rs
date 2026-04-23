@@ -40,7 +40,6 @@ pub mod highlight;
 pub mod options;
 pub mod progress_manager;
 pub mod search;
-pub mod syntax;
 pub mod tools;
 
 #[derive(Debug)]

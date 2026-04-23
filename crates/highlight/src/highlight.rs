@@ -1,14 +1,14 @@
 use egui::Color32;
 
 #[derive(Debug, Clone)]
-pub(crate) struct Highlight {
-    pub(crate) text: String,
-    pub(crate) case_insensitive: bool,
-    pub(crate) color: Color32,
+pub struct Highlight {
+    pub text: String,
+    pub case_insensitive: bool,
+    pub color: Color32,
 }
 
 impl Highlight {
-    pub(crate) const fn new(text: String, case_insensitive: bool, color: Color32) -> Self {
+    pub const fn new(text: String, case_insensitive: bool, color: Color32) -> Self {
         Self {
             text,
             case_insensitive,

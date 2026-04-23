@@ -1,9 +1,9 @@
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
-use crate::ceos::highlight::highlight::Highlight;
 use eframe::emath::{Pos2, Rect};
 use egui::{TextBuffer, Ui};
+use highlight::highlight::Highlight;
 use std::borrow::Cow;
 
 #[derive(Debug)]

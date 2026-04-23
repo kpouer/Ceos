@@ -2,7 +2,7 @@ use logos::Logos;
 
 #[derive(Debug, Logos, PartialEq)]
 #[logos(skip r"[ \t\r\n\f]+")]
-pub(crate) enum Token {
+pub enum Token {
     #[token("false")]
     #[token("true")]
     Bool,
