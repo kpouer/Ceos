@@ -1,6 +1,7 @@
 use crate::ceos::gui::action::simple_shortcut::SimpleShortcut;
 use egui::{Key, Modifiers};
 use logos::Logos;
+use thiserror::Error;
 
 #[derive(Logos, Debug, PartialEq)]
 #[logos(skip r"[ \t\n\f]+")] // Ignore whitespace
@@ -28,13 +29,13 @@ enum ShortcutToken {
     Identifier(String),
 }
 
-pub fn parse_shortcut(input: &str) -> Result<SimpleShortcut, String> {
+pub(crate) fn parse_shortcut(input: &str) -> Result<SimpleShortcut, Error> {
     let mut lexer = ShortcutToken::lexer(input);
     let mut modifiers = Modifiers::NONE;
     let mut key = None;
 
     while let Some(token_res) = lexer.next() {
-        let token = token_res.map_err(|_| format!("Invalid token at '{}'", lexer.slice()))?;
+        let token = token_res.map_err(|_| Error::InvalidToken(lexer.slice().to_string()))?;
         match token {
             ShortcutToken::Ctrl => modifiers.ctrl = true,
             ShortcutToken::Shift => modifiers.shift = true,
@@ -44,11 +45,7 @@ pub fn parse_shortcut(input: &str) -> Result<SimpleShortcut, String> {
             ShortcutToken::Identifier(s) => {
                 if let Some(k) = string_to_key(&s) {
                     if key.is_some() {
-                        return Err(format!(
-                            "Multiple keys specified: {:?} and {:?}",
-                            key.unwrap(),
-                            k
-                        ));
+                        return Err(Error::TooManyKeys(key.unwrap(), k));
                     }
                     key = Some(k);
                 } else {
@@ -58,14 +55,14 @@ pub fn parse_shortcut(input: &str) -> Result<SimpleShortcut, String> {
                         "shift" => modifiers.shift = true,
                         "alt" => modifiers.alt = true,
                         "command" | "cmd" | "super" | "win" => modifiers.command = true,
-                        _ => return Err(format!("Unknown key or modifier: {}", s)),
+                        _ => return Err(Error::UnknownKeyOrModifier(s)),
                     }
                 }
             }
         }
     }
 
-    let key = key.ok_or_else(|| "No key specified in shortcut".to_string())?;
+    let key = key.ok_or_else(|| Error::NoKey)?;
     Ok(SimpleShortcut::new(modifiers, key))
 }
 
@@ -144,6 +141,18 @@ fn string_to_key(s: &str) -> Option<Key> {
         "pagedown" => Some(Key::PageDown),
         _ => None,
     }
+}
+
+#[derive(Debug, Error)]
+pub(crate) enum Error {
+    #[error("Multiple keys specified: {0:?} and {1:?}")]
+    TooManyKeys(Key, Key),
+    #[error("Unknown key or modifier: {0}")]
+    UnknownKeyOrModifier(String),
+    #[error("Invalid token at '{0}'")]
+    InvalidToken(String),
+    #[error("No key specified in shortcut")]
+    NoKey,
 }
 
 #[cfg(test)]

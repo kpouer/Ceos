@@ -21,6 +21,7 @@ rayon = "1.11.0"
 regex = "1.12"
 rfd = "0.17.2"
 serde = { version = "1.0", features = ["derive"] }
+thiserror = "2.0"
 toml = "1.1.0+spec-1.1.0"
 
 [dev-dependencies]
