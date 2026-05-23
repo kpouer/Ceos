@@ -25,16 +25,17 @@ thiserror = "2.0"
 toml = "1.1.2+spec-1.1.0"
 highlight = { path = "crates/highlight" }
 syntax = { path = "crates/syntax" }
+tools = { path = "crates/tools" }
 
 [workspace.dependencies]
 eframe = "0.34"
 egui = "0.34"
 log = "0.4"
 logos = "0.16.1"
-
+rstest = "0.26.1"
 
 [dev-dependencies]
-rstest = "0.26.1"
+rstest = { workspace = true }
 criterion = "0.8.2"
 
 [[bench]]
@@ -50,4 +51,4 @@ unwrap_used = "deny"
 #expect_used = "deny"
 
 [workspace]
-members = ["crates/highlight", "crates/syntax"]
+members = ["crates/highlight", "crates/syntax", "crates/tools"]

@@ -2,7 +2,7 @@
 extern crate core;
 
 use ceos::ceos::Ceos;
-use ceos::ceos::tools::app_logger::AppLogger;
+use tools::app_logger::AppLogger;
 
 const INITIAL_WIDTH: f32 = 1024.0;
 const INITIAL_HEIGHT: f32 = 768.0;

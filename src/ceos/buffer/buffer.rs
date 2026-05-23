@@ -7,8 +7,6 @@ use crate::ceos::buffer::undo_manager::remove::Remove;
 use crate::ceos::buffer::undo_manager::{UndoManager, UndoOperation};
 use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::selection::Selection;
-use crate::ceos::tools::misc_tool::RangeTools;
-use crate::ceos::tools::text_tool::TextTool;
 use crate::event::Event;
 use crate::progress_operation::ProgressOperation;
 use log::{debug, error, info, warn};
@@ -17,6 +15,8 @@ use std::borrow::Cow;
 use std::ops::{Bound, Index, RangeBounds};
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
+use tools::misc_tool::RangeTools;
+use tools::text_tool::TextTool;
 
 pub(crate) const DEFAULT_GROUP_SIZE: usize = 1000;
 const LINE_SEPARATOR_LEN: usize = 1;

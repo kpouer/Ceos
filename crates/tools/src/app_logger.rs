@@ -1,7 +1,7 @@
 use log::{Level, Metadata, Record, error};
 use std::fs::{File, OpenOptions};
 use std::io::Write;
-use std::sync::{LockResult, Mutex};
+use std::sync::Mutex;
 
 const LOG_FILE: &str = "activity.log";
 

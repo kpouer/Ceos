@@ -11,7 +11,7 @@ use crate::ceos::command::{Action, Command};
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
-use crate::ceos::tools::range::Range;
+use tools::range::Range;
 
 /// LineDrop filter
 ///

@@ -4,7 +4,7 @@ use std::ops::{Bound, RangeBounds};
 
 const GZIP_MAGIC: [u8; 2] = [0x1F, 0x8B];
 
-pub(crate) fn is_gzip<R>(reader: &mut R) -> bool
+pub fn is_gzip<R>(reader: &mut R) -> bool
 where
     R: Read + Seek,
 {
@@ -19,7 +19,7 @@ where
     is_gzip
 }
 
-pub(crate) fn gzip_uncompressed_size_fast(path: &std::path::Path) -> std::io::Result<u32> {
+pub fn gzip_uncompressed_size_fast(path: &std::path::Path) -> std::io::Result<u32> {
     let mut f = File::open(path)?;
     f.seek(SeekFrom::End(-4))?;
     let mut buf = [0u8; 4];
@@ -27,11 +27,11 @@ pub(crate) fn gzip_uncompressed_size_fast(path: &std::path::Path) -> std::io::Re
     Ok(u32::from_le_bytes(buf)) // ISIZE
 }
 
-pub(crate) struct RangeTools;
+pub struct RangeTools;
 
 impl RangeTools {
     #[inline]
-    pub(crate) fn start_bound<T>(range: &T) -> usize
+    pub fn start_bound<T>(range: &T) -> usize
     where
         T: RangeBounds<usize>,
     {

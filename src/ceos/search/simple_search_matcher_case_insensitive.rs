@@ -1,6 +1,6 @@
 use crate::ceos::search::SearchMatcher;
-use crate::ceos::tools::text_tool::TextTool;
 use memchr::memchr2;
+use tools::text_tool::TextTool;
 
 #[derive(Debug)]
 pub struct SimpleSearchCaseInsensitiveMatcher {

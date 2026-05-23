@@ -11,7 +11,6 @@ use crate::ceos::gui::textpane::renderer::caret_renderer::CaretRenderer;
 use crate::ceos::gui::textpane::selection::Selection;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
-use crate::ceos::tools::text_tool::TextTool;
 use crate::event::Event;
 use crate::event::Event::{ClearCommand, NewFont, OpenFile, SetCommand};
 use eframe::emath::{Pos2, Rect, Vec2};
@@ -19,6 +18,7 @@ use eframe::epaint::{FontId, Stroke, StrokeKind};
 use egui::Event::{MouseWheel, Zoom};
 use egui::{Context, EventFilter, InputState, KeyboardShortcut, Modifiers, Response, Ui, Widget};
 use log::{error, info};
+use tools::text_tool::TextTool;
 
 #[derive(Debug)]
 pub(crate) struct TextArea<'a> {

@@ -1,6 +1,6 @@
 use crate::ceos::search::SearchMatcher;
-use crate::ceos::tools::text_tool::TextTool;
 use regex::{Error, Regex, RegexBuilder};
+use tools::text_tool::TextTool;
 
 #[derive(Debug)]
 pub(crate) struct RegexSearchMatcher {

@@ -1,5 +1,4 @@
 use crate::ceos::buffer::buffer::{Buffer, DEFAULT_GROUP_SIZE};
-use crate::ceos::tools::misc_tool::{gzip_uncompressed_size_fast, is_gzip};
 use crate::event::Event;
 use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use flate2::bufread::GzDecoder;
@@ -9,6 +8,7 @@ use std::io::{BufRead, Error};
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
+use tools::misc_tool::{gzip_uncompressed_size_fast, is_gzip};
 
 #[derive(Debug)]
 pub(crate) struct BufferLoader {

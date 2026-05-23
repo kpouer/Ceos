@@ -1,17 +1,17 @@
 use std::ops::{Index, Range, RangeFrom, RangeTo};
 
 #[derive(Debug)]
-pub(crate) struct TextTool<'a> {
+pub struct TextTool<'a> {
     text: &'a str,
 }
 
 impl<'a> TextTool<'a> {
-    pub(crate) const fn new(text: &'a str) -> Self {
+    pub const fn new(text: &'a str) -> Self {
         Self { text }
     }
 
     // ... existing code ...
-    pub(crate) fn find_word_start(&self, pos: usize) -> usize {
+    pub fn find_word_start(&self, pos: usize) -> usize {
         if pos == 0 || self.text.is_empty() || pos >= self.text.len() {
             return 0;
         }
@@ -24,7 +24,7 @@ impl<'a> TextTool<'a> {
             .unwrap_or(0)
     }
 
-    pub(crate) fn find_word_end(&self, pos: usize) -> usize {
+    pub fn find_word_end(&self, pos: usize) -> usize {
         if self.text.is_empty() || pos >= self.text.len() {
             return self.text.len();
         }
@@ -37,12 +37,12 @@ impl<'a> TextTool<'a> {
     }
 
     #[inline]
-    pub(crate) fn is_word_separator(c: &char) -> bool {
+    pub fn is_word_separator(c: &char) -> bool {
         !c.is_alphanumeric() && *c != '_'
     }
 
     #[inline]
-    pub(crate) fn is_whole_word(line_text: &str, start: usize, end: usize) -> bool {
+    pub fn is_whole_word(line_text: &str, start: usize, end: usize) -> bool {
         if line_text.is_empty() || start >= end || end > line_text.len() {
             return false;
         }
@@ -66,7 +66,7 @@ impl<'a> TextTool<'a> {
         true
     }
 
-    pub(crate) fn char_to_byte_idx(&self, char_idx: usize) -> usize {
+    pub fn char_to_byte_idx(&self, char_idx: usize) -> usize {
         if char_idx == 0 {
             return 0;
         }

@@ -1,19 +1,18 @@
 use std::cmp;
 use std::fmt::Display;
 
-use eframe::emath::{Pos2, Rect};
-use eframe::epaint::{Stroke, StrokeKind};
-use egui::Ui;
-use log::debug;
-
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::line::Line;
 use crate::ceos::command::{Action, Command};
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
-use crate::ceos::gui::tools;
-use crate::ceos::tools::range::Range;
+use crate::ceos::gui::tools as gui_tools;
+use eframe::emath::{Pos2, Rect};
+use eframe::epaint::{Stroke, StrokeKind};
+use egui::Ui;
+use log::debug;
+use tools::Range;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct ColumnFilter {
@@ -41,7 +40,7 @@ impl Renderer for ColumnFilter {
         drawing_pos: Pos2,
         _has_focus: bool,
     ) {
-        let char_width = tools::char_width(textarea_properties.font_id.clone(), ui);
+        let char_width = gui_tools::char_width(textarea_properties.font_id.clone(), ui);
         let end_x = match self.range.end {
             Some(end) => end as f32 * char_width,
             None => ui.max_rect().width(),
