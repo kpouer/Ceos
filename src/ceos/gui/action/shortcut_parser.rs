@@ -62,7 +62,7 @@ pub(crate) fn parse_shortcut(input: &str) -> Result<SimpleShortcut, Error> {
         }
     }
 
-    let key = key.ok_or_else(|| Error::NoKey)?;
+    let key = key.ok_or(Error::NoKey)?;
     Ok(SimpleShortcut::new(modifiers, key))
 }
 
