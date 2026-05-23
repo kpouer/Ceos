@@ -1,13 +1,13 @@
-use crate::ceos::buffer::caret_state::CaretState;
 use crate::ceos::buffer::undo_manager::insert::Insert;
 use crate::ceos::buffer::undo_manager::remove::Remove;
 use crate::ceos::buffer::undo_manager::{UndoManager, UndoOperation};
-use crate::ceos::gui::textpane::selection::Selection;
 use crate::event::Event;
 use crate::progress_operation::ProgressOperation;
+use buffer_core::caret_state::CaretState;
 use buffer_core::line::Line;
 use buffer_core::line_group::LineGroup;
 use buffer_core::position::Position;
+use buffer_core::selection::Selection;
 use buffer_core::text_range::TextRange;
 use log::{debug, error, info, warn};
 use rayon::prelude::*;

@@ -1,5 +1,4 @@
 use crate::ceos::buffer::buffer::Buffer;
-use crate::ceos::buffer::caret_state::CaretState;
 use crate::ceos::gui::textpane::caret_position::CaretPosition;
 use crate::ceos::gui::textpane::gutter;
 use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
@@ -9,10 +8,11 @@ use crate::ceos::gui::textpane::renderer::renderer_manager::{
 };
 use crate::ceos::gui::textpane::renderer::selection_renderer::SelectionRenderer;
 use crate::ceos::gui::textpane::renderer::text_renderer::TextRenderer;
-use crate::ceos::gui::textpane::selection::Selection;
 use crate::ceos::highlight::highlight_painter::HighlightPainter;
 use crate::event::Event;
+use buffer_core::caret_state::CaretState;
 use buffer_core::position::Position;
+use buffer_core::selection::Selection;
 use buffer_core::text_range::TextRange;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::FontId;

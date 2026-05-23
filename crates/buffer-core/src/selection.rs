@@ -1,27 +1,27 @@
-use buffer_core::position::Position;
-use buffer_core::text_range::TextRange;
+use crate::position::Position;
+use crate::text_range::TextRange;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub(crate) struct Selection {
+pub struct Selection {
     /// The start position of the selection.
-    pub(crate) start: Position,
+    pub start: Position,
     /// The end position of the selection.
-    pub(crate) end: Position,
+    pub end: Position,
 }
 
 impl Selection {
-    pub(crate) fn new(start: Position, end: Position) -> Self {
+    pub fn new(start: Position, end: Position) -> Self {
         debug_assert!(start < end);
         Self { start, end }
     }
 
     #[inline]
-    pub(crate) fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.start == self.end
     }
 
     #[inline]
-    pub(crate) const fn is_single_line(&self) -> bool {
+    pub const fn is_single_line(&self) -> bool {
         self.start.line == self.end.line
     }
 }

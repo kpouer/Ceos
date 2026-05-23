@@ -1,5 +1,5 @@
 use crate::ceos::buffer::buffer::Buffer;
-use crate::ceos::buffer::caret_state::CaretState;
+use buffer_core::caret_state::CaretState;
 use buffer_core::position::Position;
 use buffer_core::text_range::TextRange;
 

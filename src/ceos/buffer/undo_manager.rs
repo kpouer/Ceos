@@ -1,7 +1,7 @@
 use crate::ceos::buffer::buffer::Buffer;
-use crate::ceos::buffer::caret_state::CaretState;
 use crate::ceos::buffer::undo_manager::insert::Insert;
 use crate::ceos::buffer::undo_manager::remove::Remove;
+use buffer_core::caret_state::CaretState;
 use log::debug;
 
 pub mod insert;

@@ -15,7 +15,6 @@ pub mod caret_position;
 pub(crate) mod gutter;
 pub(crate) mod interaction_mode;
 pub(crate) mod renderer;
-pub(crate) mod selection;
 mod textarea;
 pub(crate) mod textareaproperties;
 
