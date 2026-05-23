@@ -36,7 +36,7 @@ pub mod command;
 pub mod command_manager;
 pub mod docking;
 pub mod gui;
-pub mod highlight;
+pub mod highlight_painter;
 pub mod options;
 pub mod progress_manager;
 pub mod search;

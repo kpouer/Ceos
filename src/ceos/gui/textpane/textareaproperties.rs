@@ -8,7 +8,7 @@ use crate::ceos::gui::textpane::renderer::renderer_manager::{
 };
 use crate::ceos::gui::textpane::renderer::selection_renderer::SelectionRenderer;
 use crate::ceos::gui::textpane::renderer::text_renderer::TextRenderer;
-use crate::ceos::highlight::highlight_painter::HighlightPainter;
+use crate::ceos::highlight_painter::HighlightPainter;
 use crate::event::Event;
 use buffer_core::caret_state::CaretState;
 use buffer_core::position::Position;

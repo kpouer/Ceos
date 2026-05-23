@@ -66,7 +66,7 @@ impl TryFrom<&str> for Event {
             if !parts.is_empty() {
                 let text = parts[0].to_string();
                 let case_insensitive = parts.get(1).map(|&s| s == "i").unwrap_or(false);
-                let color = crate::ceos::highlight::deterministic_color(&text);
+                let color = crate::ceos::highlight_painter::deterministic_color(&text);
 
                 return Ok(Event::AddHighlight(Highlight::new(
                     text,
