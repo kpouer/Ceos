@@ -44,8 +44,8 @@ pub(crate) fn parse_shortcut(input: &str) -> Result<SimpleShortcut, Error> {
             ShortcutToken::Separator => {}
             ShortcutToken::Identifier(s) => {
                 if let Some(k) = string_to_key(&s) {
-                    if key.is_some() {
-                        return Err(Error::TooManyKeys(key.unwrap(), k));
+                    if let Some(key) = key {
+                        return Err(Error::TooManyKeys(key, k));
                     }
                     key = Some(k);
                 } else {
