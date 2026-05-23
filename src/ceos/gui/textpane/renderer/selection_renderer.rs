@@ -1,6 +1,7 @@
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
+use buffer_core::selection::Selection;
 use eframe::emath::Pos2;
 use egui::Rect;
 
@@ -19,20 +20,12 @@ impl Renderer for SelectionRenderer {
         _has_focus: bool,
     ) {
         if let Some(selection) = &textarea_properties.selection {
-            let start_column = if selection.start.line < line {
-                0
-            } else if selection.start.line == line {
-                selection.start.column
-            } else {
+            let Some(start_column) = Self::start_column(&selection, line) else {
                 return;
-            } as f32;
-            let end_column = if selection.end.line == line {
-                selection.end.column
-            } else if selection.end.line > line {
-                line_text.len()
-            } else {
+            };
+            let Some(end_column) = Self::end_column(&selection, line, line_text) else {
                 return;
-            } as f32;
+            };
             let start_x = drawing_pos.x + start_column * textarea_properties.char_width;
             let end_x = drawing_pos.x + end_column * textarea_properties.char_width;
             let rect = Rect::from([
@@ -41,6 +34,28 @@ impl Renderer for SelectionRenderer {
             ]);
             ui.painter()
                 .rect_filled(rect, 0.0, ui.style().visuals.selection.bg_fill);
+        }
+    }
+}
+
+impl SelectionRenderer {
+    fn start_column(selection: &Selection, line: usize) -> Option<f32> {
+        if selection.start.line < line {
+            Some(0.0)
+        } else if selection.start.line == line {
+            Some(selection.start.column as f32)
+        } else {
+            None
+        }
+    }
+
+    fn end_column(selection: &Selection, line: usize, line_text: &str) -> Option<f32> {
+        if selection.end.line == line {
+            Some(selection.end.column as f32)
+        } else if selection.end.line > line {
+            Some(line_text.len() as f32)
+        } else {
+            None
         }
     }
 }
