@@ -2,8 +2,6 @@ use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
-use crate::ceos::search::SearchMatcher;
-use crate::ceos::search::simple_search_case_sensitive::SimpleSearchCaseSensitiveMatcher;
 use crate::event::Event;
 use crate::progress_operation::ProgressOperation;
 use eframe::emath::{Pos2, Rect};
@@ -11,6 +9,8 @@ use eframe::epaint::{Stroke, StrokeKind};
 use egui::Ui;
 use log::info;
 use rayon::prelude::*;
+use search::SearchMatcher;
+use search::simple_search_case_sensitive::SimpleSearchCaseSensitiveMatcher;
 use std::time::Instant;
 
 /// Search filter

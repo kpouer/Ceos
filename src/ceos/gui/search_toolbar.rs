@@ -1,15 +1,15 @@
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::gui::textpane::caret_position::CaretPosition;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
-use crate::ceos::search::SearchMatcher;
-use crate::ceos::search::regex_search_matcher::RegexSearchMatcher;
-use crate::ceos::search::simple_search_case_sensitive::SimpleSearchCaseSensitiveMatcher;
-use crate::ceos::search::simple_search_matcher_case_insensitive::SimpleSearchCaseInsensitiveMatcher;
 use buffer_core::position::Position;
 use buffer_core::selection::Selection;
 use egui;
 use egui::Ui;
 use log::info;
+use search::SearchMatcher;
+use search::regex_search_matcher::RegexSearchMatcher;
+use search::simple_search_case_sensitive::SimpleSearchCaseSensitiveMatcher;
+use search::simple_search_matcher_case_insensitive::SimpleSearchCaseInsensitiveMatcher;
 
 #[derive(Debug, Default)]
 pub(crate) struct SearchToolbar {

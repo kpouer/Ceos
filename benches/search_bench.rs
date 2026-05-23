@@ -1,7 +1,7 @@
 use ceos::ceos::search::SearchMatcher;
-use ceos::ceos::search::simple_search_case_sensitive::SimpleSearchCaseSensitiveMatcher;
-use ceos::ceos::search::simple_search_matcher_case_insensitive::SimpleSearchCaseInsensitiveMatcher;
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use search::simple_search_case_sensitive::SimpleSearchCaseSensitiveMatcher;
+use search::simple_search_matcher_case_insensitive::SimpleSearchCaseInsensitiveMatcher;
 
 fn bench_search(c: &mut Criterion) {
     let line = "Ceos est un visualiseur de logs haute performance écrit en Rust, conçu pour gérer facilement des fichiers de plusieurs gigaoctets.";

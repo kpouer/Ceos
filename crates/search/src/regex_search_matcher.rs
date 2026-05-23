@@ -1,19 +1,15 @@
-use crate::ceos::search::SearchMatcher;
+use crate::SearchMatcher;
 use regex::{Error, Regex, RegexBuilder};
 use tools::text_tool::TextTool;
 
 #[derive(Debug)]
-pub(crate) struct RegexSearchMatcher {
+pub struct RegexSearchMatcher {
     regex: Regex,
     whole_words: bool,
 }
 
 impl RegexSearchMatcher {
-    pub(crate) fn new(
-        pattern: &str,
-        case_sensitive: bool,
-        whole_words: bool,
-    ) -> Result<Self, Error> {
+    pub fn new(pattern: &str, case_sensitive: bool, whole_words: bool) -> Result<Self, Error> {
         let regex = RegexBuilder::new(pattern)
             .case_insensitive(!case_sensitive)
             .build()?;

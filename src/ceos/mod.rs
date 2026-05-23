@@ -39,7 +39,6 @@ pub mod gui;
 pub mod highlight_painter;
 pub mod options;
 pub mod progress_manager;
-pub mod search;
 
 #[derive(Debug)]
 pub struct Ceos {

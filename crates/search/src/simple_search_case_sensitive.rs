@@ -1,4 +1,4 @@
-use crate::ceos::search::SearchMatcher;
+use crate::SearchMatcher;
 use memchr::memmem;
 use tools::text_tool::TextTool;
 
