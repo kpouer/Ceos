@@ -1,5 +1,5 @@
-use ceos::ceos::search::SearchMatcher;
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use search::SearchMatcher;
 use search::simple_search_case_sensitive::SimpleSearchCaseSensitiveMatcher;
 use search::simple_search_matcher_case_insensitive::SimpleSearchCaseInsensitiveMatcher;
 
