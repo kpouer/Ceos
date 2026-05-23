@@ -4,18 +4,18 @@ use crate::ceos::buffer::undo_manager::insert::Insert;
 use crate::ceos::buffer::undo_manager::remove::Remove;
 use log::debug;
 
-pub(crate) mod insert;
-pub(crate) mod remove;
+pub mod insert;
+pub mod remove;
 
 #[derive(Default, Debug)]
-pub(crate) struct UndoManager {
+pub struct UndoManager {
     undos: Vec<UndoOperation>,
     redos: Vec<UndoOperation>,
     operation_in_progress: bool,
 }
 
 impl UndoManager {
-    pub(crate) fn push_undo(&mut self, new_edit: UndoOperation, clear_redo: bool) {
+    pub fn push_undo(&mut self, new_edit: UndoOperation, clear_redo: bool) {
         if self.operation_in_progress {
             return;
         }
@@ -36,43 +36,43 @@ impl UndoManager {
         }
     }
 
-    pub(crate) fn push_redo(&mut self, edit: UndoOperation) {
+    pub fn push_redo(&mut self, edit: UndoOperation) {
         if self.operation_in_progress {
             return;
         }
         self.redos.push(edit);
     }
 
-    pub(crate) fn pop_undo(&mut self) -> Option<UndoOperation> {
+    pub fn pop_undo(&mut self) -> Option<UndoOperation> {
         self.undos.pop()
     }
 
-    pub(crate) fn pop_redo(&mut self) -> Option<UndoOperation> {
+    pub fn pop_redo(&mut self) -> Option<UndoOperation> {
         self.redos.pop()
     }
 
-    pub(crate) const fn can_undo(&self) -> bool {
+    pub const fn can_undo(&self) -> bool {
         !self.undos.is_empty()
     }
 
-    pub(crate) const fn start_operation(&mut self) {
+    pub const fn start_operation(&mut self) {
         assert!(!self.operation_in_progress);
         self.operation_in_progress = true;
     }
 
-    pub(crate) const fn end_operation(&mut self) {
+    pub const fn end_operation(&mut self) {
         assert!(self.operation_in_progress);
         self.operation_in_progress = false;
     }
 
     #[cfg(test)]
-    pub(crate) fn last_undo(&self) -> Option<&UndoOperation> {
+    pub fn last_undo(&self) -> Option<&UndoOperation> {
         self.undos.last()
     }
 }
 
 #[derive(Debug)]
-pub(crate) enum UndoOperation {
+pub enum UndoOperation {
     Insert(Insert),
     Remove(Remove),
 }
@@ -88,7 +88,7 @@ impl std::fmt::Display for UndoOperation {
 }
 
 impl UndoOperation {
-    pub(crate) fn try_merge(&mut self, other: &Self) -> bool {
+    pub fn try_merge(&mut self, other: &Self) -> bool {
         match (self, other) {
             (UndoOperation::Insert(this), UndoOperation::Insert(other)) => this.try_merge(other),
             (UndoOperation::Remove(this), UndoOperation::Remove(other)) => this.try_merge(other),
@@ -96,14 +96,14 @@ impl UndoOperation {
         }
     }
 
-    pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretState {
+    pub fn undo(&self, buffer: &mut Buffer) -> CaretState {
         match self {
             UndoOperation::Insert(insert) => insert.undo(buffer),
             UndoOperation::Remove(remove) => remove.undo(buffer),
         }
     }
 
-    pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretState {
+    pub fn redo(&self, buffer: &mut Buffer) -> CaretState {
         match self {
             UndoOperation::Insert(insert) => insert.redo(buffer),
             UndoOperation::Remove(remove) => remove.redo(buffer),

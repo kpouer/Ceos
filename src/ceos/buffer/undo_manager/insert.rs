@@ -1,17 +1,17 @@
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::caret_state::CaretState;
-use crate::ceos::buffer::text_range::TextRange;
-use crate::ceos::gui::textpane::position::Position;
+use buffer_core::position::Position;
+use buffer_core::text_range::TextRange;
 
 #[derive(Debug)]
-pub(crate) struct Insert {
+pub struct Insert {
     /// The textrange that was inserted
     text_range: TextRange,
     lines: Vec<String>,
 }
 
 impl Insert {
-    pub(crate) fn new(position: Position, lines: Vec<String>) -> Self {
+    pub fn new(position: Position, lines: Vec<String>) -> Self {
         let end_position = if lines.len() == 1 {
             position.move_right_by(lines[0].len())
         } else {
@@ -24,7 +24,7 @@ impl Insert {
         Self { text_range, lines }
     }
 
-    pub(crate) fn try_merge(&mut self, other: &Self) -> bool {
+    pub fn try_merge(&mut self, other: &Self) -> bool {
         if self.text_range.end != other.text_range.start {
             return false;
         }
@@ -66,12 +66,12 @@ impl Insert {
         false
     }
 
-    pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretState {
+    pub fn undo(&self, buffer: &mut Buffer) -> CaretState {
         buffer.delete_range(self.text_range);
         CaretState::Position(self.text_range.start)
     }
 
-    pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretState {
+    pub fn redo(&self, buffer: &mut Buffer) -> CaretState {
         match self.lines.as_slice() {
             [line] => {
                 buffer.insert_str(self.text_range.start, line);
@@ -111,8 +111,6 @@ impl Insert {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ceos::buffer::buffer::Buffer;
-    use crate::ceos::gui::textpane::position::Position;
 
     #[test]
     fn test_insert_single_line() {

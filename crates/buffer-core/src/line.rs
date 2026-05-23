@@ -17,18 +17,18 @@ impl<T: Into<String>> From<T> for Line {
 }
 
 impl Line {
-    #[cfg(test)]
-    pub(crate) const fn is_empty(&self) -> bool {
+    #[inline]
+    pub const fn is_empty(&self) -> bool {
         self.content.is_empty()
     }
 
     #[inline]
-    pub(crate) const fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.content.len()
     }
 
     #[inline]
-    pub(crate) fn content(&self) -> &str {
+    pub fn content(&self) -> &str {
         &self.content
     }
 
@@ -44,7 +44,7 @@ impl Line {
 
     /// Removes and returns a specified range of characters from the `content` field of the struct.
     #[inline]
-    pub(crate) fn drain<R>(&mut self, range: R) -> Drain<'_>
+    pub fn drain<R>(&mut self, range: R) -> Drain<'_>
     where
         R: RangeBounds<usize>,
     {
@@ -52,17 +52,17 @@ impl Line {
     }
 
     #[inline]
-    pub(crate) fn push_str(&mut self, str: &str) {
+    pub fn push_str(&mut self, str: &str) {
         self.content.push_str(str);
     }
 
     #[inline]
-    pub(crate) fn insert_str(&mut self, idx: usize, str: &str) {
+    pub fn insert_str(&mut self, idx: usize, str: &str) {
         self.content.insert_str(idx, str);
     }
 
     #[inline]
-    pub(crate) fn insert(&mut self, idx: usize, ch: char) {
+    pub fn insert(&mut self, idx: usize, ch: char) {
         let byte_idx = self
             .content
             .char_indices()

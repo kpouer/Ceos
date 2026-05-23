@@ -1,23 +1,23 @@
-use crate::ceos::gui::textpane::position::Position;
+use crate::position::Position;
 
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct TextRange {
-    pub(crate) start: Position,
-    pub(crate) end: Position,
+pub struct TextRange {
+    pub start: Position,
+    pub end: Position,
 }
 
 impl TextRange {
-    pub(crate) const fn new(start: Position, end: Position) -> Self {
+    pub const fn new(start: Position, end: Position) -> Self {
         Self { start, end }
     }
 
     #[inline]
-    pub(crate) fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.start == self.end
     }
 
     #[inline]
-    pub(crate) const fn line_count(&self) -> usize {
+    pub const fn line_count(&self) -> usize {
         self.end.line - self.start.line + 1
     }
 }

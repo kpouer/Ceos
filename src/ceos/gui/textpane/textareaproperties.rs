@@ -1,10 +1,8 @@
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::caret_state::CaretState;
-use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::gui::textpane::caret_position::CaretPosition;
 use crate::ceos::gui::textpane::gutter;
 use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
-use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::renderer::caret_renderer::CaretRenderer;
 use crate::ceos::gui::textpane::renderer::renderer_manager::{
     CARET_LAYER, HIGHLIGHT_LAYER, RendererManager, SELECTION_LAYER, TEXT_LAYER,
@@ -14,6 +12,8 @@ use crate::ceos::gui::textpane::renderer::text_renderer::TextRenderer;
 use crate::ceos::gui::textpane::selection::Selection;
 use crate::ceos::highlight::highlight_painter::HighlightPainter;
 use crate::event::Event;
+use buffer_core::position::Position;
+use buffer_core::text_range::TextRange;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::FontId;
 use highlight::manager::HighlightManager;
@@ -446,6 +446,7 @@ impl TextAreaProperties {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use buffer_core::position::Position;
     use rstest::rstest;
     use std::sync::mpsc;
 

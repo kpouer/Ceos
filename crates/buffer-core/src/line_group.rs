@@ -1,4 +1,4 @@
-use crate::ceos::buffer::line::Line;
+use crate::line::Line;
 use log::{debug, error, warn};
 use std::borrow::Cow;
 use std::fmt::Display;
@@ -7,7 +7,7 @@ use std::ops::Index;
 use std::ops::RangeBounds;
 
 #[derive(Debug)]
-pub(crate) struct LineGroup {
+pub struct LineGroup {
     /// Contains the uncompressed data. Might be there even if the compressed data is present.
     lines: Option<Vec<Line>>,
     /// Contains the compressed data if the group is compressed, None otherwise.
@@ -23,7 +23,7 @@ pub(crate) struct LineGroup {
 }
 
 impl LineGroup {
-    pub(crate) fn new(first_line: usize, group_size: usize) -> Self {
+    pub fn new(first_line: usize, group_size: usize) -> Self {
         Self {
             lines: Some(Vec::with_capacity(group_size)),
             compressed: None,
@@ -36,7 +36,7 @@ impl LineGroup {
     }
 
     /// Free memory occupied by the lines.
-    pub(crate) fn free(&mut self) {
+    pub fn free(&mut self) {
         if self.compressed.is_none() {
             error!("free called on a decompressed group");
         }
@@ -49,7 +49,7 @@ impl LineGroup {
         );
     }
 
-    pub(crate) fn eventually_compress(&mut self) {
+    pub fn eventually_compress(&mut self) {
         if self.line_count == 0 {
             debug!("eventually_compress called on empty group");
             return;
@@ -94,7 +94,7 @@ impl LineGroup {
         }
     }
 
-    pub(crate) fn eventually_decompress(&mut self) {
+    pub fn eventually_decompress(&mut self) {
         if self.lines.is_some() {
             debug!("eventually_decompress called on a decompressed group");
             return;
@@ -127,7 +127,7 @@ impl LineGroup {
 
     /// Decompresses the group's compressed data and returns the resulting Vec<Line>.
     /// On failure, returns an empty Vec.
-    pub(crate) fn decompress_lines(&self) -> Vec<Line> {
+    pub fn decompress_lines(&self) -> Vec<Line> {
         let Some(data) = self.compressed.as_deref() else {
             return Vec::new();
         };
@@ -163,7 +163,7 @@ impl LineGroup {
         }
     }
 
-    pub(crate) fn push(&mut self, line: Line) {
+    pub fn push(&mut self, line: Line) {
         let line_length = line.len();
 
         self.length += (line_length + 1) as u64;
@@ -176,7 +176,7 @@ impl LineGroup {
         self.compressed = None;
     }
 
-    pub(crate) fn line(&self, line_number_within_group: usize) -> Cow<'_, str> {
+    pub fn line(&self, line_number_within_group: usize) -> Cow<'_, str> {
         debug!("line({line_number_within_group})");
         if let Some(lines) = &self.lines {
             let line = &lines[line_number_within_group];
@@ -188,51 +188,51 @@ impl LineGroup {
         }
     }
 
-    pub(crate) fn lines(&self) -> Cow<'_, [Line]> {
+    pub fn lines(&self) -> Cow<'_, [Line]> {
         if let Some(lines) = &self.lines {
             return Cow::Borrowed(lines);
         }
         Cow::Owned(self.decompress_lines())
     }
 
-    pub(crate) const fn line_count(&self) -> usize {
+    pub const fn line_count(&self) -> usize {
         self.line_count
     }
 
-    pub(crate) const fn len(&self) -> u64 {
+    pub const fn len(&self) -> u64 {
         self.length
     }
 
-    pub(crate) const fn is_full(&self) -> bool {
+    pub const fn is_full(&self) -> bool {
         self.line_count >= self.group_size
     }
 
-    pub(crate) const fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.line_count == 0
     }
 
-    pub(crate) const fn max_line_length(&self) -> usize {
+    pub const fn max_line_length(&self) -> usize {
         self.max_line_length
     }
 
-    pub(crate) const fn first_line(&self) -> usize {
+    pub const fn first_line(&self) -> usize {
         self.first_line
     }
 
-    pub(crate) const fn set_first_line(&mut self, value: usize) {
+    pub const fn set_first_line(&mut self, value: usize) {
         self.first_line = value;
     }
 
     /// Returns true if this group currently holds compressed data
-    pub(crate) const fn is_compressed(&self) -> bool {
+    pub const fn is_compressed(&self) -> bool {
         self.compressed.is_some()
     }
 
-    pub(crate) const fn is_decompressed(&self) -> bool {
+    pub const fn is_decompressed(&self) -> bool {
         self.lines.is_some()
     }
 
-    pub(crate) const fn decompressed_line_count(&self) -> usize {
+    pub const fn decompressed_line_count(&self) -> usize {
         if let Some(lines) = &self.lines {
             lines.len()
         } else {
@@ -258,7 +258,7 @@ impl LineGroup {
     ///  4. If the line data was initially decompressed for this operation, it is
     ///     recompressed after the modifications, and any decompressed data is
     ///     freed.
-    pub(crate) fn filter_lines_mut(&mut self, filter: impl FnMut(&mut Line)) {
+    pub fn filter_lines_mut(&mut self, filter: impl FnMut(&mut Line)) {
         let should_decompress = self.lines.is_none();
         if should_decompress {
             self.decompress();
@@ -279,7 +279,7 @@ impl LineGroup {
         }
     }
 
-    pub(crate) fn filter_line_mut<R>(
+    pub fn filter_line_mut<R>(
         &mut self,
         line_number: usize,
         mut filter: impl FnMut(&mut Line) -> R,
@@ -323,7 +323,7 @@ impl LineGroup {
         }
     }
 
-    pub(crate) fn retain<F: FnMut(&Line) -> bool>(&mut self, f: F) {
+    pub fn retain<F: FnMut(&Line) -> bool>(&mut self, f: F) {
         let compressed = self.is_compressed();
         if compressed {
             self.decompress();
@@ -342,7 +342,7 @@ impl LineGroup {
         }
     }
 
-    pub(crate) fn drain_lines<R>(&mut self, range: R) -> Option<Vec<Line>>
+    pub fn drain_lines<R>(&mut self, range: R) -> Option<Vec<Line>>
     where
         R: RangeBounds<usize>,
     {
@@ -366,7 +366,7 @@ impl LineGroup {
         Some(removed_lines)
     }
 
-    pub(crate) fn insert_line<T: Into<Line>>(&mut self, line_number: usize, line: T) {
+    pub fn insert_line<T: Into<Line>>(&mut self, line_number: usize, line: T) {
         let compressed = self.is_compressed();
         if compressed {
             self.decompress();
@@ -381,7 +381,7 @@ impl LineGroup {
         }
     }
 
-    pub(crate) fn mem(&self) -> usize {
+    pub fn mem(&self) -> usize {
         let vec_overhead = std::mem::size_of::<Vec<Line>>();
         if let Some(lines) = &self.lines {
             let array_mem = lines.capacity() * std::mem::size_of::<Line>();
@@ -392,12 +392,11 @@ impl LineGroup {
         }
     }
 
-    pub(crate) fn compressed_size(&self) -> usize {
+    pub fn compressed_size(&self) -> usize {
         self.compressed.as_ref().map_or(0, Vec::len)
     }
 
-    #[cfg(test)]
-    pub(crate) fn debug(&self) {
+    pub fn debug(&self) {
         println!(
             "LineGroup {{ line_count: {}, length: {}, max_line_length: {}, first_line: {}, compressed: {:?} }}",
             self.line_count,

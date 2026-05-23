@@ -1,4 +1,4 @@
-use crate::ceos::gui::textpane::position::Position;
+use buffer_core::position::Position;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
 pub(crate) struct CaretPosition {

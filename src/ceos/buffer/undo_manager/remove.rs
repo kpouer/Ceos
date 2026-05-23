@@ -1,6 +1,6 @@
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::buffer::caret_state::CaretState;
-use crate::ceos::buffer::text_range::TextRange;
+use buffer_core::text_range::TextRange;
 
 /// A structure representing a `Remove` operation, typically used to denote
 /// the deletion of a segment of text at a specific position within a document or editor.
@@ -10,7 +10,7 @@ use crate::ceos::buffer::text_range::TextRange;
 /// * `position` - The position where the text removal begins.
 /// * `text` - The string content that was removed at the specified position.
 #[derive(Debug)]
-pub(crate) struct Remove {
+pub struct Remove {
     /// The deleted text range.
     text_range: TextRange,
     lines: Vec<String>,
@@ -21,7 +21,7 @@ impl Remove {
         Self { text_range, lines }
     }
 
-    pub(crate) fn try_merge(&mut self, other: &Self) -> bool {
+    pub fn try_merge(&mut self, other: &Self) -> bool {
         // Suppression en arrière (backspace) : 'ba' -> 'b' puis 'a' supprimé.
         // On supprime d'abord 'a' à pos (0,2), puis 'b' à pos (0,1).
         // Donc 'self' est (0,2) et 'other' est (0,1).
@@ -101,7 +101,7 @@ impl Remove {
         self.text_range.start = other.text_range.start;
     }
 
-    pub(crate) fn undo(&self, buffer: &mut Buffer) -> CaretState {
+    pub fn undo(&self, buffer: &mut Buffer) -> CaretState {
         if self.lines.len() == 1 {
             buffer.insert_str(self.text_range.start, &self.lines[0]);
         } else {
@@ -124,7 +124,7 @@ impl Remove {
         CaretState::Selection(self.text_range.into())
     }
 
-    pub(crate) fn redo(&self, buffer: &mut Buffer) -> CaretState {
+    pub fn redo(&self, buffer: &mut Buffer) -> CaretState {
         buffer.delete_range(self.text_range);
         CaretState::Position(self.text_range.start)
     }
@@ -133,9 +133,7 @@ impl Remove {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ceos::buffer::buffer::Buffer;
-    use crate::ceos::buffer::caret_state::CaretState;
-    use crate::ceos::gui::textpane::position::Position;
+    use buffer_core::position::Position;
 
     #[test]
     fn test_remove_single_line() {

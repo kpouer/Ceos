@@ -1,14 +1,14 @@
 use crate::ceos::buffer::caret_state::CaretState;
-use crate::ceos::buffer::line::Line;
-use crate::ceos::buffer::line_group::LineGroup;
-use crate::ceos::buffer::text_range::TextRange;
 use crate::ceos::buffer::undo_manager::insert::Insert;
 use crate::ceos::buffer::undo_manager::remove::Remove;
 use crate::ceos::buffer::undo_manager::{UndoManager, UndoOperation};
-use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::selection::Selection;
 use crate::event::Event;
 use crate::progress_operation::ProgressOperation;
+use buffer_core::line::Line;
+use buffer_core::line_group::LineGroup;
+use buffer_core::position::Position;
+use buffer_core::text_range::TextRange;
 use log::{debug, error, info, warn};
 use rayon::prelude::*;
 use std::borrow::Cow;
@@ -738,6 +738,7 @@ impl Index<usize> for Buffer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use buffer_core::position::Position;
 
     #[test]
     fn from_str_builds_lines_and_lengths() {

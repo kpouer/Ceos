@@ -1,5 +1,5 @@
-use crate::ceos::buffer::text_range::TextRange;
-use crate::ceos::gui::textpane::position::Position;
+use buffer_core::position::Position;
+use buffer_core::text_range::TextRange;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub(crate) struct Selection {

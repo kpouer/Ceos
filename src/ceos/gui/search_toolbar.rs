@@ -1,12 +1,12 @@
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::gui::textpane::caret_position::CaretPosition;
-use crate::ceos::gui::textpane::position::Position;
 use crate::ceos::gui::textpane::selection::Selection;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::search::SearchMatcher;
 use crate::ceos::search::regex_search_matcher::RegexSearchMatcher;
 use crate::ceos::search::simple_search_case_sensitive::SimpleSearchCaseSensitiveMatcher;
 use crate::ceos::search::simple_search_matcher_case_insensitive::SimpleSearchCaseInsensitiveMatcher;
+use buffer_core::position::Position;
 use egui;
 use egui::Ui;
 use log::info;

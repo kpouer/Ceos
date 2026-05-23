@@ -1,7 +1,4 @@
 pub mod buffer;
 pub(crate) mod buffer_loader;
 pub mod caret_state;
-pub(crate) mod line;
-pub(super) mod line_group;
-pub(crate) mod text_range;
 pub mod undo_manager;

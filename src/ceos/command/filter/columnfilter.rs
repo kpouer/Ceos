@@ -2,12 +2,12 @@ use std::cmp;
 use std::fmt::Display;
 
 use crate::ceos::buffer::buffer::Buffer;
-use crate::ceos::buffer::line::Line;
 use crate::ceos::command::{Action, Command};
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
 use crate::ceos::gui::tools as gui_tools;
+use buffer_core::line::Line;
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::{Stroke, StrokeKind};
 use egui::Ui;
