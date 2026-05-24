@@ -242,7 +242,7 @@ impl SearchToolbar {
             virtual_column: 0,
         };
         textarea_properties.caret_position = end;
-        textarea_properties.selection = Some(Selection::new(start, end.position));
+        textarea_properties.set_selection(Selection::new(start, end.position));
         // Simple scroll to make it visible
         textarea_properties.set_first_line(line.saturating_sub(5));
     }

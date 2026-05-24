@@ -133,7 +133,7 @@ impl TextArea<'_> {
         let start_col = text_tool.find_word_start(caret_position.position.column);
 
         let end_col = text_tool.find_word_end(caret_position.position.column);
-        self.textarea_properties.selection = Some(Selection::new(
+        self.textarea_properties.set_selection(Selection::new(
             Position {
                 line: caret_position.position.line,
                 column: start_col,
@@ -198,7 +198,7 @@ impl TextArea<'_> {
         } else {
             Selection::new(drag_end_position, drag_start_position)
         };
-        self.textarea_properties.selection = Some(selection);
+        self.textarea_properties.set_selection(selection);
     }
 
     fn handle_drag_update_column(&mut self, drag_start_position: Position, drag_end_column: usize) {
@@ -300,7 +300,7 @@ impl TextArea<'_> {
     ///
     fn update_caret_position(&mut self, rect: Rect, pos: &Pos2) {
         // ensure the new caret position is within the bounds of the text area
-        self.textarea_properties.selection = None;
+        self.textarea_properties.clear_selection();
         let mut new_caret_position = self.build_position(rect, pos);
 
         new_caret_position.line = new_caret_position

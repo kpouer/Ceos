@@ -61,6 +61,18 @@ impl TextAreaProperties {
         }
     }
 
+    #[inline]
+    pub(crate) fn set_selection(&mut self, selection: Selection) {
+        info!("set_selection {selection:?}");
+        self.selection = Some(selection);
+    }
+
+    #[inline]
+    pub(crate) fn clear_selection(&mut self) {
+        info!("clear_selection");
+        self.selection = None
+    }
+
     pub(crate) fn insert_highlight(&mut self) {
         if let Some(selection) = &self.selection
             && selection.is_single_line()
@@ -75,7 +87,7 @@ impl TextAreaProperties {
         info!("set interaction mode: {mode:?}");
         self.interaction_mode = mode;
         if mode == InteractionMode::Column {
-            self.selection = None;
+            self.clear_selection();
         }
     }
 
@@ -321,7 +333,7 @@ impl TextAreaProperties {
 
     fn update_selection_after_caret_move(&mut self, old_caret_position: Position, select: bool) {
         if !select {
-            self.selection = None;
+            self.clear_selection();
             return;
         }
 
@@ -336,18 +348,18 @@ impl TextAreaProperties {
                 );
             };
             if !selection.is_empty() {
-                self.selection = Some(selection);
+                self.set_selection(selection);
             }
             return;
         }
 
         if self.caret_position.position < old_caret_position {
-            self.selection = Some(Selection::new(
+            self.set_selection(Selection::new(
                 self.caret_position.position,
                 old_caret_position,
             ));
         } else {
-            self.selection = Some(Selection::new(
+            self.set_selection(Selection::new(
                 old_caret_position,
                 self.caret_position.position,
             ));
@@ -405,11 +417,11 @@ impl TextAreaProperties {
         }
     }
 
-    const fn apply_caret_state(&mut self, caret_state: CaretState) {
+    fn apply_caret_state(&mut self, caret_state: CaretState) {
         match caret_state {
-            CaretState::Selection(selection) => self.selection = Some(selection),
+            CaretState::Selection(selection) => self.set_selection(selection),
             CaretState::Position(position) => {
-                self.selection = None;
+                self.clear_selection();
                 self.caret_position.position = position;
                 self.caret_position.reset_virtual_column();
             }
@@ -532,7 +544,7 @@ mod tests {
     #[test]
     fn test_delete_selection_with_selection() {
         let mut textarea = create_test_textarea("abc");
-        textarea.selection = Some(Selection {
+        textarea.set_selection(Selection {
             start: Position::ZERO,
             end: Position { line: 0, column: 2 },
         });
@@ -547,7 +559,7 @@ mod tests {
     #[test]
     fn test_delete_selection_no_selection() {
         let mut textarea = create_test_textarea("ab");
-        textarea.selection = None;
+        textarea.clear_selection();
 
         textarea.delete_selection();
 
@@ -558,7 +570,7 @@ mod tests {
     fn test_go_to_start_of_buffer() {
         let mut textarea = create_test_textarea("a\nb");
         textarea.caret_position = CaretPosition::from_position(Position { line: 1, column: 1 });
-        textarea.selection = Some(Selection {
+        textarea.set_selection(Selection {
             start: Position::ZERO,
             end: Position { line: 1, column: 1 },
         });
@@ -646,7 +658,7 @@ mod tests {
     fn test_input_backspace_with_selection() {
         let mut textarea = create_test_textarea("abc");
         textarea.caret_position = CaretPosition::from_position(Position { line: 0, column: 2 });
-        textarea.selection = Some(Selection {
+        textarea.set_selection(Selection {
             start: Position::ZERO,
             end: Position { line: 0, column: 2 },
         });
@@ -687,7 +699,7 @@ mod tests {
     fn test_input_delete_with_selection() {
         let mut textarea = create_test_textarea("abc");
         textarea.caret_position = CaretPosition::ZERO;
-        textarea.selection = Some(Selection {
+        textarea.set_selection(Selection {
             start: Position::ZERO,
             end: Position { line: 0, column: 2 },
         });
