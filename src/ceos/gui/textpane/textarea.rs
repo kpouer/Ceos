@@ -102,10 +102,10 @@ impl TextArea<'_> {
         let Some(pointer_pos) = response.interact_pointer_pos() else {
             return;
         };
-        if response.double_clicked() {
-            self.handle_double_click(rect, response, &pointer_pos);
-        } else if response.clicked() {
+        if response.clicked() {
             self.handle_click(rect, response, &pointer_pos);
+        } else if response.double_clicked() {
+            self.handle_double_click(rect, response, &pointer_pos);
         } else if response.drag_started() {
             self.handle_drag_start(rect, response, &pointer_pos);
         } else if response.dragged() {
