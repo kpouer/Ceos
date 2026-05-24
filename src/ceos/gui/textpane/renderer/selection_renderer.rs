@@ -19,7 +19,7 @@ impl Renderer for SelectionRenderer {
         drawing_pos: Pos2,
         _has_focus: bool,
     ) {
-        let Some(selection) = &textarea_properties.selection else {
+        let Some(selection) = textarea_properties.selection() else {
             return;
         };
         let (Some(start_x), Some(end_x)) = Self::get_start_stop(

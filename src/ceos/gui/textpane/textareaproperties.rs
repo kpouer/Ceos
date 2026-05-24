@@ -33,7 +33,7 @@ pub(crate) struct TextAreaProperties {
     pub(crate) char_width: f32,
     pub(crate) renderer_manager: RendererManager,
     pub(crate) caret_position: CaretPosition,
-    pub(crate) selection: Option<Selection>,
+    selection: Option<Selection>,
     pub(crate) interaction_mode: InteractionMode,
     pub(crate) scroll_offset: Vec2,
     pub(crate) highlight_manager: HighlightManager,
@@ -59,6 +59,11 @@ impl TextAreaProperties {
             scroll_offset: Vec2::ZERO,
             highlight_manager: HighlightManager::default(),
         }
+    }
+
+    #[inline]
+    pub(crate) const fn selection(&self) -> Option<&Selection> {
+        self.selection.as_ref()
     }
 
     #[inline]
