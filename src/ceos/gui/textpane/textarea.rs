@@ -17,7 +17,7 @@ use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::{FontId, Stroke, StrokeKind};
 use egui::Event::{MouseWheel, Zoom};
 use egui::{Context, EventFilter, InputState, KeyboardShortcut, Modifiers, Response, Ui, Widget};
-use log::{error, info};
+use log::{debug, error, info};
 use tools::text_tool::TextTool;
 
 #[derive(Debug)]
@@ -157,7 +157,7 @@ impl TextArea<'_> {
     }
 
     fn handle_dragged(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
-        info!("handle_dragged");
+        debug!("handle_dragged");
         let Some(drag_start_position) = response
             .ctx
             .memory(|m| m.data.get_temp::<Position>(DRAG_STARTED_ID.into()))
@@ -317,6 +317,10 @@ impl TextArea<'_> {
         self.textarea_properties
             .caret_position
             .set_position(new_caret_position);
+        info!(
+            "new caret position {:?}",
+            self.textarea_properties.caret_position
+        );
     }
 
     /// Builds a `Position` object based on the interaction pointer's position within a given rectangular area.
