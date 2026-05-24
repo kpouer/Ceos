@@ -19,43 +19,71 @@ impl Renderer for SelectionRenderer {
         drawing_pos: Pos2,
         _has_focus: bool,
     ) {
-        if let Some(selection) = &textarea_properties.selection {
-            let Some(start_column) = Self::start_column(&selection, line) else {
-                return;
-            };
-            let Some(end_column) = Self::end_column(&selection, line, line_text) else {
-                return;
-            };
-            let start_x = drawing_pos.x + start_column * textarea_properties.char_width;
-            let end_x = drawing_pos.x + end_column * textarea_properties.char_width;
-            let rect = Rect::from([
-                Pos2::new(start_x, drawing_pos.y),
-                Pos2::new(end_x, drawing_pos.y + textarea_properties.line_height),
-            ]);
-            ui.painter()
-                .rect_filled(rect, 0.0, ui.style().visuals.selection.bg_fill);
-        }
+        let Some(selection) = &textarea_properties.selection else {
+            return;
+        };
+        let (Some(start_x), Some(end_x)) = Self::get_start_stop(
+            &selection,
+            line,
+            line_text,
+            drawing_pos.x,
+            textarea_properties.char_width,
+        ) else {
+            return;
+        };
+
+        let rect = Rect::from([
+            Pos2::new(start_x, drawing_pos.y),
+            Pos2::new(end_x, drawing_pos.y + textarea_properties.line_height),
+        ]);
+        ui.painter()
+            .rect_filled(rect, 0.0, ui.style().visuals.selection.bg_fill);
     }
 }
 
 impl SelectionRenderer {
-    fn start_column(selection: &Selection, line: usize) -> Option<f32> {
+    const fn get_start_stop(
+        selection: &Selection,
+        line: usize,
+        line_text: &str,
+        drawing_pos_x: f32,
+        char_width: f32,
+    ) -> (Option<f32>, Option<f32>) {
+        (
+            Self::start_x(selection, line, drawing_pos_x, char_width),
+            Self::end_x(selection, line, drawing_pos_x, char_width, line_text),
+        )
+    }
+
+    const fn start_x(
+        selection: &Selection,
+        line: usize,
+        drawing_pos_x: f32,
+        char_width: f32,
+    ) -> Option<f32> {
         if selection.start.line < line {
-            Some(0.0)
+            Some(drawing_pos_x)
         } else if selection.start.line == line {
-            Some(selection.start.column as f32)
+            Some(drawing_pos_x + selection.start.column as f32 * char_width)
         } else {
             None
         }
     }
 
-    fn end_column(selection: &Selection, line: usize, line_text: &str) -> Option<f32> {
-        if selection.end.line == line {
-            Some(selection.end.column as f32)
+    const fn end_x(
+        selection: &Selection,
+        line: usize,
+        drawing_pos_x: f32,
+        char_width: f32,
+        line_text: &str,
+    ) -> Option<f32> {
+        let end_column = if selection.end.line == line {
+            selection.end.column
         } else if selection.end.line > line {
-            Some(line_text.len() as f32)
+            line_text.len()
         } else {
-            None
-        }
+            return None;
+        };
+        Some(drawing_pos_x + end_column as f32 * char_width)
     }
 }
