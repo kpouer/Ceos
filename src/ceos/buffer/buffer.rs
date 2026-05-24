@@ -68,6 +68,24 @@ impl Buffer {
         }
     }
 
+    pub(crate) fn normalize_selection(&self, selection: &mut Selection) -> bool {
+        let line_count = self.line_count();
+        if selection.start.line >= line_count {
+            return false;
+        }
+        let line_start_length = self.line_length(selection.start.line);
+        selection.start.column = selection.start.column.min(line_start_length);
+
+        selection.end.line = selection.end.line.min(line_count - 1);
+        let line_end_length = if selection.is_single_line() {
+            line_start_length
+        } else {
+            self.line_length(selection.end.line)
+        };
+        selection.end.column = selection.end.column.min(line_end_length);
+        true
+    }
+
     pub(crate) fn set_path(&mut self, path: PathBuf) {
         info!("set path to {path:?}");
         self.path = Some(path);

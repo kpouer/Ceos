@@ -66,9 +66,13 @@ impl TextAreaProperties {
         self.selection.as_ref()
     }
 
-    #[inline]
-    pub(crate) fn set_selection(&mut self, selection: Selection) {
+    pub(crate) fn set_selection(&mut self, mut selection: Selection) {
         info!("set_selection {selection:?}");
+        if !self.buffer.normalize_selection(&mut selection) {
+            warn!("Selection is invalid {selection:?}");
+            self.clear_selection();
+            return;
+        }
         self.selection = Some(selection);
     }
 
