@@ -157,6 +157,7 @@ impl TextArea<'_> {
     }
 
     fn handle_dragged(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
+        info!("handle_dragged");
         let Some(drag_start_position) = response
             .ctx
             .memory(|m| m.data.get_temp::<Position>(DRAG_STARTED_ID.into()))
