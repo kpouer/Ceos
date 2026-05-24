@@ -14,6 +14,13 @@ impl CaretPosition {
         virtual_column: 0,
     };
 
+    #[inline]
+    pub(crate) const fn set_position(&mut self, position: Position) {
+        self.position = position;
+        self.reset_virtual_column()
+    }
+
+    #[inline]
     pub(crate) const fn reset_virtual_column(&mut self) {
         self.virtual_column = self.position.column;
     }

@@ -278,23 +278,44 @@ impl TextArea<'_> {
         });
     }
 
+    /// Updates the caret position in the text area while ensuring it remains within valid boundaries.
+    ///
+    /// # Parameters
+    /// - `rect`: The rectangular bounds of the text area, used for calculating the new position.
+    /// - `pos`: A reference to a `Pos2` structure specifying the desired target position.
+    ///
+    /// # Behavior
+    /// This method recalculates the caret position based on the given `rect` and `pos`, ensuring that:
+    /// - The caret position is constrained to valid lines within the text buffer (cannot exceed the total number of lines).
+    /// - The caret position stays within the boundaries of the text on a particular line (cannot go beyond the length of the line).
+    ///
+    /// After determining the constrained position, the caret's virtual column is reset to maintain
+    /// alignment for future caret movements.
+    ///
+    /// # Effects
+    /// - Resets the current selection (`textarea_properties.selection`) to `None`.
+    /// - Updates `textarea_properties.caret_position.position` with the constrained caret position.
+    /// - Resets the virtual column within `textarea_properties.caret_position`.
+    ///
     fn update_caret_position(&mut self, rect: Rect, pos: &Pos2) {
         // ensure the new caret position is within the bounds of the text area
         self.textarea_properties.selection = None;
         let mut new_caret_position = self.build_position(rect, pos);
+
         new_caret_position.line = new_caret_position
             .line
             .min(self.textarea_properties.buffer.line_count() - 1);
+
         new_caret_position.column = new_caret_position.column.min(
             self.textarea_properties
                 .buffer
                 .line_text(new_caret_position.line)
                 .len(),
         );
-        self.textarea_properties.caret_position.position = new_caret_position;
+
         self.textarea_properties
             .caret_position
-            .reset_virtual_column();
+            .set_position(new_caret_position);
     }
 
     /// Builds a `Position` object based on the interaction pointer's position within a given rectangular area.
