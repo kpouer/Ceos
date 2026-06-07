@@ -12,7 +12,7 @@ use crate::ceos::gui::theme::Theme;
 use crate::event::Event;
 use crate::event::Event::{ClearCommand, NewFont, OpenFile, SetCommand};
 use buffer_core::position::Position;
-use buffer_core::selection::Selection;
+use buffer_core::text_range::Selection;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::{FontId, Stroke, StrokeKind};
 use egui::Event::{MouseWheel, Zoom};

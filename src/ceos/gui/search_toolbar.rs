@@ -2,7 +2,7 @@ use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::gui::textpane::caret_position::CaretPosition;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use buffer_core::position::Position;
-use buffer_core::selection::Selection;
+use buffer_core::text_range::Selection;
 use egui;
 use egui::Ui;
 use log::info;

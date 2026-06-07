@@ -7,7 +7,7 @@ use buffer_core::caret_state::CaretState;
 use buffer_core::line::Line;
 use buffer_core::line_group::LineGroup;
 use buffer_core::position::Position;
-use buffer_core::selection::Selection;
+use buffer_core::text_range::Selection;
 use buffer_core::text_range::TextRange;
 use log::{debug, error, info, warn};
 use rayon::prelude::*;

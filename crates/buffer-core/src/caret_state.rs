@@ -1,5 +1,5 @@
 use crate::position::Position;
-use crate::selection::Selection;
+use crate::text_range::Selection;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum CaretState {

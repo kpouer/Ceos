@@ -12,7 +12,7 @@ use crate::ceos::highlight_painter::HighlightPainter;
 use crate::event::Event;
 use buffer_core::caret_state::CaretState;
 use buffer_core::position::Position;
-use buffer_core::selection::Selection;
+use buffer_core::text_range::Selection;
 use buffer_core::text_range::TextRange;
 use eframe::emath::{Pos2, Rect, Vec2};
 use eframe::epaint::FontId;
@@ -197,7 +197,7 @@ impl TextAreaProperties {
     pub(crate) fn delete_selection(&mut self) {
         if let Some(selection) = self.selection.take() {
             info!("delete selection {selection:?}");
-            self.buffer.delete_range(TextRange::from(&selection));
+            self.buffer.delete_range(selection);
             self.caret_position.position = selection.start;
             self.caret_position.reset_virtual_column();
         } else {

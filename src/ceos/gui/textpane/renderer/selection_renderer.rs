@@ -1,7 +1,7 @@
 use crate::ceos::gui::textpane::renderer::Renderer;
 use crate::ceos::gui::textpane::textareaproperties::TextAreaProperties;
 use crate::ceos::gui::theme::Theme;
-use buffer_core::selection::Selection;
+use buffer_core::text_range::Selection;
 use eframe::emath::Pos2;
 use egui::Rect;
 
