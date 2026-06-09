@@ -73,14 +73,13 @@ impl Buffer {
     }
 
     pub(crate) fn normalize_selection(&self, selection: &mut Selection) -> bool {
-        let line_count = self.line_count();
-        if selection.start.line >= line_count {
+        if selection.start.line >= self.line_count {
             return false;
         }
         let line_start_length = self.line_length(selection.start.line);
         selection.start.column = selection.start.column.min(line_start_length);
 
-        selection.end.line = selection.end.line.min(line_count - 1);
+        selection.end.line = selection.end.line.min(self.line_count - 1);
         let line_end_length = if selection.is_single_line() {
             line_start_length
         } else {
@@ -140,11 +139,10 @@ impl Buffer {
     /// - `text_range`: A `TextRange` struct specifying the range of text to be deleted.
     ///
     pub(crate) fn delete_range(&mut self, text_range: TextRange) {
-        let line_count = self.line_count();
-        if line_count == 0
-            || text_range.start.line >= line_count
+        if self.line_count == 0
+            || text_range.start.line >= self.line_count
             || text_range.is_empty()
-            || text_range.end.line >= line_count
+            || text_range.end.line >= self.line_count
         {
             warn!("delete_range: invalid range {text_range:?}");
             return;
@@ -206,7 +204,7 @@ impl Buffer {
             warn!("start_line out of bounds");
             return;
         };
-        let end_line = text_range.end.line.min(self.line_count().saturating_sub(1));
+        let end_line = text_range.end.line.min(self.line_count.saturating_sub(1));
         let Some((end_group_index, end_line_in_group)) = self.find_group_index(end_line) else {
             warn!("end_line out of bounds");
             return;
@@ -428,7 +426,7 @@ impl Buffer {
     pub(crate) fn prepare_range_for_read<R: RangeBounds<usize>>(&mut self, range: R) {
         use std::ops::Bound;
 
-        let total_lines = self.line_count();
+        let total_lines = self.line_count;
 
         // Normalize start
         let mut start = match range.start_bound() {
@@ -602,7 +600,7 @@ impl Buffer {
             self.compute_metadata();
             self.recompute_first_lines();
             self.dirty = true;
-        } else if line_index == self.line_count() {
+        } else if line_index == self.line_count {
             for line_text in lines {
                 self.push_line(line_text);
             }
@@ -647,7 +645,7 @@ impl Buffer {
         let (length, line_count) = self
             .content
             .iter()
-            .map(|line_group| (line_group.len() as u64, line_group.line_count()))
+            .map(|line_group| (line_group.len(), line_group.line_count()))
             .reduce(|(l1, lc1), (l2, lc2)| (l1 + l2, lc1 + lc2))
             .unwrap_or((0, 0));
         self.length = length;
@@ -710,15 +708,15 @@ impl Buffer {
         let end = match range.end_bound() {
             Bound::Included(&e) => e + 1,
             Bound::Excluded(&e) => e,
-            Bound::Unbounded => self.line_count(),
+            Bound::Unbounded => self.line_count,
         };
-        (start.min(self.line_count()), end.min(self.line_count()))
+        (start.min(self.line_count), end.min(self.line_count))
     }
 
     #[cfg(test)]
     fn debug(&self) {
         println!("Buffer Debug Info:");
-        println!("Line Count: {}", self.line_count());
+        println!("Line Count: {}", self.line_count);
         println!("Dirty: {}", self.dirty);
         println!("Content:");
         for line_group in &self.content {
@@ -774,7 +772,7 @@ mod tests {
     #[test]
     fn from_str_builds_lines_and_lengths() {
         let mut b = Buffer::new_test_buffer("a\nbb\nccc", 2);
-        assert_eq!(b.line_count(), 3);
+        assert_eq!(b.line_count, 3);
         // Each line counted as len+1 in our model
         assert_eq!(b.len(), (1 + 1) + (2 + 1) + (3 + 1));
         assert_eq!(b.max_line_length(), 3);
@@ -805,7 +803,7 @@ mod tests {
             b.push_line(format!("{:03}", i));
         }
         // We should still report correct counts and access
-        assert_eq!(b.line_count(), b.group_size);
+        assert_eq!(b.line_count, b.group_size);
         assert_eq!(b.max_line_length(), 3);
         // Access a few positions
         b.prepare_range_for_read(0..10);
@@ -841,7 +839,7 @@ mod tests {
     fn retain_line_mut_keeps_predicate_matches() {
         let mut b = Buffer::new_test_buffer("a\nbb\nccc\ndddd", 2);
         let _ = b.retain_line_mut(|l| l.len() % 2 == 0); // keep even lengths: 2 and 4
-        assert_eq!(b.line_count(), 2);
+        assert_eq!(b.line_count, 2);
         assert_eq!(b.line_text(0), "bb");
         assert_eq!(b.line_text(1), "dddd");
         assert!(b.dirty);
@@ -858,7 +856,7 @@ mod tests {
         // expected: ["l0", "l3", "l4"]
         // groups: G0: [l0], G1: [l3], G2: [l4] (or merged, but drain_line_mut doesn't merge)
         buffer.debug();
-        assert_eq!(buffer.line_count(), 3);
+        assert_eq!(buffer.line_count, 3);
         buffer.prepare_range_for_read(..);
         assert_eq!(buffer.line_text(0), "l0");
         assert_eq!(buffer.line_text(1), "l3");
@@ -867,7 +865,7 @@ mod tests {
         // Remove last element with inclusive range
         let mut buffer = Buffer::new_test_buffer("l0\nl1\nl2", 2);
         let _ = buffer.drain_line_mut(2..=2);
-        assert_eq!(buffer.line_count(), 2);
+        assert_eq!(buffer.line_count, 2);
         buffer.prepare_range_for_read(..);
         assert_eq!(buffer.line_text(0), "l0");
         assert_eq!(buffer.line_text(1), "l1");
@@ -875,7 +873,7 @@ mod tests {
         // Remove all lines
         let mut buffer = Buffer::new_test_buffer("l0\nl1\nl2", 2);
         let _ = buffer.drain_line_mut(..);
-        assert_eq!(buffer.line_count(), 0);
+        assert_eq!(buffer.line_count, 0);
     }
 
     #[test]
@@ -887,8 +885,7 @@ mod tests {
         buffer.drain_line_mut(1..4);
         // Expected: ["l0", "l4"]
         assert_eq!(
-            buffer.line_count(),
-            2,
+            buffer.line_count, 2,
             "Line count should be 2 after draining 1..4"
         );
         buffer.prepare_range_for_read(..);
@@ -901,11 +898,11 @@ mod tests {
         // Drain 0..3 (l0, l1, l2)
         // start_line_in_group = 0
         // lines_to_delete = 3
-        // line_group.line_count() = 2
+        // line_group.line_count = 2
         // current code's should_remove_first_group = (0 == 0 && 2 == 3) => false
         // BUT it SHOULD remove G0 because l0, l1 are both being deleted.
         buffer.drain_line_mut(0..3);
-        assert_eq!(buffer.line_count(), 1);
+        assert_eq!(buffer.line_count, 1);
         buffer.prepare_range_for_read(..);
         assert_eq!(buffer.line_text(0), "l3");
     }
@@ -929,7 +926,7 @@ mod tests {
         let mut b = Buffer::new_test_buffer("abcdef", 2);
         b.delete_range(TextRange::new(Position::new(0, 2), Position::new(0, 5)));
         assert_eq!(b.line_text(0), "abf");
-        assert_eq!(b.line_count(), 1);
+        assert_eq!(b.line_count, 1);
         assert!(b.dirty);
     }
 
@@ -939,7 +936,7 @@ mod tests {
         b.delete_range(TextRange::new(Position::new(0, 2), Position::new(1, 3)));
         assert_eq!(b.line_text(0), "held");
         assert_eq!(b.line_text(1), "!!!");
-        assert_eq!(b.line_count(), 2);
+        assert_eq!(b.line_count, 2);
         assert!(b.dirty);
     }
 
@@ -953,7 +950,7 @@ mod tests {
         buffer.delete_range(range);
         buffer.debug();
         assert_eq!(buffer.line_text(0), "acc");
-        assert_eq!(buffer.line_count(), 1);
+        assert_eq!(buffer.line_count, 1);
         assert!(buffer.dirty);
     }
 
@@ -987,7 +984,7 @@ mod tests {
         let input = "AAAA 1\nBBBB 2\nCCCC 3";
         let mut buffer = Buffer::new_test_buffer(input, 100);
         buffer.delete_range(TextRange::new(Position::new(0, 4), Position::new(2, 4)));
-        assert_eq!(buffer.line_count(), 1);
+        assert_eq!(buffer.line_count, 1);
         assert_eq!(buffer.line_text(0), "AAAA 3");
         assert!(buffer.undo_manager.can_undo());
         if let Some(edit) = buffer.undo_manager.last_undo() {
@@ -997,7 +994,7 @@ mod tests {
             );
         }
         buffer.undo();
-        assert_eq!(buffer.line_count(), 3);
+        assert_eq!(buffer.line_count, 3);
         let content = buffer.to_string();
         assert_eq!(input, content);
     }
@@ -1031,7 +1028,7 @@ mod tests {
         let mut buffer = Buffer::new_test_buffer("hello", 2);
         let initial_length = buffer.len();
         buffer.insert_newline(Position::new(0, 2));
-        assert_eq!(buffer.line_count(), 2);
+        assert_eq!(buffer.line_count, 2);
         assert_eq!(buffer.line_text(0), "he");
         assert_eq!(buffer.line_text(1), "llo");
         assert!(buffer.len() > initial_length);
@@ -1042,7 +1039,7 @@ mod tests {
     fn test_insert_newline_at_line_beginning() {
         let mut buffer = Buffer::new_test_buffer("hello", 2);
         buffer.insert_newline(Position::ZERO);
-        assert_eq!(buffer.line_count(), 2);
+        assert_eq!(buffer.line_count, 2);
         assert_eq!(buffer.line_text(0), "");
         assert_eq!(buffer.line_text(1), "hello");
         assert!(buffer.dirty);
@@ -1052,7 +1049,7 @@ mod tests {
     fn test_insert_newline_at_line_end() {
         let mut buffer = Buffer::new_test_buffer("hello", 2);
         buffer.insert_newline(Position::new(0, 5));
-        assert_eq!(buffer.line_count(), 2);
+        assert_eq!(buffer.line_count, 2);
         assert_eq!(buffer.line_text(0), "hello");
         assert_eq!(buffer.line_text(1), "");
         assert!(buffer.dirty);
@@ -1062,7 +1059,7 @@ mod tests {
     fn test_insert_char_newline_using_insert_char() {
         let mut buffer = Buffer::new_test_buffer("hello", 2);
         buffer.insert_char(Position::new(0, 2), '\n');
-        assert_eq!(buffer.line_count(), 2);
+        assert_eq!(buffer.line_count, 2);
         assert_eq!(buffer.line_text(0), "he");
         assert_eq!(buffer.line_text(1), "llo");
     }
