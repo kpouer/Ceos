@@ -99,19 +99,24 @@ const DRAG_STARTED_ID: &str = "drag_started";
 
 impl TextArea<'_> {
     fn handle_mouse_interaction(&mut self, rect: Rect, response: &mut Response) {
-        let Some(pointer_pos) = response.interact_pointer_pos() else {
-            return;
-        };
-        if response.clicked() {
-            self.handle_click(rect, response, &pointer_pos);
-        } else if response.double_clicked() {
-            self.handle_double_click(rect, response, &pointer_pos);
-        } else if response.drag_started() {
-            self.handle_drag_start(rect, response, &pointer_pos);
+        let pointer_pos = response.interact_pointer_pos();
+        if let Some(pos) = pointer_pos {
+            if response.clicked() {
+                self.handle_click(rect, response, &pos);
+            } else if response.double_clicked() {
+                self.handle_double_click(rect, response, &pos);
+            } else if response.drag_started() {
+                self.handle_drag_start(rect, response, &pos);
+            } else if response.dragged() {
+                self.handle_dragged(rect, response, &pos);
+            } else if response.drag_stopped() {
+                self.handle_drag_stopped(rect, response, &pos);
+            }
         } else if response.dragged() {
-            self.handle_dragged(rect, response, &pointer_pos);
-        } else if response.drag_stopped() {
-            self.handle_drag_stopped(rect, response, &pointer_pos);
+            // pointer is out of the screen or area
+            if let Some(pos) = response.ctx.pointer_latest_pos() {
+                self.handle_dragged(rect, response, &pos);
+            }
         }
     }
 
@@ -165,6 +170,44 @@ impl TextArea<'_> {
             error!("There is no drag_started position in the memory !!!");
             return;
         };
+
+        // handle auto-scroll
+        let mut scroll_delta = Vec2::ZERO;
+        let auto_scroll_threshold = 20.0;
+        let max_scroll_speed = 10.0;
+
+        if pointer_pos.y < rect.top() {
+            scroll_delta.y =
+                -max_scroll_speed * ((rect.top() - pointer_pos.y) / auto_scroll_threshold).min(1.0);
+        } else if pointer_pos.y > rect.bottom() {
+            scroll_delta.y = max_scroll_speed
+                * ((pointer_pos.y - rect.bottom()) / auto_scroll_threshold).min(1.0);
+        }
+
+        if pointer_pos.x < rect.left() {
+            scroll_delta.x = -max_scroll_speed
+                * ((rect.left() - pointer_pos.x) / auto_scroll_threshold).min(1.0);
+        } else if pointer_pos.x > rect.right() {
+            scroll_delta.x = max_scroll_speed
+                * ((pointer_pos.x - rect.right()) / auto_scroll_threshold).min(1.0);
+        }
+
+        if scroll_delta != Vec2::ZERO {
+            self.textarea_properties.scroll_offset += scroll_delta;
+            // clamp scroll offset
+            self.textarea_properties.scroll_offset.y = self
+                .textarea_properties
+                .scroll_offset
+                .y
+                .clamp(0.0, self.textarea_properties.text_height());
+            self.textarea_properties.scroll_offset.x = self
+                .textarea_properties
+                .scroll_offset
+                .x
+                .clamp(0.0, self.textarea_properties.text_width());
+            response.ctx.request_repaint();
+        }
+
         response.mark_changed();
         let position = self.build_position(rect, pointer_pos);
         match self.textarea_properties.interaction_mode {
