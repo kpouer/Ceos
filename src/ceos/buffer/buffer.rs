@@ -28,7 +28,10 @@ pub struct Buffer {
     content: Vec<LineGroup>,
     /// a decompressed group for temporary access
     tmp_decompressed_group: usize,
+    /// The buffer length
     length: u64,
+    /// The buffer line count
+    line_count: usize,
     pub(crate) dirty: bool,
     pub(crate) sender: Sender<Event>,
     /// The size of the groups used for line compression.
@@ -61,6 +64,7 @@ impl Buffer {
             content: vec![LineGroup::new(0, group_size)],
             tmp_decompressed_group: 0,
             length: 0,
+            line_count: 0,
             dirty: false,
             sender,
             group_size,
@@ -117,6 +121,7 @@ impl Buffer {
         let last_group = self.content.last_mut().expect("buffer is empty");
 
         self.length += (line.len() + LINE_SEPARATOR_LEN) as u64;
+        self.line_count += 1;
         last_group.push(line);
 
         if last_group.is_full() {
@@ -154,7 +159,7 @@ impl Buffer {
             self.delete_in_lines(text_range);
         }
 
-        self.compute_length();
+        self.compute_metadata();
         self.recompute_first_lines();
         self.dirty = true;
     }
@@ -306,7 +311,8 @@ impl Buffer {
         // Convert RangeBounds to concrete start..end
         let (start_line, end_line) = self.normalize_range(range);
         if start_line >= end_line {
-            return self.compute_length();
+            let (new_length, _) = self.compute_metadata();
+            return new_length;
         }
 
         let (start_group_index, start_line_in_group) = self
@@ -348,7 +354,7 @@ impl Buffer {
             self.content.remove(start_group_index);
         }
 
-        let new_length = self.compute_length();
+        let (new_length, _) = self.compute_metadata();
         self.recompute_first_lines();
         self.dirty = true;
         new_length
@@ -381,7 +387,7 @@ impl Buffer {
                 .send(Event::OperationIncrement(ProgressOperation::Filtering, 1));
             line_group.filter_lines_mut(filter.clone());
         });
-        let new_length = self.compute_length();
+        let (new_length, _) = self.compute_metadata();
         self.dirty = true;
         let _ = self
             .sender
@@ -405,7 +411,7 @@ impl Buffer {
         });
         // remove empty groups
         self.content.retain(|g| !g.is_empty());
-        let new_length = self.compute_length();
+        let (new_length, _) = self.compute_metadata();
         self.recompute_first_lines();
         self.dirty = true;
         let _ = self
@@ -527,7 +533,7 @@ impl Buffer {
     }
 
     pub(crate) fn line_count(&self) -> usize {
-        self.content.iter().map(LineGroup::line_count).sum()
+        self.line_count
     }
 
     pub(crate) fn insert_char(&mut self, position: Position, ch: char) {
@@ -544,7 +550,7 @@ impl Buffer {
                 true,
             );
 
-            self.compute_length();
+            self.compute_metadata();
             self.dirty = true;
         }
     }
@@ -562,7 +568,7 @@ impl Buffer {
             if let Some(suffix) = suffix {
                 line_group.insert_line(relative_line_index + 1, suffix);
             }
-            self.compute_length();
+            self.compute_metadata();
             self.recompute_first_lines();
             self.dirty = true;
         }
@@ -578,7 +584,7 @@ impl Buffer {
             line_group.filter_line_mut(li, |line| {
                 line.insert_str(position.column, text);
             });
-            self.compute_length();
+            self.compute_metadata();
             self.dirty = true;
         }
     }
@@ -593,7 +599,7 @@ impl Buffer {
             for (i, line_text) in lines.into_iter().enumerate() {
                 line_group.insert_line(li + i, line_text);
             }
-            self.compute_length();
+            self.compute_metadata();
             self.recompute_first_lines();
             self.dirty = true;
         } else if line_index == self.line_count() {
@@ -637,9 +643,16 @@ impl Buffer {
             .sum()
     }
 
-    pub(crate) fn compute_length(&mut self) -> u64 {
-        self.length = self.content.iter().map(LineGroup::len).sum::<u64>();
-        self.length
+    fn compute_metadata(&mut self) -> (u64, usize) {
+        let (length, line_count) = self
+            .content
+            .iter()
+            .map(|line_group| (line_group.len() as u64, line_group.line_count()))
+            .reduce(|(l1, lc1), (l2, lc2)| (l1 + l2, lc1 + lc2))
+            .unwrap_or((0, 0));
+        self.length = length;
+        self.line_count = line_count;
+        (self.length, self.line_count)
     }
 
     pub(crate) fn mem(&self) -> usize {
