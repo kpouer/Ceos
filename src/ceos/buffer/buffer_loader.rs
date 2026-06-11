@@ -4,7 +4,7 @@ use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use flate2::bufread::GzDecoder;
 use std::fs::File;
 use std::io;
-use std::io::{BufRead, Error};
+use std::io::{BufRead, Error, Read};
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
@@ -56,10 +56,28 @@ impl BufferLoader {
         Ok(())
     }
 
-    fn load_reader(&mut self, file_size: u64, buffer_reader: impl BufRead) -> Result<(), Error> {
+    fn load_reader(&mut self, file_size: u64, mut buffer_reader: impl BufRead) -> Result<(), Error> {
         let mut start = Instant::now();
-        for line_text in buffer_reader.lines() {
-            self.buffer.push_line(line_text?);
+        let mut line_buffer = Vec::new();
+
+        loop {
+            line_buffer.clear();
+            let bytes_read = buffer_reader.read_until(b'\n', &mut line_buffer)?;
+            if bytes_read == 0 {
+                break;
+            }
+
+            // Remove the trailing newline for consistency with lines()
+            if line_buffer.ends_with(b"\n") {
+                line_buffer.pop();
+                if line_buffer.ends_with(b"\r") {
+                    line_buffer.pop();
+                }
+            }
+
+            let line_text = String::from_utf8_lossy(&line_buffer).to_string();
+            self.buffer.push_line(line_text);
+
             if start.elapsed() > Duration::from_millis(50) {
                 let path = self.buffer.path.clone().expect("buffer has no path");
                 let _ = self
