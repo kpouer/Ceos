@@ -365,18 +365,10 @@ impl TextAreaProperties {
             }
             return;
         }
-
-        if self.caret_position.position < old_caret_position {
-            self.set_selection(Selection::new(
-                self.caret_position.position,
-                old_caret_position,
-            ));
-        } else {
-            self.set_selection(Selection::new(
-                old_caret_position,
-                self.caret_position.position,
-            ));
-        }
+        self.set_selection(Selection::new(
+            old_caret_position,
+            self.caret_position.position,
+        ));
     }
 
     pub(crate) fn input_enter(&mut self) {
