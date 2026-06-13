@@ -234,13 +234,10 @@ impl TextArea<'_> {
         drag_end_position: Position,
     ) {
         if drag_start_position == drag_end_position {
+            self.textarea_properties.clear_selection();
             return;
         }
-        let selection = if drag_start_position < drag_end_position {
-            Selection::new(drag_start_position, drag_end_position)
-        } else {
-            Selection::new(drag_end_position, drag_start_position)
-        };
+        let selection = Selection::new(drag_start_position, drag_end_position);
         self.textarea_properties.set_selection(selection);
     }
 

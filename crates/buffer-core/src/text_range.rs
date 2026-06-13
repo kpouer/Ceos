@@ -1,5 +1,4 @@
 use crate::position::Position;
-use log::error;
 use std::fmt::{Display, Formatter};
 
 pub type Selection = TextRange;
@@ -13,7 +12,6 @@ pub struct TextRange {
 impl TextRange {
     pub fn new(start: Position, end: Position) -> Self {
         if end < start {
-            error!("New TextRange start must be < end : {start}<{end}");
             Self {
                 start: end,
                 end: start,
