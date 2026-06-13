@@ -56,7 +56,11 @@ impl BufferLoader {
         Ok(())
     }
 
-    fn load_reader(&mut self, file_size: u64, mut buffer_reader: impl BufRead) -> Result<(), Error> {
+    fn load_reader(
+        &mut self,
+        file_size: u64,
+        mut buffer_reader: impl BufRead,
+    ) -> Result<(), Error> {
         let mut start = Instant::now();
         let mut line_buffer = Vec::new();
 
