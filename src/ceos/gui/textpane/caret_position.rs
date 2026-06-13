@@ -1,4 +1,5 @@
 use buffer_core::position::Position;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
 pub(crate) struct CaretPosition {
@@ -31,5 +32,15 @@ impl CaretPosition {
             position,
             virtual_column: position.column,
         }
+    }
+}
+
+impl Display for CaretPosition {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "pos:{} virtual_column:{}",
+            self.position, self.virtual_column
+        )
     }
 }
