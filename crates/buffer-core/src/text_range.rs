@@ -1,5 +1,6 @@
 use crate::position::Position;
 use log::error;
+use std::fmt::{Display, Formatter};
 
 pub type Selection = TextRange;
 
@@ -35,6 +36,12 @@ impl TextRange {
     #[inline]
     pub const fn is_single_line(&self) -> bool {
         self.start.line == self.end.line
+    }
+}
+
+impl Display for TextRange {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{},{}]", self.start, self.end)
     }
 }
 
