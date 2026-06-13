@@ -361,7 +361,7 @@ impl TextArea<'_> {
             .caret_position
             .set_position(new_caret_position);
         info!(
-            "new caret position {:?}",
+            "new caret position {}",
             self.textarea_properties.caret_position
         );
     }
