@@ -47,8 +47,12 @@ impl TextAreaProperties {
         renderer_manager.add_renderer(SELECTION_LAYER, Box::new(SelectionRenderer));
         renderer_manager.add_renderer(CARET_LAYER, Box::new(CaretRenderer));
         renderer_manager.add_renderer(HIGHLIGHT_LAYER, Box::new(HighlightPainter));
+        #[cfg(debug_assertions)]
+        let buffer = Buffer::lorem_ipsum(sender);
+        #[cfg(not(debug_assertions))]
+        let buffer = Buffer::new_empty_buffer(sender);
         Self {
-            buffer: Buffer::new_empty_buffer(sender),
+            buffer,
             renderer_manager,
             line_height: DEFAULT_LINE_HEIGHT,
             font_id,
