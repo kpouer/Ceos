@@ -380,7 +380,7 @@ impl TextArea<'_> {
     fn build_position(&self, rect: Rect, pos: &Pos2) -> Position {
         let column = self.textarea_properties.x_to_column(pos.x - rect.left());
         let line = self.textarea_properties.y_to_line(pos.y - rect.top());
-        Position { column, line }
+        Position::new(line, column)
     }
 
     fn handle_input(&mut self, ctx: &Context, _top_left: Pos2, has_focus: bool) {
