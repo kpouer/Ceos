@@ -101,10 +101,11 @@ impl TextArea<'_> {
     fn handle_mouse_interaction(&mut self, rect: Rect, response: &mut Response) {
         let pointer_pos = response.interact_pointer_pos();
         if let Some(pos) = pointer_pos {
-            if response.clicked() {
-                self.handle_click(rect, response, &pos);
-            } else if response.double_clicked() {
+            // double click must be tested before click
+            if response.double_clicked() {
                 self.handle_double_click(rect, response, &pos);
+            } else if response.clicked() {
+                self.handle_click(rect, response, &pos);
             } else if response.drag_started() {
                 self.handle_drag_start(rect, response, &pos);
             } else if response.dragged() {
@@ -128,6 +129,7 @@ impl TextArea<'_> {
     }
 
     fn handle_double_click(&mut self, rect: Rect, response: &mut Response, pointer_pos: &Pos2) {
+        info!("handle_double_click");
         self.handle_click(rect, response, pointer_pos);
         let caret_position = self.textarea_properties.caret_position;
         let text = self
