@@ -255,6 +255,14 @@ impl TextAreaProperties {
 
     pub(crate) fn go_to_prev_char(&mut self, select: bool) {
         let old_caret_position = self.caret_position;
+        if !select {
+            // we take the selection because we wan't to clear it
+            if let Some(selection) = self.selection.take() {
+                self.caret_position.position = selection.start;
+                self.caret_position.reset_virtual_column();
+                return;
+            }
+        }
         if self.caret_position.position.column > 0 {
             self.caret_position.position.column -= 1;
         } else if self.caret_position.position.line > 0 {
@@ -265,11 +273,23 @@ impl TextAreaProperties {
 
         self.caret_position.reset_virtual_column();
 
-        self.update_selection_after_caret_move(old_caret_position.position, select);
+        if select {
+            self.update_selection_after_caret_move(old_caret_position.position, select);
+        } else {
+            self.clear_selection();
+        }
     }
 
     pub(crate) fn go_to_next_char(&mut self, select: bool) {
         let old_caret_position = self.caret_position;
+        if !select {
+            // we take the selection because we wan't to clear it
+            if let Some(selection) = self.selection.take() {
+                self.caret_position.position = selection.end;
+                self.caret_position.reset_virtual_column();
+                return;
+            }
+        }
         if self.caret_position.position.column
             < self.buffer.line_length(self.caret_position.position.line)
         {
@@ -281,7 +301,9 @@ impl TextAreaProperties {
 
         self.caret_position.reset_virtual_column();
 
-        self.update_selection_after_caret_move(old_caret_position.position, select);
+        if select {
+            self.update_selection_after_caret_move(old_caret_position.position, select);
+        }
     }
 
     pub(crate) fn go_to_prev_line(&mut self, select: bool) {
