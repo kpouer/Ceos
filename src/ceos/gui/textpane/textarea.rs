@@ -139,14 +139,8 @@ impl TextArea<'_> {
 
         let end_col = text_tool.find_word_end(caret_position.position.column);
         self.textarea_properties.set_selection(Selection::new(
-            Position {
-                line: caret_position.position.line,
-                column: start_col,
-            },
-            Position {
-                line: caret_position.position.line,
-                column: end_col,
-            },
+            Position::new(caret_position.position.line, start_col),
+            Position::new(caret_position.position.line, end_col),
         ));
     }
 
