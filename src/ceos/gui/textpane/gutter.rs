@@ -23,6 +23,14 @@ impl<'a> Gutter<'a> {
             virtual_rect,
         }
     }
+
+    pub(crate) const fn gutter_width(char_width: f32, line_count: usize) -> f32 {
+        if line_count == 0 {
+            char_width * 3.0
+        } else {
+            char_width * (2.0 + 1.0 + line_count.ilog10() as f32)
+        }
+    }
 }
 
 impl Widget for Gutter<'_> {
@@ -61,14 +69,6 @@ impl Widget for Gutter<'_> {
     }
 }
 
-pub(crate) const fn gutter_width(char_width: f32, line_count: usize) -> f32 {
-    if line_count == 0 {
-        char_width * 3.0
-    } else {
-        char_width * (2.0 + 1.0 + line_count.ilog10() as f32)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -86,6 +86,6 @@ mod tests {
         #[case] line_count: usize,
         #[case] expected: f32,
     ) {
-        assert_eq!(gutter_width(char_width, line_count), expected);
+        assert_eq!(Gutter::gutter_width(char_width, line_count), expected);
     }
 }

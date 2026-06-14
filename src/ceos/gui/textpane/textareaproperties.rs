@@ -1,6 +1,6 @@
 use crate::ceos::buffer::buffer::Buffer;
 use crate::ceos::gui::textpane::caret_position::CaretPosition;
-use crate::ceos::gui::textpane::gutter;
+use crate::ceos::gui::textpane::gutter::Gutter;
 use crate::ceos::gui::textpane::interaction_mode::InteractionMode;
 use crate::ceos::gui::textpane::renderer::caret_renderer::CaretRenderer;
 use crate::ceos::gui::textpane::renderer::renderer_manager::{
@@ -153,7 +153,7 @@ impl TextAreaProperties {
 
     #[inline]
     pub(crate) fn gutter_width(&self) -> f32 {
-        gutter::gutter_width(self.char_width, self.buffer.line_count())
+        Gutter::gutter_width(self.char_width, self.buffer.line_count())
     }
 
     #[inline]
