@@ -48,7 +48,7 @@ impl SaveAction {
                 let _ = self.sender.send(Event::BufferSaving(
                     self.path.to_path_buf(),
                     current as u64,
-                    total_size as u64,
+                    total_size,
                 ));
             }
         }
@@ -60,10 +60,9 @@ impl Action for SaveAction {
     fn execute(&self, buffer: &mut Buffer) {
         let path = self.path.to_owned();
 
-        let _ = self.sender.send(Event::BufferSavingStarted(
-            path.clone(),
-            buffer.len() as u64,
-        ));
+        let _ = self
+            .sender
+            .send(Event::BufferSavingStarted(path.clone(), buffer.len()));
 
         // Détecter si le fichier doit être compressé en gzip
         let is_gzip = path

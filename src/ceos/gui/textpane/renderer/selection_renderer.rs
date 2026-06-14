@@ -23,7 +23,7 @@ impl Renderer for SelectionRenderer {
             return;
         };
         let (Some(start_x), Some(end_x)) = Self::get_start_stop(
-            &selection,
+            selection,
             line,
             line_text,
             drawing_pos.x,

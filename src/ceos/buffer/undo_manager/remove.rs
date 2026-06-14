@@ -121,7 +121,7 @@ impl Remove {
             }
         }
 
-        CaretState::Selection(self.text_range.into())
+        CaretState::Selection(self.text_range)
     }
 
     pub fn redo(&self, buffer: &mut Buffer) -> CaretState {
