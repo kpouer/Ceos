@@ -137,7 +137,12 @@ impl TextAreaProperties {
     }
 
     pub(crate) const fn x_to_column(&self, x: f32) -> usize {
-        (x / self.char_width).round() as usize
+        // no idea why I have to do that when dragging
+        if x < self.char_width {
+            0
+        } else {
+            (x / self.char_width).round() as usize
+        }
     }
 
     pub(crate) const fn y_to_line(&self, y: f32) -> usize {
