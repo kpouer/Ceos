@@ -219,7 +219,7 @@ impl eframe::App for Ceos {
             HelpPanel::show(ui.ctx(), &mut self.widget_status.show_help);
         }
         if self.widget_status.show_search {
-            egui::Panel::top("search_panel").show_inside(ui, |ui| {
+            egui::Panel::top("search_panel").show(ui, |ui| {
                 self.search_toolbar.ui(
                     ui,
                     &mut self.widget_status.show_search,
@@ -232,7 +232,7 @@ impl eframe::App for Ceos {
 
         egui::CentralPanel::default()
             .frame(egui::containers::Frame::NONE)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 if self.textarea_properties.char_width == 0.0 {
                     let char_width =
                         gui::tools::char_width(self.textarea_properties.font_id.clone(), ui);
@@ -269,7 +269,7 @@ impl Ceos {
     }
 
     fn build_menu_panel(&mut self, ui: &mut Ui) {
-        egui::Panel::top("top_panel").show_inside(ui, |ui| {
+        egui::Panel::top("top_panel").show(ui, |ui| {
             // The top panel is often a good place for a menu bar:
 
             egui::MenuBar::new().ui(ui, |ui| {
@@ -398,7 +398,7 @@ impl Ceos {
         if self.search_result_panel.search.has_results() {
             bottom = bottom.max_size(200.0).default_size(200.0).resizable(true);
         }
-        bottom.show_inside(ui, |ui| {
+        bottom.show(ui, |ui| {
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
                     ui.label("Command: ");

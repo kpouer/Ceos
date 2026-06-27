@@ -4,7 +4,7 @@ use crate::event::Event::{BufferLoading, BufferLoadingStarted};
 use flate2::bufread::GzDecoder;
 use std::fs::File;
 use std::io;
-use std::io::{BufRead, Error, Read};
+use std::io::{BufRead, Error};
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};

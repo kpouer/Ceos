@@ -31,7 +31,7 @@ impl<'a> DockManager<'a> {
             .resizable(true)
             .size_range(30.0..=ui.available_width())
             .default_size(self.docking_status.side_panel_width)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 ui.spacing_mut().item_spacing = Vec2::ZERO;
                 if panel_id == "highlight_panel" {
                     HighlightPanel::new(self.highlight_manager, self.sender).ui(ui);

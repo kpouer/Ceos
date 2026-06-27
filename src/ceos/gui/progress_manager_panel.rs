@@ -27,7 +27,7 @@ where
 {
     fn ui(self, ui: &mut Ui) -> Response {
         egui::CentralPanel::default()
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
                     self.progress_manager
                         .iter()
