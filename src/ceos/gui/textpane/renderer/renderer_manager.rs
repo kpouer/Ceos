@@ -12,7 +12,7 @@ pub(crate) const CARET_LAYER: u8 = 150;
 
 #[derive(Default, Debug)]
 pub(crate) struct RendererManager {
-    pub(crate) renderers: Vec<RendererEntry>,
+    renderers: Vec<RendererEntry>,
 }
 
 impl RendererManager {
@@ -59,7 +59,7 @@ impl RendererManager {
 }
 
 #[derive(Debug)]
-pub(crate) struct RendererEntry {
+struct RendererEntry {
     layer: u8,
-    pub(crate) renderer: Box<dyn Renderer>,
+    renderer: Box<dyn Renderer>,
 }
