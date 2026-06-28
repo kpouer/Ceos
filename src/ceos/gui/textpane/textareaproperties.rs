@@ -14,7 +14,7 @@ use buffer_core::caret_state::CaretState;
 use buffer_core::position::Position;
 use buffer_core::text_range::Selection;
 use buffer_core::text_range::TextRange;
-use eframe::emath::{Pos2, Rect, Vec2};
+use eframe::emath::{Rect, Vec2};
 use eframe::epaint::FontId;
 use highlight::manager::HighlightManager;
 use log::{debug, info, warn};
@@ -147,13 +147,6 @@ impl TextAreaProperties {
 
     pub(crate) const fn y_to_line(&self, y: f32) -> usize {
         (y / self.line_height).floor() as usize
-    }
-
-    pub(crate) const fn point_to_text_position(&self, point: Pos2) -> Position {
-        Position {
-            column: self.x_to_column(point.x),
-            line: self.y_to_line(point.y),
-        }
     }
 
     #[inline]

@@ -5,7 +5,6 @@ use eframe::emath::Pos2;
 use eframe::epaint::FontId;
 use egui::Ui;
 
-pub(crate) const BASE_LAYER: u8 = 0;
 pub(crate) const SELECTION_LAYER: u8 = 30;
 pub(crate) const HIGHLIGHT_LAYER: u8 = 50;
 pub(crate) const TEXT_LAYER: u8 = 100;

@@ -488,9 +488,4 @@ impl TextArea<'_> {
             egui::FontFamily::Monospace,
         )));
     }
-
-    #[inline]
-    fn visible_line_count(&self) -> usize {
-        (self.virtual_rect.height() / self.textarea_properties.line_height) as usize
-    }
 }
